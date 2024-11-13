@@ -158,6 +158,7 @@ __forceinline__ __device__ void copy_global_to_shared_swizzled(elmType * shared,
         core_matrix_row_y_in_tile = core_matrix_row_y_in_tile / 2 + (core_matrix_row_y_in_tile % 2) * (load_tile_height / 2);
 
         #ifdef SWIZZLE
+//    TODO: check if this can make swizzling work or need to switch back?
 //        unsigned int core_matrix_row_y_in_tile_swizzled = core_matrix_row_x_in_tile;
         unsigned int core_matrix_row_y_in_tile_swizzled = core_matrix_row_y_in_tile;
         unsigned int core_matrix_row_x_in_tile_swizzled = core_matrix_row_y_in_tile ^ core_matrix_row_x_in_tile;
@@ -178,6 +179,9 @@ __forceinline__ __device__ void copy_global_to_shared_swizzled(elmType * shared,
 
         auto global_core_matrix_row_ptr = &global[core_matrix_row_global_offset_y * global_width + core_matrix_row_global_offset_x];
 
+//        if (threadIdx.x == 1 && blockIdx.x == 0 && blockIdx.y == 0) {
+//            printf("%p, %p, %d\n", shared_core_matrix_row_ptr, global_core_matrix_row_ptr, thread_i_in_core_matrix_row);
+//        }
 
         if (load_tile_y < height / load_tile_height)
         {
@@ -187,34 +191,35 @@ __forceinline__ __device__ void copy_global_to_shared_swizzled(elmType * shared,
             pipeline.producer_acquire();
             #endif
             #endif
-            if (core_matrix_row_global_offset_x < global_width && core_matrix_row_global_offset_y < global_height) {
+//            TODO: do bounds checking using cp.async or __pipeline_memcpy_async interface instead to allow full coalescing
+//            if (core_matrix_row_global_offset_x < global_width && core_matrix_row_global_offset_y < global_height) {
                 #ifdef SYNC_CPY
                 reinterpret_cast<LOAD_TYPE *>(shared_core_matrix_row_ptr)[thread_i_in_core_matrix_row] = reinterpret_cast<LOAD_TYPE *>(global_core_matrix_row_ptr)[thread_i_in_core_matrix_row];
                 #else
                 #ifdef USE_PIPELINE
-                cuda::memcpy_async(&reinterpret_cast<LOAD_TYPE *>(shared_core_matrix_row_ptr)[thread_i_in_core_matrix_row], &reinterpret_cast<LOAD_TYPE *>(global_core_matrix_row_ptr)[thread_i_in_core_matrix_row], load_size, pipeline);
+                cuda::memcpy_async(&reinterpret_cast<LOAD_TYPE *>(shared_core_matrix_row_ptr)[thread_i_in_core_matrix_row], &reinterpret_cast<LOAD_TYPE *>(global_core_matrix_row_ptr)[thread_i_in_core_matrix_row], aligned_size, pipeline);
                 #else
                 cp_async<load_size>(&reinterpret_cast<LOAD_TYPE *>(shared_core_matrix_row_ptr)[thread_i_in_core_matrix_row], &reinterpret_cast<LOAD_TYPE *>(global_core_matrix_row_ptr)[thread_i_in_core_matrix_row]);
                 #endif
                 #endif
-            } else {
-                // TODO: handle zeros, use ignore-src or src-size
-
-                #ifdef SYNC_CPY
-                reinterpret_cast<LOAD_TYPE *>(shared_core_matrix_row_ptr)[thread_i_in_core_matrix_row] = LOAD_TYPE();
-                #else
-                #ifdef USE_PIPELINE
-                cuda::memcpy_async(&reinterpret_cast<LOAD_TYPE *>(shared_core_matrix_row_ptr)[thread_i_in_core_matrix_row], &zero_elm, load_size, pipeline);
-                #else
-                cp_async<load_size>(&reinterpret_cast<LOAD_TYPE *>(shared_core_matrix_row_ptr)[thread_i_in_core_matrix_row], zero_elm);
-                #endif
-                #endif
-            }
+//            } else {
+//                // TODO: handle zeros, use ignore-src or src-size
+//
+//                #ifdef SYNC_CPY
+//                reinterpret_cast<LOAD_TYPE *>(shared_core_matrix_row_ptr)[thread_i_in_core_matrix_row] = LOAD_TYPE();
+//                #else
+//                #ifdef USE_PIPELINE
+//                cuda::memcpy_async(&reinterpret_cast<LOAD_TYPE *>(shared_core_matrix_row_ptr)[thread_i_in_core_matrix_row], &zero_elm, load_size, pipeline);
+//                #else
+//                cp_async<load_size>(&reinterpret_cast<LOAD_TYPE *>(shared_core_matrix_row_ptr)[thread_i_in_core_matrix_row], zero_elm);
+//                #endif
+//                #endif
+//            }
             #ifdef EARLY_COMMIT
             #ifdef USE_PIPELINE
             pipeline.producer_commit();
             #else
-//            __syncwarp();
+            __syncwarp();
             cp_async_commit();
             #endif
             #endif
@@ -241,6 +246,7 @@ __forceinline__ __device__ void load_frags(unsigned int warpQuarter, unsigned in
     unsigned int core_matrix_row_y_in_tile = warpIDInQuarter;
 
     #ifdef SWIZZLE
+//    TODO: check if this can make swizzling work or need to switch back?
 //        unsigned int core_matrix_row_y_in_tile_swizzled = core_matrix_row_x_in_tile;
     unsigned int core_matrix_row_y_in_tile_swizzled = core_matrix_row_y_in_tile;
     unsigned int core_matrix_row_x_in_tile_swizzled = core_matrix_row_y_in_tile ^ core_matrix_row_x_in_tile;

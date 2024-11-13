@@ -123,6 +123,22 @@ gemm_simple(ProblemShape shape_MNK,
     Tensor tCgC = thr_mma.partition_C(gC);                               // (MMA,MMA_M,MMA_N)
     Tensor tCrC = thr_mma.make_fragment_C(tCgC);                         // (MMA,MMA_M,MMA_N)
 
+    if (thread0())
+    {
+//        using Test1 = TiledMma::CLayout;
+//        using Test2 = TiledMma::LayoutC_TV;
+//        using Test3 = TiledMma::AtomLayoutC_TV;
+//        Test1 test1;
+//        Test2 test2;
+//        Test3 test3;
+//        print(tCrC); print("\n");
+//        print(thr_mma.partition_C(make_tensor(&test3, Layout<Shape<_128, _128>,Stride<_128, _1>>{}))); print("\n");
+//        print(thr_mma.thrfrg_C(Layout<Shape<_128, _128>,Stride<_128, _1>>{})); print("\n");
+//        print(test1); print("\n");
+//        print(test2); print("\n");
+//        print(test3); print("\n");
+    }
+
 #if 1
     CUTE_STATIC_ASSERT_V(size<1>(tAgA) == size<1>(tAsA));                // CPY_M
     CUTE_STATIC_ASSERT_V(size<2>(tAgA) == size<2>(tAsA));                // CPY_K
@@ -173,7 +189,7 @@ gemm_simple(ProblemShape shape_MNK,
         __syncthreads();
         copy(copyA_global_shared, tAgA(_,_,_,k_tile), tAsA);
         copy(copyB_global_shared, tBgB(_,_,_,k_tile), tBsB);
-#ifndef NO_CPASYNC
+#ifndef SYNC_CPY
         cp_async_fence();
         cp_async_wait<0>();
 #endif

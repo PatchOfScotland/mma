@@ -126,8 +126,8 @@ long int benchmark_optimized_tensor_mmm(
     cudaDeviceGetAttribute(&max_shared_memory, cudaDevAttrMaxSharedMemoryPerBlockOptin, 0);
 
     #ifdef SWIZZLE
-    constexpr unsigned int shared_memory_used_A = shared_m * shared_k * sizeof(elmT) * num_stages;
-    constexpr unsigned int shared_memory_used_B = shared_k * shared_n * sizeof(elmT) * num_stages;
+    constexpr unsigned int shared_memory_used_A = shared_m * shared_k * sizeof(elmT) * NUM_STAGES;
+    constexpr unsigned int shared_memory_used_B = shared_k * shared_n * sizeof(elmT) * NUM_STAGES;
     #else
     constexpr unsigned int shared_memory_used_A = shared_m * (shared_k + SHARED_PADDING) * sizeof(elmT) * NUM_STAGES;
     constexpr unsigned int shared_memory_used_B = shared_k * (shared_n + SHARED_PADDING) * sizeof(elmT) * NUM_STAGES;
@@ -197,16 +197,16 @@ long int benchmark_cutlass_mmm_simple<half_t, float>(int n_runs,
     // Define mma tiles (static)
     TiledMMA tiled_mma = make_tiled_mma(
         MMA_Atom<SM80_16x8x16_F32F16F16F32_TN>{},
-        Layout<Shape<_2,_2,_1>>{},
-        Tile<_32, _32, _16>{}
+        Layout<Shape<Int<BLOCK_TILES_M>,Int<BLOCK_TILES_N>,_1>>{},
+        Tile<Int<BLOCK_TILES_M * WMMA_M>, Int<BLOCK_TILES_N * WMMA_N>, Int<WMMA_K>>{}
     );
 
 
     //    TODO: try more configs, pipelining, prefetched synchronous copies
     // Define shared memory layout (static)
-    auto bM = Int<128>{};
-    auto bN = Int<128>{};
-    auto bK = Int<64>{};
+    auto bM = Int<WMMA_M * FRAGS_M * WARP_TILES_M * BLOCK_TILES_M>{};
+    auto bN = Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N>{};
+    auto bK = Int<WMMA_K * FRAGS_K * WARP_TILES_K>{};
     auto cta_tiler = make_shape(bM, bN, bK);                 // (BLK_M, BLK_N, BLK_K)
 
     auto swizzle_layoutAtom_A =
@@ -232,7 +232,7 @@ long int benchmark_cutlass_mmm_simple<half_t, float>(int n_runs,
 
 
     // Define global->shared copy tiling (static)
-#ifdef NO_CPASYNC
+#ifdef SYNC_CPY
     using ACopyOpGlobalShared = UniversalCopy<uint128_t>;
     using BCopyOpGlobalShared = UniversalCopy<uint128_t>;
 #else
@@ -243,16 +243,16 @@ long int benchmark_cutlass_mmm_simple<half_t, float>(int n_runs,
 
     TiledCopy copyA_global_shared = make_tiled_copy(Copy_Atom<ACopyOpGlobalShared, TA>{},
             Layout<
-                    Shape<_16,_8>,
-                    Stride<_8,_1>
+                    Shape<Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_K * FRAGS_K * WARP_TILES_K / 8)>, Int<WMMA_K * FRAGS_K * WARP_TILES_K / 8>>,
+                    Stride<Int<WMMA_K * FRAGS_K * WARP_TILES_K / 8>,_1>
             >{},
             Layout<Shape<_1,_8>>{}
     );
 
     TiledCopy copyB_global_shared = make_tiled_copy(Copy_Atom<BCopyOpGlobalShared, TB>{},
             Layout<
-                    Shape<_16,_8>,
-                    Stride<_1,_16>
+                    Shape<Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / 8>, Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / 8)>>,
+                    Stride<_1, Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / 8>>
             >{},
             Layout<Shape<_8,_1>>{}
     );
