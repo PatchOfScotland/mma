@@ -107,8 +107,8 @@ gemm_pipelined(ProblemShape shape_MNK,
     // Shared memory buffers
     auto smemA = reinterpret_cast<TA *>(shared);
     auto smemB = reinterpret_cast<TB *>(smemA + cosize_v<ASmemLayout>);
-    Tensor sA = make_tensor(make_smem_ptr(smemA), sA_layout);            // (BLK_M,BLK_K)
-    Tensor sB = make_tensor(make_smem_ptr(smemB), sB_layout);            // (BLK_N,BLK_K)
+    Tensor sA = make_tensor(make_smem_ptr(smemA), sA_layout);
+    Tensor sB = make_tensor(make_smem_ptr(smemB), sB_layout);
 
 
 //    TODO: use collective copy?
@@ -133,6 +133,14 @@ gemm_pipelined(ProblemShape shape_MNK,
 #endif
 
 
+#ifdef NO_LDSM
+    Tensor tCsA = thr_mma.partition_A(sA);
+    Tensor tCsB = thr_mma.partition_B(sB);
+
+    CUTE_STATIC_ASSERT_V(size<1>(tCgC) == size<1>(tCsA));                // MMA_M
+    CUTE_STATIC_ASSERT_V(size<2>(tCgC) == size<1>(tCsB));                // MMA_N
+    CUTE_STATIC_ASSERT_V(size<2>(tCsA) == size<2>(tCsB));                // MMA_K
+#else
     // Create register tensors for the MMA to operate on
     Tensor tCrA  = thr_mma.partition_fragment_A(sA(_,_,0));                    // (MMA,MMA_M,MMA_K)
     Tensor tCrB  = thr_mma.partition_fragment_B(sB(_,_,0));                    // (MMA,MMA_N,MMA_K)
@@ -155,6 +163,10 @@ gemm_pipelined(ProblemShape shape_MNK,
     CUTE_STATIC_ASSERT_V(size<2>(tCgC) == size<1>(tCrB));                // MMA_N
     CUTE_STATIC_ASSERT_V(size<2>(tCrA) == size<2>(tCrB));                // MMA_K
 
+    // Size of the register pipeline
+    auto K_BLOCK_MAX = size<2>(tCrA);
+#endif
+
     // Clear the accumulators
     clear(tCrC);
 
@@ -173,9 +185,6 @@ gemm_pipelined(ProblemShape shape_MNK,
 //    TODO: avoid this for clarity?
     Tensor tCsA_p = tCsA(_,_,_,smem_pipe_read);
     Tensor tCsB_p = tCsB(_,_,_,smem_pipe_read);
-
-    // Size of the register pipeline
-    auto K_BLOCK_MAX = size<2>(tCrA);
 
 
     //    if (thread0()) {
@@ -196,6 +205,11 @@ gemm_pipelined(ProblemShape shape_MNK,
     }
 
 
+#ifdef NO_LDSM
+    // Wait until our first prefetched tile is loaded in
+    cp_async_wait<num_stages - 2>();
+    __syncthreads();
+#else
     // PREFETCH register pipeline
     if (K_BLOCK_MAX > 1) {
         // Wait until our first prefetched tile is loaded in
@@ -206,11 +220,36 @@ gemm_pipelined(ProblemShape shape_MNK,
         copy(smem_tiled_copy_A, tCsA_p(_,_,Int<0>{}), tCrA_copy_view(_,_,Int<0>{}));
         copy(smem_tiled_copy_B, tCsB_p(_,_,Int<0>{}), tCrB_copy_view(_,_,Int<0>{}));
     }
+#endif
 
 
     CUTLASS_PRAGMA_NO_UNROLL
     while (k_tile_count > -(num_stages - 1))
     {
+#ifdef NO_LDSM
+        copy(copyA_global_shared, tAgA(_,_,_,k_tile), tAsA(_,_,_,smem_pipe_write));
+        copy(copyB_global_shared, tBgB(_,_,_,k_tile), tBsB(_,_,_,smem_pipe_write));
+        cp_async_fence();
+
+        // Advance the tile
+        --k_tile_count;
+        if (k_tile_count > 0) { ++k_tile; }
+
+        // Advance the pipe -- Doing it here accounts for K_BLOCK_MAX = 1 (no rmem pipe)
+        smem_pipe_write = smem_pipe_read;
+        ++smem_pipe_read;
+        smem_pipe_read = (smem_pipe_read == num_stages) ? 0 : smem_pipe_read;
+
+        gemm(tiled_mma, tCsA_p, tCsB_p, tCrC);
+
+        // Slice the smem_pipe_read smem
+        tCsA_p = tCsA(_,_,_,smem_pipe_read);
+        tCsB_p = tCsB(_,_,_,smem_pipe_read);
+
+        // Commit the smem for smem_pipe_read
+        cp_async_wait<num_stages - 2>();
+        __syncthreads();
+#else
         // Pipeline the outer products with a static for loop.
         //
         // Note, the for_each() function is required here to ensure `k_block` is of type Int<x>.
@@ -231,6 +270,7 @@ gemm_pipelined(ProblemShape shape_MNK,
             auto k_block_next = (k_block + Int<1>{}) % K_BLOCK_MAX;  // static
             copy(smem_tiled_copy_A, tCsA_p(_,_,k_block_next), tCrA_copy_view(_,_,k_block_next));
             copy(smem_tiled_copy_B, tCsB_p(_,_,k_block_next), tCrB_copy_view(_,_,k_block_next));
+
             // Copy gmem to smem before computing gemm on each k-pipe
             if (k_block == 0)
             {
@@ -254,9 +294,9 @@ gemm_pipelined(ProblemShape shape_MNK,
 //            cute::transform(tCrB(_,_,k_block), TransformB{});
 
             // Thread-level register gemm for k_block
-            cute::gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);
+            gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);
         });
-
+#endif
     }
 
     // Write back to global with result
