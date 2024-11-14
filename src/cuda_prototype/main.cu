@@ -405,8 +405,8 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
     using ACopyOpGlobalShared = UniversalCopy<half_t>;
     using BCopyOpGlobalShared = UniversalCopy<half_t>;
 #else
-    using ACopyOpGlobalShared = AutoVectorizingCopy;
-    using BCopyOpGlobalShared = AutoVectorizingCopy;
+    using ACopyOpGlobalShared = UniversalCopy<uint128_t>;
+    using BCopyOpGlobalShared = UniversalCopy<uint128_t>;
 #endif
 #else
 
