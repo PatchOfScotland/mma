@@ -397,22 +397,17 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
     auto swizzle_layoutAtom_B = composition(Swizzle<3,3,3>{}, layoutAtom_B{});
 #endif
 
-#ifdef NO_VECTORIZE
-#ifdef SYNC_CPY
-    using LoadType = half_t;
-#else
-    using LoadType = uint32_t;
-#endif
-#else
-    using LoadType = uint128_t;
-#endif
-
 #ifdef SYNC_CPY
     auto sA = tile_to_shape(swizzle_layoutAtom_A, make_shape(bM, bK));
     auto sB = tile_to_shape(swizzle_layoutAtom_B, make_shape(bN, bK));
 
-    using ACopyOpGlobalShared = UniversalCopy<LoadType>;
-    using BCopyOpGlobalShared = UniversalCopy<LoadType>;
+#ifdef NO_VECTORIZE
+    using ACopyOpGlobalShared = UniversalCopy<half_t>;
+    using BCopyOpGlobalShared = UniversalCopy<half_t>;
+#else
+    using ACopyOpGlobalShared = AutoVectorizingCopy;
+    using BCopyOpGlobalShared = AutoVectorizingCopy;
+#endif
 #else
 
 #if (NUM_STAGES == 1)
@@ -423,8 +418,13 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
         auto sB = tile_to_shape(swizzle_layoutAtom_B, make_shape(bN, bK, bP));
 #endif
 
-    using ACopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<LoadType>;
-    using BCopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<LoadType>;
+#ifdef NO_VECTORIZE
+    using ACopyOpGlobalShared = SM80_CP_ASYNC_CACHEALWAYS<uint32_t>;
+    using BCopyOpGlobalShared = SM80_CP_ASYNC_CACHEALWAYS<uint32_t>;
+#else
+    using ACopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<uint128_t>;
+    using BCopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<uint128_t>;
+#endif
 #endif
 
     auto sC = make_layout(make_shape(bM, bN), LayoutRight{});
