@@ -157,7 +157,7 @@ __forceinline__ __device__ void copy_global_to_shared_swizzled(elmType * shared,
 
         core_matrix_row_y_in_tile = core_matrix_row_y_in_tile / 2 + (core_matrix_row_y_in_tile % 2) * (load_tile_height / 2);
 
-        #ifdef SWIZZLE
+        #ifndef NO_SWIZZLE
 //    TODO: check if this can make swizzling work or need to switch back?
 //        unsigned int core_matrix_row_y_in_tile_swizzled = core_matrix_row_x_in_tile;
         unsigned int core_matrix_row_y_in_tile_swizzled = core_matrix_row_y_in_tile;
@@ -245,7 +245,7 @@ __forceinline__ __device__ void load_frags(unsigned int warpQuarter, unsigned in
     unsigned int core_matrix_row_x_in_tile = (matrix_x / core_matrix_width_elms) % load_tile_width_core_matrix_rows + (warpQuarter / 2);
     unsigned int core_matrix_row_y_in_tile = warpIDInQuarter;
 
-    #ifdef SWIZZLE
+    #ifndef NO_SWIZZLE
 //    TODO: check if this can make swizzling work or need to switch back?
 //        unsigned int core_matrix_row_y_in_tile_swizzled = core_matrix_row_x_in_tile;
     unsigned int core_matrix_row_y_in_tile_swizzled = core_matrix_row_y_in_tile;
@@ -312,7 +312,7 @@ matMulTiledTensor(elmType* A, elmType* B, accType* C, int m, int n, int k) {
     unsigned int warp_n_global_offset = block_n_global_offset + warp_n_shared_offset;
 
     auto A_shared = reinterpret_cast<elmType *>(dynamic_shared);
-    #ifdef SWIZZLE
+    #ifndef NO_SWIZZLE
     auto B_shared = A_shared + num_stages * shared_m * shared_k;
     #else
     auto B_shared = A_shared + num_stages * shared_m * (shared_k + SHARED_PADDING);
@@ -338,7 +338,7 @@ matMulTiledTensor(elmType* A, elmType* B, accType* C, int m, int n, int k) {
 
 
 //    TODO: check cutlass (docs) swizzling
-    #ifdef SWIZZLE
+    #ifndef NO_SWIZZLE
     constexpr unsigned int shared_ldm_A = std::max(elms_in128B, shared_k);
     constexpr unsigned int shared_ldm_B = std::max(elms_in128B, shared_n);
     #else
@@ -415,7 +415,7 @@ matMulTiledTensor(elmType* A, elmType* B, accType* C, int m, int n, int k) {
         unsigned int load_buffer = global_k_offset_i % num_stages;
         unsigned int compute_buffer = (global_k_offset_i + 1) % num_stages;
 
-        #ifdef SWIZZLE
+        #ifndef NO_SWIZZLE
         auto load_buffer_A = &A_shared[load_buffer * shared_m * shared_k];
         auto load_buffer_B = &B_shared[load_buffer * shared_k * shared_n];
         auto compute_buffer_A = &A_shared[compute_buffer * shared_m * shared_k];

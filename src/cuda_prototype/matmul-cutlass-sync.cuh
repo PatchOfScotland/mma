@@ -48,7 +48,7 @@ template <
 __global__ static
 __launch_bounds__(decltype(size(TiledMma{}))::value)
 void
-gemm_simple(ProblemShape shape_MNK,
+gemm_sync_cpy(ProblemShape shape_MNK,
             TA const* A, AStride dA,
             TB const* B, BStride dB,
             TC      * C, CStride dC,
@@ -156,58 +156,59 @@ gemm_simple(ProblemShape shape_MNK,
     // Clear the accumulators
     clear(tCrC);
 
+    // smem copy registers
+    Tensor tArA = make_fragment_like(tAsA);
+    Tensor tBrB = make_fragment_like(tBsB);
 
-    int k_tile_max = size<3>(tAgA);
-    for (int k_tile = 0; k_tile < k_tile_max; k_tile++)
+    // Copy gmem to rmem for k_tile=0
+    copy(copyA_global_shared, tAgA(_,_,_,0), tArA);
+    copy(copyB_global_shared, tBgB(_,_,_,0), tBrB);
+
+    // Copy rmem to smem
+    copy(tArA, tAsA);
+    copy(tBrB, tBsB);
+    __syncthreads();
+
+    // Load A, B shmem->regs for k_block=0
+    copy(smem_tiled_copy_A, tCsA(_,_,0), tCrA_copy_view(_,_,0));
+    copy(smem_tiled_copy_B, tCsB(_,_,0), tCrB_copy_view(_,_,0));
+    auto K_TILE_MAX  = size<3>(tAgA);
+    auto K_BLOCK_MAX = size<2>(tCrA);
+
+
+    CUTE_NO_UNROLL
+    for (int k_tile = 0; k_tile < K_TILE_MAX; ++k_tile)
     {
-        // Copy global -> shared
-        __syncthreads();
-        copy(copyA_global_shared, tAgA(_,_,_,k_tile), tAsA);
-        copy(copyB_global_shared, tBgB(_,_,_,k_tile), tBsB);
-#ifndef SYNC_CPY
-        cp_async_fence();
-        cp_async_wait<0>();
-#endif
-        __syncthreads();
+//        TODO: add version without register pipeline?
 
-        // Inner loop
-        constexpr int K_BLOCK_MAX = size<2>(tCrA);
-//        TODO: remove this?
-#ifdef NO_REG_PIPELINE
+        // Pipeline the k-mode of the block registers
         CUTE_UNROLL
         for (int k_block = 0; k_block < K_BLOCK_MAX; ++k_block)
         {
-            // Copy shared -> registers
-            copy(smem_tiled_copy_A, tCsA(_,_,k_block), tCrA_copy_view(_,_,k_block));
-            copy(smem_tiled_copy_B, tCsB(_,_,k_block), tCrB_copy_view(_,_,k_block));
+            if (k_block == K_BLOCK_MAX - 1)
+            {
+                // Copy rmem to smem
+                __syncthreads();
+                copy(tArA, tAsA);
+                copy(tBrB, tBsB);
+                __syncthreads();
+            }
 
-            // GEMM on k_block in registers
-            gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);
-        }
-#else
-        if (K_BLOCK_MAX > 1) {
-            // Prefetch the first rmem from the first k-tile
-            copy(smem_tiled_copy_A, tCsA(_,_,Int<0>{}), tCrA_copy_view(_,_,Int<0>{}));
-            copy(smem_tiled_copy_B, tCsB(_,_,Int<0>{}), tCrB_copy_view(_,_,Int<0>{}));
-        }
-
-        CUTE_UNROLL
-        for (int k_block = 0; k_block < K_BLOCK_MAX - 1; ++k_block)
-        {
-            // Copy shared -> registers
-            auto k_block_next = (k_block + Int<1>{}) % K_BLOCK_MAX;  // static
+            // Copy smem to rmem for k_block+1
+            int k_block_next = (k_block + 1) % K_BLOCK_MAX;
             copy(smem_tiled_copy_A, tCsA(_,_,k_block_next), tCrA_copy_view(_,_,k_block_next));
             copy(smem_tiled_copy_B, tCsB(_,_,k_block_next), tCrB_copy_view(_,_,k_block_next));
-
-            // GEMM on k_block in registers
+            if (k_block == 0)
+            {
+                // Copy gmem to rmem for k_tile+1
+                int k_tile_next = (k_tile + 1 < K_TILE_MAX) ? k_tile + 1 : k_tile;
+                copy(copyA_global_shared, tAgA(_,_,_,k_tile_next), tArA);
+                copy(copyB_global_shared, tBgB(_,_,_,k_tile_next), tBrB);
+            }
+            // Thread-level register gemm for k_block
             gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);
-        }
-
-        if (K_BLOCK_MAX > 1) {
-            gemm(tiled_mma, tCrA(_,_,K_BLOCK_MAX - 1), tCrB(_,_,K_BLOCK_MAX - 1), tCrC);
-        }
-#endif
-    }
+        } // k_block
+    } // k_tile
 
     // Write back to global with result
     axpby(alpha, tCrC, beta, tCgC);
