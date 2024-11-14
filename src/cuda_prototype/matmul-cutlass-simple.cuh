@@ -172,8 +172,6 @@ gemm_simple(ProblemShape shape_MNK,
 
         // Inner loop
         constexpr int K_BLOCK_MAX = size<2>(tCrA);
-//        TODO: remove this?
-#ifdef NO_REG_PIPELINE
         CUTE_UNROLL
         for (int k_block = 0; k_block < K_BLOCK_MAX; ++k_block)
         {
@@ -184,29 +182,6 @@ gemm_simple(ProblemShape shape_MNK,
             // GEMM on k_block in registers
             gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);
         }
-#else
-        if (K_BLOCK_MAX > 1) {
-            // Prefetch the first rmem from the first k-tile
-            copy(smem_tiled_copy_A, tCsA(_,_,Int<0>{}), tCrA_copy_view(_,_,Int<0>{}));
-            copy(smem_tiled_copy_B, tCsB(_,_,Int<0>{}), tCrB_copy_view(_,_,Int<0>{}));
-        }
-
-        CUTE_UNROLL
-        for (int k_block = 0; k_block < K_BLOCK_MAX - 1; ++k_block)
-        {
-            // Copy shared -> registers
-            auto k_block_next = (k_block + Int<1>{}) % K_BLOCK_MAX;  // static
-            copy(smem_tiled_copy_A, tCsA(_,_,k_block_next), tCrA_copy_view(_,_,k_block_next));
-            copy(smem_tiled_copy_B, tCsB(_,_,k_block_next), tCrB_copy_view(_,_,k_block_next));
-
-            // GEMM on k_block in registers
-            gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);
-        }
-
-        if (K_BLOCK_MAX > 1) {
-            gemm(tiled_mma, tCrA(_,_,K_BLOCK_MAX - 1), tCrB(_,_,K_BLOCK_MAX - 1), tCrC);
-        }
-#endif
     }
 
     // Write back to global with result
