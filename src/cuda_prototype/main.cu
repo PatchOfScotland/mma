@@ -398,7 +398,11 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
 #endif
 
 #ifdef NO_VECTORIZE
+#ifdef SYNC_CPY
     using LoadType = half_t;
+#else
+    using LoadType = uint32_t;
+#endif
 #else
     using LoadType = uint128_t;
 #endif
