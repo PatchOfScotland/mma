@@ -272,24 +272,12 @@ __forceinline__ __device__ void load_frags(unsigned int warpQuarter, unsigned in
 }
 
 
-#ifndef THREADS_PER_BLOCK
-#ifdef BLOCK_TILES_M
-#ifdef BLOCK_TILES_N
-#define THREADS_PER_BLOCK BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE
-#else
-#define THREADS_PER_BLOCK 0
-#endif
-#else
-#define THREADS_PER_BLOCK 0
-#endif
-#endif
-
 template <class elmType, class accType, unsigned int wmma_m, unsigned int wmma_n, unsigned int wmma_k, unsigned int frags_m, unsigned int frags_n, unsigned int frags_k, unsigned int warp_tiles_m, unsigned int warp_tiles_n, unsigned int warp_tiles_k, unsigned int block_tiles_m, unsigned int block_tiles_n, unsigned int threads_per_block, unsigned int num_stages>
 __global__ void
 #ifdef BLOCKS_PER_SM
-__launch_bounds__(THREADS_PER_BLOCK, BLOCKS_PER_SM)
+__launch_bounds__(threads_per_block, BLOCKS_PER_SM)
 #else
-__launch_bounds__(THREADS_PER_BLOCK)
+__launch_bounds__(threads_per_block)
 #endif
 matMulTiledTensor(elmType* A, elmType* B, accType* C, int m, int n, int k) {
     extern __shared__ __align__(128) char dynamic_shared[];
@@ -388,6 +376,10 @@ matMulTiledTensor(elmType* A, elmType* B, accType* C, int m, int n, int k) {
     // TODO: account for different elm and acc types
     // Using 2 x 16x8x16 as basic building block
     float C_frag[frags_m * warp_tiles_m][frags_n * warp_tiles_n][2][4];
+
+//    if (threadIdx.x == 0 && blockIdx.x == 0) {
+//        printf("Registers for C: %d\n", frags_m * warp_tiles_m * frags_n * warp_tiles_n * 2 * 4);
+//    }
 
     // Initialize C_frag to zero
     #pragma unroll
