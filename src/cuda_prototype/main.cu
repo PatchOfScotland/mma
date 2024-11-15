@@ -437,7 +437,6 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
 
     auto sC = make_layout(make_shape(bM, bN), LayoutRight{});
 
-//    TODO: fix this for not vectorized
     // Define global->shared copy tiling (static)
     TiledCopy copyA_global_shared = make_tiled_copy(Copy_Atom<ACopyOpGlobalShared, TA>{},
         Layout<
