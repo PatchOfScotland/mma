@@ -404,9 +404,13 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
 #ifdef NO_VECTORIZE
     using ACopyOpGlobalShared = UniversalCopy<half_t>;
     using BCopyOpGlobalShared = UniversalCopy<half_t>;
+
+    const int elms_per_load = 1;
 #else
     using ACopyOpGlobalShared = UniversalCopy<uint128_t>;
     using BCopyOpGlobalShared = UniversalCopy<uint128_t>;
+
+    const int elms_per_load = 8;
 #endif
 #else
 
@@ -421,29 +425,34 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
 #ifdef NO_VECTORIZE
     using ACopyOpGlobalShared = SM80_CP_ASYNC_CACHEALWAYS<uint32_t>;
     using BCopyOpGlobalShared = SM80_CP_ASYNC_CACHEALWAYS<uint32_t>;
+
+    const int elms_per_load = 2;
 #else
     using ACopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<uint128_t>;
     using BCopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<uint128_t>;
+
+    const int elms_per_load = 8;
 #endif
 #endif
 
     auto sC = make_layout(make_shape(bM, bN), LayoutRight{});
 
+//    TODO: fix this for not vectorized
     // Define global->shared copy tiling (static)
     TiledCopy copyA_global_shared = make_tiled_copy(Copy_Atom<ACopyOpGlobalShared, TA>{},
         Layout<
-            Shape<Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_K * FRAGS_K * WARP_TILES_K / 8)>, Int<WMMA_K * FRAGS_K * WARP_TILES_K / 8>>,
-            Stride<Int<WMMA_K * FRAGS_K * WARP_TILES_K / 8>,_1>
+            Shape<Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load)>, Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>>,
+            Stride<Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>,_1>
         >{},
-        Layout<Shape<_1,_8>>{}
+        Layout<Shape<_1,Int<elms_per_load>>>{}
     );
 
     TiledCopy copyB_global_shared = make_tiled_copy(Copy_Atom<BCopyOpGlobalShared, TB>{},
         Layout<
-            Shape<Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / 8>, Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / 8)>>,
-            Stride<_1, Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / 8>>
+            Shape<Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load>, Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load)>>,
+            Stride<_1, Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load>>
         >{},
-        Layout<Shape<_8,_1>>{}
+        Layout<Shape<Int<elms_per_load>,_1>>{}
     );
 
     // Define shared->register copy tiling (static)
