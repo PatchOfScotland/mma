@@ -126,7 +126,7 @@ long int benchmark_optimized_tensor_mmm(
     int max_shared_memory;
     cudaDeviceGetAttribute(&max_shared_memory, cudaDevAttrMaxSharedMemoryPerBlockOptin, 0);
 
-    #ifdef SWIZZLE
+    #ifndef NO_SWIZZLE
     constexpr unsigned int shared_memory_used_A = shared_m * shared_k * sizeof(elmT) * NUM_STAGES;
     constexpr unsigned int shared_memory_used_B = shared_k * shared_n * sizeof(elmT) * NUM_STAGES;
     #else
@@ -1179,13 +1179,9 @@ int main(int argc, char * argv[])
 //        n_runs, m, n, k, A, B, C, C_target, std::string("GPU tensor naive")
 //    );
 
-//    benchmark_kernel<element_type, acc_type, 2, mm_kernel::cublas, true>(
-//        n_runs, m, n, k, A, B, C, C_target, std::string("cublas")
-//    );
-
-//    benchmark_kernel<element_type, acc_type, 2, mm_kernel::tensor_optimized, true>(
-//            n_runs, m, n, k, A, B, C, C_target, std::string("GPU tensor optimized")
-//    );
+    benchmark_kernel<element_type, acc_type, 2, mm_kernel::cublas, true>(
+        n_runs, m, n, k, A, B, C, C_target, std::string("cublas")
+    );
 
 //    benchmark_kernel<element_type, acc_type, 2, mm_kernel::cutlass_default, true>(
 //            n_runs, m, n, k, A, B, C, C_target, std::string("Cutlass default")
@@ -1201,6 +1197,10 @@ int main(int argc, char * argv[])
 
     benchmark_kernel<element_type, acc_type, 2, mm_kernel::cute_mm, true>(
             n_runs, m, n, k, A, B, C, C_target, std::string("Cute")
+    );
+
+    benchmark_kernel<element_type, acc_type, 2, mm_kernel::tensor_optimized, true>(
+            n_runs, m, n, k, A, B, C, C_target, std::string("GPU tensor optimized")
     );
 
 
