@@ -133,6 +133,32 @@ gemm_pipelined(ProblemShape shape_MNK,
 #endif
 
 
+
+
+//    TODO: custom implementation of pipelining?
+    // K tiles in global memory
+    int k_tile_max = size<3>(tAgA);
+    auto k_tile_count = k_tile_max;
+    int k_tile = 0;
+
+    // Current pipe index in smem to read from
+    int smem_pipe_read  = 0;
+    // Current pipe index in smem to write to
+    int smem_pipe_write = num_stages - 1;
+
+
+    // Start async loads for all pipes but the last
+    CUTLASS_PRAGMA_UNROLL
+    for (int k_pipe = 0; k_pipe < num_stages - 1; ++k_pipe) {
+        copy(copyA_global_shared, tAgA(_,_,_,k_tile), tAsA(_,_,_,k_pipe));
+        copy(copyB_global_shared, tBgB(_,_,_,k_tile), tBsB(_,_,_,k_pipe));
+        cp_async_fence();
+        --k_tile_count;
+        if (k_tile_count > 0) { ++k_tile; }
+    }
+
+
+
     // Create register tensors for the MMA to operate on
     Tensor tCrA  = thr_mma.partition_fragment_A(sA(_,_,0));                    // (MMA,MMA_M,MMA_K)
     Tensor tCrB  = thr_mma.partition_fragment_B(sB(_,_,0));                    // (MMA,MMA_N,MMA_K)
@@ -163,32 +189,9 @@ gemm_pipelined(ProblemShape shape_MNK,
     clear(tCrC);
 
 
-//    TODO: custom implementation of pipelining?
-    // K tiles in global memory
-    int k_tile_max = size<3>(tAgA);
-    auto k_tile_count = k_tile_max;
-    int k_tile = 0;
-
-    // Current pipe index in smem to read from
-    int smem_pipe_read  = 0;
-    // Current pipe index in smem to write to
-    int smem_pipe_write = num_stages - 1;
-
-//    TODO: avoid this for clarity?
+    //    TODO: avoid this for clarity?
     Tensor tCsA_p = tCsA(_,_,_,smem_pipe_read);
     Tensor tCsB_p = tCsB(_,_,_,smem_pipe_read);
-
-
-
-    // Start async loads for all pipes but the last
-    CUTLASS_PRAGMA_UNROLL
-    for (int k_pipe = 0; k_pipe < num_stages - 1; ++k_pipe) {
-        copy(copyA_global_shared, tAgA(_,_,_,k_tile), tAsA(_,_,_,k_pipe));
-        copy(copyB_global_shared, tBgB(_,_,_,k_tile), tBsB(_,_,_,k_pipe));
-        cp_async_fence();
-        --k_tile_count;
-        if (k_tile_count > 0) { ++k_tile; }
-    }
 
 
     // PREFETCH register pipeline
