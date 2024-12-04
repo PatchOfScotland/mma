@@ -6,6 +6,7 @@
 #include "matmul-tensor.cuh"
 #include "matmul-cutlass.cuh"
 #include "matmul-cutlass-simple.cuh"
+#include "attention-like-cutlass.cuh"
 #include "matmul-cutlass-sync.cuh"
 #include "matmul-cutlass2.cuh"
 //#include "cuda_fp16.h"
@@ -74,6 +75,18 @@
 #endif
 
 typedef cutlass::half_t half_t;
+
+#ifdef ELM_T
+typedef ELM_T element_type;
+#else
+typedef half_t element_type;
+#endif
+
+#ifdef ACC_T
+typedef ACC_T acc_type;
+#else
+typedef float acc_type;
+#endif
 
 
 enum mm_kernel {
@@ -514,6 +527,203 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
                 A, dA,
                 B, dB,
                 C, dC,
+                alpha, beta
+        );
+    }
+    cudaDeviceSynchronize();
+    t.stop();
+
+    // Check if kernel launch was successfull
+    gpuAssert(cudaPeekAtLastError());
+    return t.elapsed();
+}
+
+template <typename elmT, typename elmAccT = elmT>
+long int benchmark_cute_attention_like(unsigned int n_runs, elmT * As, elmT * Bss, elmAccT * Cs, unsigned int batches, unsigned int reuse);
+
+template<>
+long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_t * As, half_t * Bss, float * Cs, unsigned int batches, unsigned int reuse) {
+//        constexpr unsigned int shared_m = WMMA_M * FRAGS_M * WARP_TILES_M * BLOCK_TILES_M;
+//        constexpr unsigned int shared_n = WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N;
+//        constexpr unsigned int shared_k = WMMA_K * FRAGS_K * WARP_TILES_K;
+
+    using namespace cute;
+
+    using TA = half_t;
+    using TB = half_t;
+    using TC = float;
+
+//    TODO: get as argument?
+    auto alpha = Int<1>{};
+    auto beta = Int<0>{};
+
+    // Define mma tiles (static)
+    TiledMMA tiled_mma = make_tiled_mma(
+        MMA_Atom<SM80_16x8x16_F32F16F16F32_TN>{},
+        Layout<Shape<Int<BLOCK_TILES_M>,Int<BLOCK_TILES_N>,_1>>{},
+        Tile<Int<BLOCK_TILES_M * WMMA_M>, Int<BLOCK_TILES_N * WMMA_N>, Int<WMMA_K>>{}
+    );
+
+    //    TODO: smarter way to calculate config from compiler defs
+    // Define shared memory layout (static)
+    auto bM = Int<WMMA_M * FRAGS_M * WARP_TILES_M * BLOCK_TILES_M>{};
+    auto bN = Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N>{};
+    auto bK = Int<WMMA_K * FRAGS_K * WARP_TILES_K>{};
+    auto bP = Int<NUM_STAGES>{};
+
+    using SharedM = decltype(bM);
+    using SharedN = decltype(bN);
+    using SharedK = decltype(bK);
+
+    auto layoutAs = make_layout(make_shape(bM, bK, batches), make_stride(bK, Int<1>{}, bM * bK));
+    auto layoutBss = make_layout(make_shape(bN, bK, batches, reuse), make_stride(Int<1>{}, bN, bN * bK * reuse, bN * bK));
+    auto layoutCs = make_layout(make_shape(bM, bN, batches), make_stride(bN, Int<1>{}, bM * bN));
+
+
+    using layoutAtom_A = Layout<
+            // TODO: use min of shared_k and 64 instead of 64?
+            Shape < _8,_64>,
+            Stride<_64, _1>
+    >;
+    using layoutAtom_B = Layout<
+            // TODO: use min of shared_n and 64 instead of 64?
+            Shape <_64, _8>,
+            Stride< _1,_64>
+    >;
+
+#ifdef NO_SWIZZLE
+    //    TODO: add padding?
+    auto swizzle_layoutAtom_A = layoutAtom_A{};
+    auto swizzle_layoutAtom_B = layoutAtom_B{};
+#else
+    auto swizzle_layoutAtom_A = composition(Swizzle<3,3,3>{}, layoutAtom_A{});
+    auto swizzle_layoutAtom_B = composition(Swizzle<3,3,3>{}, layoutAtom_B{});
+#endif
+
+#ifdef SYNC_CPY
+    auto sA = tile_to_shape(swizzle_layoutAtom_A, make_shape(bM, bK));
+    auto sB = tile_to_shape(swizzle_layoutAtom_B, make_shape(bN, bK));
+
+#ifdef NO_VECTORIZE
+    using ACopyOpGlobalShared = UniversalCopy<half_t>;
+    using BCopyOpGlobalShared = UniversalCopy<half_t>;
+
+    const int elms_per_load = 1;
+#else
+    using ACopyOpGlobalShared = UniversalCopy<uint128_t>;
+    using BCopyOpGlobalShared = UniversalCopy<uint128_t>;
+
+    const int elms_per_load = 8;
+#endif
+#else
+
+#if (NUM_STAGES == 1)
+    auto sA = tile_to_shape(swizzle_layoutAtom_A, make_shape(bM, bK));
+        auto sB = tile_to_shape(swizzle_layoutAtom_B, make_shape(bN, bK));
+#else
+    auto sA = tile_to_shape(swizzle_layoutAtom_A, make_shape(bM, bK, bP));
+    auto sB = tile_to_shape(swizzle_layoutAtom_B, make_shape(bN, bK, bP));
+#endif
+
+#ifdef NO_VECTORIZE
+    using ACopyOpGlobalShared = SM80_CP_ASYNC_CACHEALWAYS<uint32_t>;
+    using BCopyOpGlobalShared = SM80_CP_ASYNC_CACHEALWAYS<uint32_t>;
+
+    const int elms_per_load = 2;
+#else
+    using ACopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<uint128_t>;
+    using BCopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<uint128_t>;
+
+    const int elms_per_load = 8;
+#endif
+#endif
+
+    auto sC = make_layout(make_shape(bM, bN), LayoutRight{});
+
+    // Define global->shared copy tiling (static)
+    TiledCopy copyA_global_shared = make_tiled_copy(Copy_Atom<ACopyOpGlobalShared, TA>{},
+                                                    Layout<
+                                                    Shape<Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load)>, Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>>,
+                                                    Stride<Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>,_1>
+                                                    >{},
+                                                    Layout<Shape<_1,Int<elms_per_load>>>{}
+    );
+
+    TiledCopy copyB_global_shared = make_tiled_copy(Copy_Atom<BCopyOpGlobalShared, TB>{},
+                                                    Layout<
+                                                    Shape<Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load>, Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load)>>,
+                                                    Stride<_1, Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load>>
+                                                    >{},
+    Layout<Shape<Int<elms_per_load>,_1>>{}
+    );
+
+    // Define shared->register copy tiling (static)
+#ifdef NO_LDSM
+    using ACopyOpSharedRegisters = AutoVectorizingCopy;
+    using BCopyOpSharedRegisters = AutoVectorizingCopy;
+#else
+    using ACopyOpSharedRegisters = SM75_U32x4_LDSM_N;
+    using BCopyOpSharedRegisters = SM75_U16x8_LDSM_T;
+#endif
+
+    TiledCopy copyA_shared_registers = make_tiled_copy_A(Copy_Atom<ACopyOpSharedRegisters, TA>{}, tiled_mma);
+    TiledCopy copyB_shared_registers = make_tiled_copy_B(Copy_Atom<BCopyOpSharedRegisters, TB>{}, tiled_mma);
+
+    // Define kernel parameters
+//    TODO: allow setting num_stages?
+//#if (NUM_STAGES == 1)
+//    auto kernel = gemm_simple<
+//            decltype(prob_shape), decltype(cta_tiler),
+//            TA, decltype(dA), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
+//            TB, decltype(dB), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
+//            TC, decltype(dC), decltype(sC), decltype(tiled_mma),
+//            decltype(alpha), decltype(beta)
+//    >;
+//#else
+//#ifdef SYNC_CPY
+//    static_assert(NUM_STAGES == 2, "NUM_STAGES must be 2 for gemm_sync_cpy");
+//
+//    auto kernel = gemm_sync_cpy<
+//            decltype(prob_shape), decltype(cta_tiler),
+//            TA, decltype(dA), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
+//            TB, decltype(dB), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
+//            TC, decltype(dC), decltype(sC), decltype(tiled_mma),
+//            decltype(alpha), decltype(beta)
+//    >;
+//#else
+//    auto kernel = gemm_pipelined<
+//            decltype(prob_shape), decltype(cta_tiler),
+//            TA, decltype(dA), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
+//            TB, decltype(dB), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
+//            TC, decltype(dC), decltype(sC), decltype(tiled_mma),
+//            decltype(alpha), decltype(beta),
+//            NUM_STAGES
+//    >;
+//#endif
+//#endif
+    static_assert(NUM_STAGES == 1, "NUM_STAGES must be 1 for attention_like");
+    auto kernel = attention_like_simple<
+        TA, decltype(layoutAs), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
+        TB, decltype(layoutBss), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
+        TC, decltype(layoutCs), decltype(sC), decltype(tiled_mma),
+        decltype(alpha), decltype(beta)
+    >;
+
+    const uint32_t shared_memory_used = cosize_v<decltype(sA)> * sizeof(TA) + cosize_v<decltype(sB)> * sizeof(TB);
+    cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_memory_used);
+    dim3 dimBlock(size(tiled_mma));
+    dim3 dimGrid(batches);
+
+    printf("Used shared memory: %d, threads: %d\n", shared_memory_used, (int)(size(tiled_mma)));
+
+    // Launch kernel
+    TimeMeasurement t;
+    t.start();
+    for (int i = 0; i < n_runs; i++) {
+        kernel<<<dimGrid, dimBlock, shared_memory_used>>>(
+                As, layoutAs,
+                Bss, layoutBss,
+                Cs, layoutCs,
                 alpha, beta
         );
     }
@@ -1109,17 +1319,69 @@ void benchmark_kernel(
 }
 
 
-#ifdef ELM_T
-typedef ELM_T element_type;
-#else
-typedef half_t element_type;
-#endif
+void benchmark_attention_like(
+        unsigned int n_runs,
+        unsigned int batches,
+        unsigned int reuse
+    ) {
+    constexpr unsigned int shared_m = WMMA_M * FRAGS_M * WARP_TILES_M * BLOCK_TILES_M;
+    constexpr unsigned int shared_n = WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N;
+    constexpr unsigned int shared_k = WMMA_K * FRAGS_K * WARP_TILES_K;
 
-#ifdef ACC_T
-typedef ACC_T acc_type;
-#else
-typedef float acc_type;
-#endif
+    RandomMatrix<element_type, 3> As;
+    RandomMatrix<element_type, 4> Bss;
+    RandomMatrix<acc_type, 3> Cs;
+
+    As.fill_rand<float_range>(batches, shared_m, shared_k);
+    Bss.fill_rand<float_range>(batches, reuse, shared_k, shared_n);
+    Cs.fill_zeros(batches, shared_m, shared_n);
+
+//    TODO: validation
+
+    unsigned long total_ops = 2 * (unsigned long)batches * (unsigned long)reuse * shared_m * shared_n * shared_k;
+
+    auto As_device = As.to_gpu();
+    auto Bss_device = Bss.to_gpu();
+    auto Cs_device = Cs.to_gpu();
+    long int total_elapsed;
+
+    std::cout << "-----" << std::endl;
+    printf("Running attention like of size %d x %d x %d x %d x %d\n", batches, reuse, shared_m, shared_n, shared_k);
+    std::cout << "Dry run" << std::endl;
+
+    total_elapsed = benchmark_cute_attention_like(
+            1, As_device, Bss_device, Cs_device, batches, reuse
+    );
+
+    if (!total_elapsed) {
+        printf("Kernel launch failed\n");
+//        memset(C.to_cpu(), 0, m * n);
+    } else {
+        printGFlops(total_elapsed, total_ops);
+        printf("Average Time elapsed: %ld ms\n", total_elapsed);
+    }
+
+
+    if (n_runs > 0) {
+        std::cout << "Average run after: " << n_runs << " runs"<< std::endl;
+        total_elapsed = benchmark_cute_attention_like(
+                n_runs, As_device, Bss_device, Cs_device, batches, reuse
+        );
+
+        if (!total_elapsed) {
+            printf("Kernel launch failed\n");
+//        memset(C.to_cpu(), 0, m * n);
+        } else {
+            printGFlops(total_elapsed, total_ops * n_runs);
+            printf("Average Time elapsed: %ld ms\n", total_elapsed / n_runs);
+        }
+        std::cout << "-----" << std::endl;
+    }
+
+    cudaFree(As.to_gpu());
+    cudaFree(Bss.to_gpu());
+    cudaFree(Cs.to_gpu());
+}
 
 
 int main(int argc, char * argv[])
@@ -1156,6 +1418,13 @@ int main(int argc, char * argv[])
 
     TimeMeasurement t;
 
+#ifdef ATTENTION_LIKE
+    benchmark_attention_like(
+        n_runs,
+        m,
+        n
+    );
+#else
     // Define matrices
     RandomMatrix<element_type, 2> A;
     RandomMatrix<element_type, 2> B;
@@ -1203,13 +1472,13 @@ int main(int argc, char * argv[])
             n_runs, m, n, k, A, B, C, C_target, std::string("GPU tensor optimized")
     );
 
-
     cudaFree(A.to_gpu());
     cudaFree(B.to_gpu());
     cudaFree(C.to_gpu());
     cudaFree(C_target.to_gpu());
     cudaFree(A_accT.to_gpu());
     cudaFree(B_accT.to_gpu());
+#endif
 
     return 0;
 }
