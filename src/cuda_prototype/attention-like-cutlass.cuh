@@ -101,14 +101,6 @@ attention_like_simple(TA const* As, ALayout layoutAs,
     Tensor tCgC = thr_mma.partition_C(gC);
     Tensor tCrC = thr_mma.make_fragment_C(tCgC);
 
-#if 1
-    CUTE_STATIC_ASSERT_V(size<1>(tAgA) == size<1>(tAsA));                // CPY_M
-    CUTE_STATIC_ASSERT_V(size<2>(tAgA) == size<2>(tAsA));                // CPY_K
-    CUTE_STATIC_ASSERT_V(size<1>(tBgB) == size<1>(tBsB));                // CPY_N
-    CUTE_STATIC_ASSERT_V(size<2>(tBgB) == size<2>(tBsB));                // CPY_K
-    CUTE_STATIC_ASSERT_V(  shape(tCrC) ==   shape(tCgC));                // (MMA,MMA_M,MMA_N)
-#endif
-
     // Create register tensors for the MMA to operate on
     Tensor tCrA  = thr_mma.partition_fragment_A(sA);                    // (MMA,MMA_M,MMA_K)
     Tensor tCrB  = thr_mma.partition_fragment_B(sB);                    // (MMA,MMA_N,MMA_K)
@@ -121,31 +113,25 @@ attention_like_simple(TA const* As, ALayout layoutAs,
     Tensor tCsB            = smem_thr_copy_B.partition_S(sB);
     Tensor tCrB_copy_view  = smem_thr_copy_B.retile_D(tCrB);
 
+#if 1
+    CUTE_STATIC_ASSERT_V(size<1>(tAgA) == size<1>(tAsA));                // CPY_M
+    CUTE_STATIC_ASSERT_V(size<2>(tAgA) == size<2>(tAsA));                // CPY_K
+    CUTE_STATIC_ASSERT_V(size<1>(tBgB) == size<1>(tBsB));                // CPY_N
+    CUTE_STATIC_ASSERT_V(size<2>(tBgB) == size<2>(tBsB));                // CPY_K
+    CUTE_STATIC_ASSERT_V(  shape(tCrC) ==   shape(tCgC));                // (MMA,MMA_M,MMA_N)
 
-//    CUTE_STATIC_ASSERT_V(size<1>(tCsA) == size<1>(tCrA_copy_view));             // CPY_M
-//    CUTE_STATIC_ASSERT_V(size<2>(tCsA) == size<2>(tCrA_copy_view));             // CPY_K
-//    CUTE_STATIC_ASSERT_V(size<1>(tCsB) == size<1>(tCrB_copy_view));            // CPY_N
-//    CUTE_STATIC_ASSERT_V(size<2>(tCsB) == size<2>(tCrB_copy_view));            // CPY_K
-//
-//    CUTE_STATIC_ASSERT_V(size<1>(tCgC) == size<1>(tCrA));                // MMA_M
-//    CUTE_STATIC_ASSERT_V(size<2>(tCgC) == size<1>(tCrB));                // MMA_N
-//    CUTE_STATIC_ASSERT_V(size<2>(tCrA) == size<2>(tCrB));                // MMA_K
+    CUTE_STATIC_ASSERT_V(size<1>(tCsA) == size<1>(tCrA_copy_view));             // CPY_M
+    CUTE_STATIC_ASSERT_V(size<2>(tCsA) == size<2>(tCrA_copy_view));             // CPY_K
+    CUTE_STATIC_ASSERT_V(size<1>(tCsB) == size<1>(tCrB_copy_view));            // CPY_N
+    CUTE_STATIC_ASSERT_V(size<2>(tCsB) == size<2>(tCrB_copy_view));            // CPY_K
+
+    CUTE_STATIC_ASSERT_V(size<1>(tCgC) == size<1>(tCrA));                // MMA_M
+    CUTE_STATIC_ASSERT_V(size<2>(tCgC) == size<1>(tCrB));                // MMA_N
+    CUTE_STATIC_ASSERT_V(size<2>(tCrA) == size<2>(tCrB));                // MMA_K
+#endif
 
     // Clear the accumulators
     clear(tCrC);
-
-//    if (thread0() && block0()) {
-//        print(gA);
-//        print("\n");
-//        print(gBs);
-//        print("\n");
-//        print(gC);
-//        print("\n");
-//        print(tAgA);
-//        print("\n");
-//        print(tBgB);
-//        print("\n");
-//    }
 
     copy(copyA_global_shared, tAgA, tAsA);
 

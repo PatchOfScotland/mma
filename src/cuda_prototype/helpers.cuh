@@ -132,11 +132,11 @@ class RandomMatrix
         RandomMatrix();        
         T* to_cpu();
         T* to_gpu();
-        unsigned flatSize();
-        RandomMatrix<T, N>& setSeed(unsigned s);        
-        template <int R> void fill_rand(const unsigned dimensions, ...);
-        template <typename U> void fill_from(RandomMatrix<U, N> &other, const unsigned dimensions, ...);
-        void fill_zeros(const unsigned int dimensions, ...);
+        unsigned long flatSize();
+        RandomMatrix<T, N>& setSeed(unsigned int s);
+        template <int R> void fill_rand(unsigned int first_dim, ...);
+        template <typename U> void fill_from(RandomMatrix<U, N> &other, unsigned int first_dim, ...);
+        void fill_zeros(unsigned int first_dim, ...);
 };
 
 
@@ -248,11 +248,11 @@ void Validator<T>::validate()
 
 //Private
 template <typename T, int N>
-unsigned RandomMatrix<T, N>::flatSize()
+unsigned long RandomMatrix<T, N>::flatSize()
 {
-    unsigned acc = 1;
+    unsigned long acc = 1;
 
-    for (int dim : this->dimensions) {
+    for (unsigned int dim : this->dimensions) {
         acc *= dim;
     }
 
@@ -278,7 +278,7 @@ RandomMatrix<T, N>::RandomMatrix()
 
 template <typename T, int N>
 template <typename U>
-void RandomMatrix<T, N>::fill_from(RandomMatrix<U, N> &other, const unsigned first_dim, ...)
+void RandomMatrix<T, N>::fill_from(RandomMatrix<U, N> &other, const unsigned int first_dim, ...)
 {
     va_list remaining_dims; va_start(remaining_dims, first_dim);
     this->setDimensions(first_dim, remaining_dims);
@@ -314,14 +314,14 @@ T* RandomMatrix<T, N>::to_gpu()
 }
 
 template <typename T, int N>
-RandomMatrix<T, N>& RandomMatrix<T, N>::setSeed(unsigned s)
+RandomMatrix<T, N>& RandomMatrix<T, N>::setSeed(unsigned int s)
 {
     srand(s);
     return *this;
 }
 template <typename T, int N>
 template <int R>
-void RandomMatrix<T, N>::fill_rand(const unsigned first_dim, ...)
+void RandomMatrix<T, N>::fill_rand(const unsigned int first_dim, ...)
 {
     va_list remaining_dims;
     va_start(remaining_dims, first_dim);
@@ -334,7 +334,7 @@ void RandomMatrix<T, N>::fill_rand(const unsigned first_dim, ...)
 }
 
 template <typename T, int N>
-void RandomMatrix<T, N>::fill_zeros(const unsigned first_dim, ...)
+void RandomMatrix<T, N>::fill_zeros(const unsigned int first_dim, ...)
 {
     va_list remaining_dims;
     va_start(remaining_dims, first_dim);

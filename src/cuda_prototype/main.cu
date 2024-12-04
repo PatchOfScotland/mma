@@ -626,7 +626,7 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
 
 #if (NUM_STAGES == 1)
     auto sA = tile_to_shape(swizzle_layoutAtom_A, make_shape(bM, bK));
-        auto sB = tile_to_shape(swizzle_layoutAtom_B, make_shape(bN, bK));
+    auto sB = tile_to_shape(swizzle_layoutAtom_B, make_shape(bN, bK));
 #else
     auto sA = tile_to_shape(swizzle_layoutAtom_A, make_shape(bM, bK, bP));
     auto sB = tile_to_shape(swizzle_layoutAtom_B, make_shape(bN, bK, bP));
@@ -649,18 +649,18 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
 
     // Define global->shared copy tiling (static)
     TiledCopy copyA_global_shared = make_tiled_copy(Copy_Atom<ACopyOpGlobalShared, TA>{},
-                                                    Layout<
-                                                    Shape<Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load)>, Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>>,
-                                                    Stride<Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>,_1>
-                                                    >{},
-                                                    Layout<Shape<_1,Int<elms_per_load>>>{}
+        Layout<
+            Shape<Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load)>, Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>>,
+            Stride<Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>,_1>
+        >{},
+        Layout<Shape<_1,Int<elms_per_load>>>{}
     );
 
     TiledCopy copyB_global_shared = make_tiled_copy(Copy_Atom<BCopyOpGlobalShared, TB>{},
-                                                    Layout<
-                                                    Shape<Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load>, Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load)>>,
-                                                    Stride<_1, Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load>>
-                                                    >{},
+        Layout<
+            Shape<Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load>, Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load)>>,
+            Stride<_1, Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / elms_per_load>>
+        >{},
     Layout<Shape<Int<elms_per_load>,_1>>{}
     );
 
@@ -1358,9 +1358,9 @@ void benchmark_attention_like(
     RandomMatrix<element_type, 4> Bss;
     RandomMatrix<acc_type, 3> Cs;
 
-    As.fill_rand<float_range>(batches, shared_m, shared_k);
-    Bss.fill_rand<float_range>(batches, reuse, shared_k, shared_n);
-    Cs.fill_zeros(batches, shared_m, shared_n);
+    As.fill_rand<float_range>(shared_m, shared_k, batches);
+    Bss.fill_rand<float_range>(shared_k, shared_n, batches, reuse);
+    Cs.fill_zeros(shared_m, shared_n, batches);
 
 //    TODO: validation
 
@@ -1430,6 +1430,7 @@ int main(int argc, char * argv[])
         k = input_int;
     } else if (argc == 4)
     {
+        n_runs = 10;
         m = atoi(argv[1]);
         n = atoi(argv[2]);
         k = atoi(argv[3]);
