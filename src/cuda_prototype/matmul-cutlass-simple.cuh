@@ -43,13 +43,12 @@ template <
         class TA, class AStride, class ASmemLayout, class TiledCopyAGlobalShared, class TiledCopyASharedRegisters,
         class TB, class BStride, class BSmemLayout, class TiledCopyBGlobalShared, class TiledCopyBSharedRegisters,
         class TC, class CStride, class CSmemLayout, class TiledMma,
-        class Alpha, class Beta,
-        int num_stages
+        class Alpha, class Beta
 >
 __global__ static
 __launch_bounds__(decltype(size(TiledMma{}))::value)
 void
-gemm_pipelined(ProblemShape shape_MNK,
+gemm_simple(ProblemShape shape_MNK,
             TA const* A, AStride dA,
             TB const* B, BStride dB,
             TC      * C, CStride dC,
@@ -107,8 +106,8 @@ gemm_pipelined(ProblemShape shape_MNK,
     // Shared memory buffers
     auto smemA = reinterpret_cast<TA *>(shared);
     auto smemB = reinterpret_cast<TB *>(smemA + cosize_v<ASmemLayout>);
-    Tensor sA = make_tensor(make_smem_ptr(smemA), sA_layout);
-    Tensor sB = make_tensor(make_smem_ptr(smemB), sB_layout);
+    Tensor sA = make_tensor(make_smem_ptr(smemA), sA_layout);            // (BLK_M,BLK_K)
+    Tensor sB = make_tensor(make_smem_ptr(smemB), sB_layout);            // (BLK_N,BLK_K)
 
 
 //    TODO: use collective copy?
@@ -132,36 +131,9 @@ gemm_pipelined(ProblemShape shape_MNK,
     CUTE_STATIC_ASSERT_V(  shape(tCrC) ==   shape(tCgC));                // (MMA,MMA_M,MMA_N)
 #endif
 
-
-
-
-//    TODO: custom implementation of pipelining?
-    // K tiles in global memory
-    int k_tile_max = size<3>(tAgA);
-    auto k_tile_count = k_tile_max;
-    int k_tile = 0;
-
-    // Current pipe index in smem to read from
-    int smem_pipe_read  = 0;
-    // Current pipe index in smem to write to
-    int smem_pipe_write = num_stages - 1;
-
-
-    // Start async loads for all pipes but the last
-    CUTLASS_PRAGMA_UNROLL
-    for (int k_pipe = 0; k_pipe < num_stages - 1; ++k_pipe) {
-        copy(copyA_global_shared, tAgA(_,_,_,k_tile), tAsA(_,_,_,k_pipe));
-        copy(copyB_global_shared, tBgB(_,_,_,k_tile), tBsB(_,_,_,k_pipe));
-        cp_async_fence();
-        --k_tile_count;
-        if (k_tile_count > 0) { ++k_tile; }
-    }
-
-
-
     // Create register tensors for the MMA to operate on
-    Tensor tCrA  = thr_mma.partition_fragment_A(sA(_,_,0));                    // (MMA,MMA_M,MMA_K)
-    Tensor tCrB  = thr_mma.partition_fragment_B(sB(_,_,0));                    // (MMA,MMA_N,MMA_K)
+    Tensor tCrA  = thr_mma.partition_fragment_A(sA);                    // (MMA,MMA_M,MMA_K)
+    Tensor tCrB  = thr_mma.partition_fragment_B(sB);                    // (MMA,MMA_N,MMA_K)
 
     auto smem_thr_copy_A   = smem_tiled_copy_A.get_thread_slice(threadIdx.x);
     Tensor tCsA            = smem_thr_copy_A.partition_S(sA);
@@ -181,80 +153,35 @@ gemm_pipelined(ProblemShape shape_MNK,
     CUTE_STATIC_ASSERT_V(size<2>(tCgC) == size<1>(tCrB));                // MMA_N
     CUTE_STATIC_ASSERT_V(size<2>(tCrA) == size<2>(tCrB));                // MMA_K
 
-    // Size of the register pipeline
-    auto K_BLOCK_MAX = size<2>(tCrA);
-
-
     // Clear the accumulators
     clear(tCrC);
 
 
-    //    TODO: avoid this for clarity?
-    Tensor tCsA_p = tCsA(_,_,_,smem_pipe_read);
-    Tensor tCsB_p = tCsB(_,_,_,smem_pipe_read);
-
-
-    // PREFETCH register pipeline
-    if (K_BLOCK_MAX > 1) {
-        // Wait until our first prefetched tile is loaded in
-        cp_async_wait<num_stages - 2>();
+    int k_tile_max = size<3>(tAgA);
+    for (int k_tile = 0; k_tile < k_tile_max; k_tile++)
+    {
+        // Copy global -> shared
+        __syncthreads();
+        copy(copyA_global_shared, tAgA(_,_,_,k_tile), tAsA);
+        copy(copyB_global_shared, tBgB(_,_,_,k_tile), tBsB);
+#ifndef SYNC_CPY
+        cp_async_fence();
+        cp_async_wait<0>();
+#endif
         __syncthreads();
 
-        // Prefetch the first rmem from the first k-tile
-        copy(smem_tiled_copy_A, tCsA_p(_,_,Int<0>{}), tCrA_copy_view(_,_,Int<0>{}));
-        copy(smem_tiled_copy_B, tCsB_p(_,_,Int<0>{}), tCrB_copy_view(_,_,Int<0>{}));
-    }
-
-
-    CUTLASS_PRAGMA_NO_UNROLL
-    while (k_tile_count > -(num_stages - 1))
-    {
-        // Pipeline the outer products with a static for loop.
-        //
-        // Note, the for_each() function is required here to ensure `k_block` is of type Int<x>.
-        for_each(make_int_sequence<K_BLOCK_MAX>{}, [&] (auto k_block)
+        // Inner loop
+        constexpr int K_BLOCK_MAX = size<2>(tCrA);
+        CUTE_UNROLL
+        for (int k_block = 0; k_block < K_BLOCK_MAX; ++k_block)
         {
-            if (k_block == K_BLOCK_MAX - 1)
-            {
-                // Slice the smem_pipe_read smem
-                tCsA_p = tCsA(_,_,_,smem_pipe_read);
-                tCsB_p = tCsB(_,_,_,smem_pipe_read);
+            // Copy shared -> registers
+            copy(smem_tiled_copy_A, tCsA(_,_,k_block), tCrA_copy_view(_,_,k_block));
+            copy(smem_tiled_copy_B, tCsB(_,_,k_block), tCrB_copy_view(_,_,k_block));
 
-                // Commit the smem for smem_pipe_read
-                cp_async_wait<num_stages - 2>();
-                __syncthreads();
-            }
-
-            // Load A, B shmem->regs for k_block+1
-            auto k_block_next = (k_block + Int<1>{}) % K_BLOCK_MAX;  // static
-            copy(smem_tiled_copy_A, tCsA_p(_,_,k_block_next), tCrA_copy_view(_,_,k_block_next));
-            copy(smem_tiled_copy_B, tCsB_p(_,_,k_block_next), tCrB_copy_view(_,_,k_block_next));
-
-            // Copy gmem to smem before computing gemm on each k-pipe
-            if (k_block == 0)
-            {
-                copy(copyA_global_shared, tAgA(_,_,_,k_tile), tAsA(_,_,_,smem_pipe_write));
-                copy(copyB_global_shared, tBgB(_,_,_,k_tile), tBsB(_,_,_,smem_pipe_write));
-                cp_async_fence();
-
-                // Advance the tile
-                --k_tile_count;
-                if (k_tile_count > 0) { ++k_tile; }
-
-                // Advance the pipe -- Doing it here accounts for K_BLOCK_MAX = 1 (no rmem pipe)
-                smem_pipe_write = smem_pipe_read;
-                ++smem_pipe_read;
-                smem_pipe_read = (smem_pipe_read == num_stages) ? 0 : smem_pipe_read;
-            }
-
-            // Transform before compute
-//            TODO: add transforms?
-//            cute::transform(tCrA(_,_,k_block), TransformA{});
-//            cute::transform(tCrB(_,_,k_block), TransformB{});
-
-            // Thread-level register gemm for k_block
+            // GEMM on k_block in registers
             gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);
-        });
+        }
     }
 
     // Write back to global with result
