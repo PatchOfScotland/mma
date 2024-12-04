@@ -708,7 +708,9 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
 //    >;
 //#endif
 //#endif
+    #ifdef ATTENTION_LIKE
     static_assert(NUM_STAGES == 1, "NUM_STAGES must be 1 for attention_like");
+
     auto kernel = attention_like_simple<
         TA, decltype(layoutAs), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
         TB, decltype(layoutBss), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
@@ -740,6 +742,9 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
     // Check if kernel launch was successfull
     gpuAssert(cudaPeekAtLastError());
     return t.elapsed();
+    #else
+    return 0;
+    #endif
 }
 
 
