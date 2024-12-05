@@ -1,28 +1,13 @@
 -- ==
--- compiled script input { (mk_input 1 16) } auto output
+-- compiled script input { (mk_input 10000 128) }
+import "mmm-helpers"
 
-let d = 16i64
+let d = 128i64
 
-def matmulf32 (A: [d][d]f16) (B: [d][d]f16) : [d][d]f32 =
-  map (\Arow ->
-         map (\Bcol ->
-                map2 (*) Arow Bcol
-                |> map f32.f16
-                |> reduce (+) 0.0
-             ) (transpose B)
-      ) A
-
-def matmulf16 (A: [d][d]f16) (B: [d][d]f16) : [d][d]f16 =
-  map (\Arow ->
-         map (\Bcol ->
-                map2 (*) Arow Bcol
-                |> reduce (+) 0.0
-             ) (transpose B)
-      ) A
-
+-- Note: Due to a compiler bug (described in the compiler)
+-- this will give the wrong results
 def oneIter (K: [d][d]f16) (V: [d][d]f16) (Qi: [d][d]f16) =
   let P_block = matmulf16 Qi K
-  -- in P_block
   in matmulf16 P_block V
 
 def flashAttention [m]
@@ -32,11 +17,12 @@ def flashAttention [m]
   map (oneIter K V) Q
 
 entry mk_input (m: i64) (d: i64) : ([m][d][d]f16, [d][d]f16, [d][d]f16) =
-  let Q = replicate d 1.0 |> replicate d |> replicate m
-  let K = replicate d 1.0 |> replicate d
+  let Q = replicate d 3.0 |> replicate d |> replicate m
+  let K = replicate d 2.0 |> replicate d
   let V = replicate d 1.0 |> replicate d
   in  (Q, K, V)
 
 
 entry main [m] (Q: [m][d][d]f16) (K: [d][d]f16) (V: [d][d]f16) =
+  -- let (Q, K, V) = mk_input 1 d in
   #[incremental_flattening(only_intra)]flashAttention Q K V
