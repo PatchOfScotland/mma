@@ -1,7 +1,17 @@
 -- ==
+-- entry: run16
 -- compiled random input {[1024][16][16]f16 [1024][256][16][16]f16}
+
+-- ==
+-- entry: run32
 -- compiled random input {[1024][32][32]f16 [1024][256][32][32]f16}
+
+-- ==
+-- entry: run64
 -- compiled random input {[1024][64][64]f16 [1024][256][64][64]f16}
+
+-- ==
+-- entry: run128
 -- compiled random input {[1024][128][128]f16 [1024][256][128][128]f16}
 import "mmm-helpers"
 
