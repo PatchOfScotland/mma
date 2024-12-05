@@ -1,6 +1,6 @@
 
 
-def matmulf32 [d] (A: [d][d]f16) (B: [d][d]f16) : [d][d]f32 =
+def matmulf32 [m][n][k] (A: [m][k]f16) (B: [k][n]f16) : [m][n]f32 =
   map (\Arow ->
          map (\Bcol ->
                 map2 (*) Arow Bcol
@@ -9,7 +9,7 @@ def matmulf32 [d] (A: [d][d]f16) (B: [d][d]f16) : [d][d]f32 =
              ) (transpose B)
       ) A
 
-def matmulf16 [d] (A: [d][d]f16) (B: [d][d]f16) : [d][d]f16 =
+def matmulf16 [m][n][k] (A: [m][k]f16) (B: [k][n]f16) : [m][n]f16 =
   map (\Arow ->
          map (\Bcol ->
                 map2 (*) Arow Bcol
