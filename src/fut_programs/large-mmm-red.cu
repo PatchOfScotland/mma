@@ -5310,8 +5310,8 @@ FUTHARK_FUN_ATTR void futrts_copyGlobalShared(unsigned char **mem_out_p, unsigne
     }
 
     // TODO: should ideally be just before gemm, could do in function
-    cp_async_wait<0>();
-    __syncthreads();
+//    cp_async_wait<0>();
+//    __syncthreads();
 }
 
 template<class ElmTypeAIn, class ElmTypeBIn, class ElmTypeCIn, class SizeM, class SizeN, class WarpsM, class WarpsN, int numRegs>
@@ -5398,6 +5398,8 @@ FUTHARK_FUN_ATTR void futrts_tensorMMM(ElmTypeCIn (*mem_out_p)[numRegs], unsigne
     Tensor tCrB_copy_view  = smem_thr_copy_B.retile_D(tCrB);
 
     // TODO: use async better? add tDrD? try cooperative gemm
+    cp_async_wait<0>();
+    __syncthreads();
 
     // Inner loop
     constexpr int K_BLOCK_MAX = size<2>(tCrA);
