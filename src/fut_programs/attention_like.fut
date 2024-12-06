@@ -54,9 +54,8 @@ def attention_like [q][m][n][k] (A: [m][k]f16) (B: [q][k][n]f16) : [m][n]f32 =
            else replicate (m * k) 0.0f16 |> unflatten
 
   let acc_init : *[m][n]f32 = replicate (m * n) 0.0f32 |> unflatten in
-  --let acc_init : *[m][k]f32 = replicate (m * k) 0.0f32 |> unflatten in
-  loop _ = (acc_init: *[m][n]f32) for i < q do
-    let B' = B[i]
+  loop (_acc : *[m][n]f32) = (acc_init: *[m][n]f32) for i < q do
+    let B': *[k][n]f16 = B[i]
     let C : *[m][n]f32 = matmulf32 A' B'
     in copy C
 
