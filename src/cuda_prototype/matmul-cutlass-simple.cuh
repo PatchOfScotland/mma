@@ -201,6 +201,7 @@ gemm_simple(ProblemShape shape_MNK,
 
 #ifdef SWIZZLE_BACK
 #ifndef SEPARATE_CMEM
+    cp_async_wait<0>();
     __syncthreads();
 #endif
 #endif
