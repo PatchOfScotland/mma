@@ -5610,8 +5610,9 @@ void mainzisegmap_intrablock_8244(__global int *global_failure, int failure_is_a
 
     futrts_copyRegistersShared(&ext_mem_8399, mem_8379, color_8421, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
 
-    for (int32_t nest_i_8456 = 0; nest_i_8456 < 128; nest_i_8456++) {
-        ((__global float *) mem_8413)[gtid_8242 * (int64_t) 524288 + gtid_8243 * (int64_t) 16384 + sext_i32_i64(nest_i_8456) * (int64_t) 128 + sext_i32_i64(local_tid_8427)] = ((__local float *) color_8421)[sext_i32_i64(nest_i_8456) * (int64_t) 128 + sext_i32_i64(local_tid_8427)];
+    for (int32_t nest_i_8456 = 0; nest_i_8456 < 32; nest_i_8456++) {
+//        ((__global float *) mem_8413)[gtid_8242 * (int64_t) 524288 + gtid_8243 * (int64_t) 16384 + sext_i32_i64(nest_i_8456) * (int64_t) 128 + sext_i32_i64(local_tid_8427)] = ((__local float *) color_8421)[sext_i32_i64(nest_i_8456) * (int64_t) 128 + sext_i32_i64(local_tid_8427)];
+        ((__global float4 *) &((__global float *) mem_8413)[gtid_8242 * (int64_t) 524288 + gtid_8243 * (int64_t) 16384])[sext_i32_i64(nest_i_8456) * (int64_t) 128 + sext_i32_i64(local_tid_8427)] = ((__local float4 *) color_8421)[sext_i32_i64(nest_i_8456) * (int64_t) 128 + sext_i32_i64(local_tid_8427)];
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     
