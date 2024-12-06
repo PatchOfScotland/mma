@@ -1,18 +1,18 @@
 -- ==
 -- entry: mmm_intra16
--- only_intra compiled random input { (mk_input 100000 16 16) } auto output
+-- only_intra compiled script input { (mk_input 100000 16 16) } auto output
 
 -- ==
 -- entry: mmm_intra32
--- only_intra compiled random input { (mk_input 100000 32 32) } auto output
+-- only_intra compiled script input { (mk_input 100000 32 32) } auto output
 
 -- ==
 -- entry: mmm_intra64
--- only_intra compiled random input { (mk_input 100000 64 64) } auto output
+-- only_intra compiled script input { (mk_input 100000 64 64) } auto output
 
 -- ==
 -- entry: mmm_intra128
--- only_intra compiled random input { (mk_input 100000 128 128) } auto output
+-- only_intra compiled script input { (mk_input 100000 128 128) } auto output
 
 import "mmm-helpers"
 
