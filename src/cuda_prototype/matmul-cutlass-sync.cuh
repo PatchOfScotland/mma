@@ -233,9 +233,9 @@ gemm_sync_cpy(ProblemShape shape_MNK,
 #endif
 
     // Write back to global with result
-    axpby(alpha, tCrC, beta, tCgC);
-// TODO: use this?
-//    copy(AutoVectorizingCopy{}, tCrC, tCgC);
+    // TODO: use this?
+//    axpby(alpha, tCrC, beta, tCgC);
+    copy(AutoVectorizingCopy{}, tCrC, tCgC);
 
 #ifdef SWIZZLE_BACK
     __syncthreads();
