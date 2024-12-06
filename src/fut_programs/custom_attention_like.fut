@@ -1,11 +1,4 @@
 -- ==
--- entry: run_orig
--- compiled script input { (mk_input 100000 16) }
--- compiled script input { (mk_input 100000 32) }
--- compiled script input { (mk_input 100000 64) }
--- compiled script input { (mk_input 100000 128) }
-
--- ==
 -- entry: run16
 -- only_intra compiled script input { (mk_input 100000 16) }
 
@@ -50,11 +43,6 @@ entry mk_input (m: i64) (d: i64) : ([m][d][d]real, [d][d]real, [d][d]real) =
   let K = replicate d 2.0 |> replicate d
   let V = replicate d 1.0 |> replicate d
   in  (Q, K, V)
-
-
-
-entry run_orig [m][d] (Q: [m][d][d]real) (K: [d][d]real) (V: [d][d]real) =
-  flashAttention Q K V
 
 entry run16 [m] (Q: [m][16][16]real) (K: [16][16]real) (V: [16][16]real) =
   #[incremental_flattening(only_intra)]flashAttention Q K V
