@@ -1,4 +1,4 @@
---==
+-- ==
 -- entry: run_orig
 -- compiled script input { (mk_input 100000 16) }
 -- compiled script input { (mk_input 100000 32) }
@@ -7,19 +7,19 @@
 
 -- ==
 -- entry: run16
--- compiled script input { (mk_input 100000 16) }
+-- only_intra compiled script input { (mk_input 100000 16) }
 
 -- ==
 -- entry: run32
--- compiled script input { (mk_input 100000 32) }
+-- only_intra compiled script input { (mk_input 100000 32) }
 
 -- ==
 -- entry: run64
--- compiled script input { (mk_input 100000 64) }
+-- only_intra compiled script input { (mk_input 100000 64) }
 
 -- ==
 -- entry: run128
--- compiled script input { (mk_input 100000 128) }
+-- only_intra compiled script input { (mk_input 100000 128) }
 
 import "mmm-helpers"
 
