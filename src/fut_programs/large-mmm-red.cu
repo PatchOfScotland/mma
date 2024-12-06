@@ -5462,11 +5462,11 @@ FUTHARK_KERNEL_SIZED(mainzisegmap_intrablock_8244_dim1, 1, 1)
 void mainzisegmap_intrablock_8244(__global int *global_failure, int failure_is_an_option, __global int64_t *global_failure_args, int32_t num_chunks_8424, __global unsigned char *A_mem_8358, __global unsigned char *B_mem_8359, __global unsigned char *mem_8413)
 {
     volatile __local unsigned char *color_8421_backing_2 = &shared_mem[0];
-    const int64_t color_8421_backing_2_offset = 0 + (int64_t) 65536;
+    const int64_t color_8421_backing_2_offset = 0 + (int64_t) 16384;
     volatile __local unsigned char *color_8420_backing_1 = &shared_mem[color_8421_backing_2_offset];
     const int64_t color_8420_backing_1_offset = color_8421_backing_2_offset + (int64_t) 16384;
-    volatile __local unsigned char *color_8419_backing_0 = &shared_mem[color_8420_backing_1_offset];
-    const int64_t color_8419_backing_0_offset = color_8420_backing_1_offset + (int64_t) 65536;
+//    volatile __local unsigned char *color_8419_backing_0 = &shared_mem[color_8420_backing_1_offset];
+//    const int64_t color_8419_backing_0_offset = color_8420_backing_1_offset + (int64_t) 65536;
     volatile __local int local_failure;
     
     // Harmless for all threads to write this.
@@ -5493,7 +5493,7 @@ void mainzisegmap_intrablock_8244(__global int *global_failure, int failure_is_a
     int64_t remnant_8442;
     int64_t gtid_8243;
     int64_t remnant_8443;
-    __local unsigned char *color_8419;
+//    __local unsigned char *color_8419;
     __local unsigned char *color_8420;
     __local unsigned char *color_8421;
     int64_t binop_x_8341;
@@ -5522,7 +5522,7 @@ void mainzisegmap_intrablock_8244(__global int *global_failure, int failure_is_a
     remnant_8442 = sext_i32_i64(block_id_8428) - gtid_8242 * slice_8440;
     gtid_8243 = remnant_8442;
     remnant_8443 = remnant_8442 - gtid_8243;
-    color_8419 = (__local unsigned char *) color_8419_backing_0;
+//    color_8419 = (__local unsigned char *) color_8419_backing_0;
     color_8420 = (__local unsigned char *) color_8420_backing_1;
     color_8421 = (__local unsigned char *) color_8421_backing_2;
 //    for (int32_t chunk_i_8447 = 0; chunk_i_8447 < num_chunks_8424; chunk_i_8447++) {
@@ -5583,7 +5583,7 @@ void mainzisegmap_intrablock_8244(__global int *global_failure, int failure_is_a
         binop_x_8344 = (int64_t) 262144 * K_i_8251;
         offsetB_8346 = binop_x_8344 + binop_y_8345;
         futrts_copyGlobalShared(&ext_mem_8384, A_mem_8358, color_8420, offsetA_8343, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 64>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
-        futrts_copyGlobalShared(&ext_mem_8387, B_mem_8359, color_8419, offsetB_8346, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        futrts_copyGlobalShared(&ext_mem_8387, B_mem_8359, color_8421, offsetB_8346, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
         ltid_flat_8350 = sext_i32_i64(local_tid_8427);
         ltid_8349 = sext_i32_i64(sext_i64_i32(ltid_pre_8431));
         futrts_tensorMMM(&ext_mem_8388, ext_mem_8384, ext_mem_8387, mem_8379, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 64>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});
