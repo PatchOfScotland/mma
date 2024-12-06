@@ -111,7 +111,13 @@ gemm_sync_cpy(ProblemShape shape_MNK,
 
 #ifdef SWIZZLE_BACK
     CSmemLayout sC_layout;
+
+#ifdef SEPARATE_CMEM
+    auto smemC = reinterpret_cast<TC *>(smemB + cosize_v<BSmemLayout>);
+#else
     auto smemC = reinterpret_cast<TC *>(smemA);
+#endif
+
     Tensor sC = make_tensor(make_smem_ptr(smemC), sC_layout);
 #endif
 
@@ -219,8 +225,16 @@ gemm_sync_cpy(ProblemShape shape_MNK,
         } // k_block
     } // k_tile
 
+#ifdef SWIZZLE_BACK
+#ifndef SEPARATE_CMEM
+    __syncthreads();
+#endif
+#endif
+
     // Write back to global with result
     axpby(alpha, tCrC, beta, tCgC);
+// TODO: use this?
+//    copy(AutoVectorizingCopy{}, tCrC, tCgC);
 
 #ifdef SWIZZLE_BACK
     __syncthreads();

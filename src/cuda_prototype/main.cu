@@ -526,7 +526,11 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
 #endif
 
 #ifdef SWIZZLE_BACK
+#ifdef SEPARATE_CMEM
+    const uint32_t shared_memory_used = cosize_v<decltype(sA)> * sizeof(TA) + cosize_v<decltype(sB)> * sizeof(TB) + cosize_v<decltype(sC)> * sizeof(TC);
+#else
     const uint32_t shared_memory_used = max(cosize_v<decltype(sA)> * sizeof(TA) + cosize_v<decltype(sB)> * sizeof(TB), cosize_v<decltype(sC)> * sizeof(TC));
+#endif
 #else
     const uint32_t shared_memory_used = cosize_v<decltype(sA)> * sizeof(TA) + cosize_v<decltype(sB)> * sizeof(TB);
 #endif
