@@ -212,6 +212,6 @@ gemm_simple(ProblemShape shape_MNK,
 
 #ifdef SWIZZLE_BACK
     __syncthreads();
-    cooperative_copy<decltype(size(TiledMma{}))::value>(threadIdx.x, sC, gC);
+    cooperative_copy<decltype(size(TiledMma{}))::value, 128>(threadIdx.x, sC, gC);
 #endif
 }
