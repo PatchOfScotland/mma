@@ -5310,8 +5310,8 @@ FUTHARK_FUN_ATTR void futrts_copyGlobalShared(unsigned char **mem_out_p, unsigne
     }
 
     // TODO: should ideally be just before gemm, could do in function
-    cp_async_wait<0>();
-    __syncthreads();
+//    cp_async_wait<0>();
+//    __syncthreads();
 }
 
 template<class ElmTypeAIn, class ElmTypeBIn, class ElmTypeCIn, class SizeM, class SizeN, class WarpsM, class WarpsN, int numRegs>
@@ -5398,6 +5398,9 @@ FUTHARK_FUN_ATTR void futrts_tensorMMM(ElmTypeCIn (*mem_out_p)[numRegs], unsigne
     Tensor tCrB_copy_view  = smem_thr_copy_B.retile_D(tCrB);
 
     // TODO: use async better? add tDrD? try cooperative gemm
+
+    cp_async_wait<0>();
+    __syncthreads();
 
     // Inner loop
     constexpr int K_BLOCK_MAX = size<2>(tCrA);
@@ -5597,9 +5600,14 @@ void mainzisegmap_intrablock_7871(__global int *global_failure, int failure_is_a
     }
     
     futrts_copyRegistersShared(&ext_mem_8012, mem_8008, color_8035, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
-    for (int32_t nest_i_8090 = 0; nest_i_8090 < 128; nest_i_8090++) {
-        ((__global float *) mem_param_out_8030)[phys_tblock_id_7871 + sext_i32_i64(nest_i_8090) * (int64_t) 131072 + sext_i32_i64(local_tid_8059) * (int64_t) 1024] = ((__local float *) ext_mem_8012)[sext_i32_i64(nest_i_8090) * (int64_t) 128 + sext_i32_i64(local_tid_8059)];
+//    for (int32_t nest_i_8090 = 0; nest_i_8090 < 128; nest_i_8090++) {
+//        ((__global float *) mem_param_out_8030)[phys_tblock_id_7871 + sext_i32_i64(nest_i_8090) * (int64_t) 131072 + sext_i32_i64(local_tid_8059) * (int64_t) 1024] = ((__local float *) ext_mem_8012)[sext_i32_i64(nest_i_8090) * (int64_t) 128 + sext_i32_i64(local_tid_8059)];
+//    }
+
+    for (int32_t nest_i_8090 = 0; nest_i_8090 < 32; nest_i_8090++) {
+        ((__global float4 *) &(((float  *) mem_8019)[gtid_7869 * (int64_t) 524288 + gtid_7870 * (int64_t) 16384]))[sext_i32_i64(nest_i_8090) * (int64_t) 128 + sext_i32_i64(local_tid_8059)] = ((__local float4 *) ext_mem_8012)[sext_i32_i64(nest_i_8090) * (int64_t) 128 + sext_i32_i64(local_tid_8059)];
     }
+
     barrier(CLK_LOCAL_MEM_FENCE);
     mem_param_tmp_8085 = mem_param_out_8030;
     mem_param_out_tmp_8086 = mem_param_7978;
