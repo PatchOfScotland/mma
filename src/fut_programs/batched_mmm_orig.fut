@@ -1,9 +1,9 @@
 -- ==
 -- entry: mmm
 -- compiled script input { (mk_input 100000 16 16) } auto output
--- compiled random input { (mk_input 100000 32 32) } auto output
--- compiled random input { (mk_input 100000 64 64) } auto output
--- compiled random input { (mk_input 100000 128 128) } auto output
+-- compiled script input { (mk_input 100000 32 32) } auto output
+-- compiled script input { (mk_input 100000 64 64) } auto output
+-- compiled script input { (mk_input 100000 128 128) } auto output
 
 import "batched_mmm"
 import "mmm-helpers"
