@@ -266,6 +266,10 @@ gemm_pipelined(ProblemShape shape_MNK,
         });
     }
 
+#ifdef SWIZZLE_BACK
+    __syncthreads();
+#endif
+
     // Write back to global with result
 //    axpby(alpha, tCrC, beta, tCgC);
     copy(AutoVectorizingCopy{}, tCrC, tCgC);
