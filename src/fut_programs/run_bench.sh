@@ -16,6 +16,6 @@ echo "--------------------"
 echo "Bench done..."
 echo "Starting bench tensor cores..."
 echo "--------------------"
-futmma bench --backend=cudatc --pass-option=--nvrtc-option=-i../../cutlass/include attention_like.fut
-futmma bench --backend=cudatc --pass-option=--nvrtc-option=-i../../cutlass/include custom_attention_like.fut
-futmma bench --backend=cudatc --pass-option=--nvrtc-option=-i../../cutlass/include batched_mmm.fut
+futmma bench --backend=cudatc --pass-option=--nvrtc-option=-I../../cutlass/include attention_like.fut
+futmma bench --backend=cudatc --pass-option=--nvrtc-option=-I../../cutlass/include custom_attention_like.fut
+futmma bench --backend=cudatc --pass-option=--nvrtc-option=-I../../cutlass/include batched_mmm.fut
