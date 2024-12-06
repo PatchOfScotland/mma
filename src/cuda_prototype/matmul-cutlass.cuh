@@ -110,6 +110,11 @@ gemm_pipelined(ProblemShape shape_MNK,
     Tensor sA = make_tensor(make_smem_ptr(smemA), sA_layout);
     Tensor sB = make_tensor(make_smem_ptr(smemB), sB_layout);
 
+#ifdef SWIZZLE_BACK
+    CSmemLayout sC_layout;
+    auto smemC = reinterpret_cast<TC *>(smemA);
+    Tensor sC = make_tensor(make_smem_ptr(smemC), sC_layout);
+#endif
 
 //    TODO: use collective copy?
     ThrCopy thr_copy_a_global_shared = copyA_global_shared.get_slice(threadIdx.x);
@@ -121,7 +126,11 @@ gemm_pipelined(ProblemShape shape_MNK,
     Tensor tBsB = thr_copy_b_global_shared.partition_D(sB);                            // (CPY,CPY_N,CPY_K)
 
     ThrMMA thr_mma = tiled_mma.get_slice(threadIdx.x);
+#ifdef SWIZZLE_BACK
+    Tensor tCgC = thr_mma.partition_C(sC);                               // (MMA,MMA_M,MMA_N)
+#else
     Tensor tCgC = thr_mma.partition_C(gC);                               // (MMA,MMA_M,MMA_N)
+#endif
     Tensor tCrC = thr_mma.make_fragment_C(tCgC);                         // (MMA,MMA_M,MMA_N)
 
 #if 1
@@ -258,5 +267,11 @@ gemm_pipelined(ProblemShape shape_MNK,
     }
 
     // Write back to global with result
-    axpby(alpha, tCrC, beta, tCgC);
+//    axpby(alpha, tCrC, beta, tCgC);
+    copy(AutoVectorizingCopy{}, tCrC, tCgC);
+
+#ifdef SWIZZLE_BACK
+    __syncthreads();
+    cooperative_copy<decltype(size(TiledMma{}))::value>(threadIdx.x, sC, gC);
+#endif
 }
