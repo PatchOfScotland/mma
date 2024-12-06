@@ -5560,11 +5560,20 @@ void mainzisegmap_intrablock_7871(__global int *global_failure, int failure_is_a
     __global unsigned char *mem_param_tmp_8085;
     __global unsigned char *mem_param_out_tmp_8086;
     __global unsigned char *mem_param_ext_tmp_8088;
+
+//    float mem_7983[(int64_t) 128];
+
+    for (int64_t i_7946 = 0; i_7946 < (int64_t) 128; i_7946++) {
+        mem_7992[i_7946] = 0.0F;
+    }
+//    for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {
+//        mem_7992[i_0] = mem_7983[i_0];
+//    }
     
     for (int64_t K_i_7877 = 0; K_i_7877 < (int64_t) 32; K_i_7877++) {
         int64_t ltid_flat_7938;
         int64_t ltid_7937;
-        float mem_7983[(int64_t) 128];
+
         int64_t binop_y_7955;
         int64_t offsetA_7956;
         int64_t binop_x_7957;
@@ -5577,12 +5586,7 @@ void mainzisegmap_intrablock_7871(__global int *global_failure, int failure_is_a
         
         ltid_flat_7938 = sext_i32_i64(local_tid_8059);
         ltid_7937 = sext_i32_i64(sext_i64_i32(ltid_pre_8063));
-        for (int64_t i_7946 = 0; i_7946 < (int64_t) 128; i_7946++) {
-            mem_7983[i_7946] = 0.0F;
-        }
-        for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {
-            mem_7992[i_0] = mem_7983[i_0];
-        }
+
         barrier(CLK_LOCAL_MEM_FENCE);
         binop_y_7955 = (int64_t) 8192 * K_i_7877;
         offsetA_7956 = binop_x_7954 + binop_y_7955;
@@ -5594,12 +5598,12 @@ void mainzisegmap_intrablock_7871(__global int *global_failure, int failure_is_a
         ltid_7962 = sext_i32_i64(sext_i64_i32(ltid_pre_8063));
         futrts_tensorMMM(&ext_mem_8001, ext_mem_7997, ext_mem_8000, mem_7992, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 64>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});
         for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {
-            mem_8008[i_0] = ext_mem_8001[i_0];
+            mem_7992[i_0] = ext_mem_8001[i_0];
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
     
-    futrts_copyRegistersShared(&ext_mem_8012, mem_8008, color_8035, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+    futrts_copyRegistersShared(&ext_mem_8012, mem_7992, color_8035, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
 //    for (int32_t nest_i_8090 = 0; nest_i_8090 < 128; nest_i_8090++) {
 //        ((__global float *) mem_param_out_8030)[phys_tblock_id_7871 + sext_i32_i64(nest_i_8090) * (int64_t) 131072 + sext_i32_i64(local_tid_8059) * (int64_t) 1024] = ((__local float *) ext_mem_8012)[sext_i32_i64(nest_i_8090) * (int64_t) 128 + sext_i32_i64(local_tid_8059)];
 //    }
