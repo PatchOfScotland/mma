@@ -1,18 +1,18 @@
 -- ==
 -- entry: mmm_intra16
--- only_intra compiled random input {[10000][16][16]f16 [10000][16][16]f16} auto output
+-- only_intra compiled random input {[100000][16][16]f16 [100000][16][16]f16} auto output
 
 -- ==
 -- entry: mmm_intra32
--- only_intra compiled random input {[10000][32][32]f16 [10000][32][32]f16} auto output
+-- only_intra compiled random input {[100000][32][32]f16 [100000][32][32]f16} auto output
 
 -- ==
 -- entry: mmm_intra64
--- only_intra compiled random input {[10000][64][64]f16 [10000][64][64]f16} auto output
+-- only_intra compiled random input {[100000][64][64]f16 [100000][64][64]f16} auto output
 
 -- ==
 -- entry: mmm_intra128
--- only_intra compiled random input {[10000][128][128]f16 [10000][128][128]f16} auto output
+-- only_intra compiled random input {[100000][128][128]f16 [100000][128][128]f16} auto output
 
 import "mmm-helpers"
 
