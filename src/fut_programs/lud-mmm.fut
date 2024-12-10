@@ -20,17 +20,17 @@ let ludMult [m][b] (r: i64) (top_per: [m][b][b]f16, lft_per: [m][b][b]f16, mat_s
              ) (zip mat_arr top_per)
       ) (zip mat_slice lft_per)
   
--- entry lud64 [m] (top_per: [m][64][64]f16)
---          (lft_per: [m][64][64]f16)
---          (mat_slice: [m][m][64][64]f32 )
---           =
---   ludMult 32 (top_per, lft_per, mat_slice)
+entry lud64 [m] (top_per: [m][64][64]f16)
+         (lft_per: [m][64][64]f16)
+         (mat_slice: [m][m][64][64]f32 )
+          =
+  ludMult 32 (top_per, lft_per, mat_slice)
 
--- entry lud128 [m] (top_per: [m][128][128]f16)
---          (lft_per: [m][128][128]f16)
---          (mat_slice: [m][m][128][128]f32 )
---           =
---   ludMult 32 (top_per, lft_per, mat_slice)          
+entry lud128 [m] (top_per: [m][128][128]f16)
+         (lft_per: [m][128][128]f16)
+         (mat_slice: [m][m][128][128]f32 )
+          =
+  ludMult 32 (top_per, lft_per, mat_slice)          
 
 --- BIG COMMENT -------
 --- The straigh compilation yields something like:
