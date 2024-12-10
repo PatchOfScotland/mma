@@ -4,5 +4,5 @@
 
 import "mmm-helpers"
 
-entry main [m][n][k] (A: [m][k]f16) (B: [k][n]f16) : [m][n]f16 =
-  matmulf16 A B
+entry main [m][n][k] (A: [m][k]f16) (B: [k][n]f16) : [m][n]f32 =
+  matmulf32 A B
