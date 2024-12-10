@@ -1,4 +1,3 @@
-
 -- ==
 -- entry: lud128
 -- compiled random input {[128][128][128]f16 [128][128][128]f16 [128][128][128][128]f32}
@@ -11,6 +10,9 @@
 -- entry: lud32
 -- compiled random input {[128][32][32]f16 [128][32][32]f16 [128][128][32][32]f32}
 
+-- ==
+-- entry: lud16
+-- compiled random input {[128][16][16]f16 [128][16][16]f16 [128][128][16][16]f32}
 
 -- Alternatively try this with default_tile_size=8 and default_reg_tile_size=2
 -- compiled random input {[256][16][16]f16 [256][16][16]f16 [256][256][16][16]f16} auto output
@@ -18,7 +20,8 @@
 import "mmm-helpers"
 import "seq_acc"               
 
-let ludMult [m][b] (top_per: [m][b][b]f16, lft_per: [m][b][b]f16, mat_slice: [m][m][b][b]f32) =  
+let ludMult [m][b] (top_per: [m][b][b]f16, lft_per: [m][b][b]f16, mat_slice: [m][m][b][b]f32) =
+  #[incremental_flattening(only_inner)]
   map (\(mat_arr: [m][b][b]f32, lft: [b][b]f16)  ->
          #[incremental_flattening(only_intra)]
          map (\(mat_blk: [b][b]f32, top: [b][b]f16)  ->
@@ -26,6 +29,13 @@ let ludMult [m][b] (top_per: [m][b][b]f16, lft_per: [m][b][b]f16, mat_slice: [m]
                 in seq_acc 32 (-) (copy mat_blk) (copy mm)
              ) (zip mat_arr top_per)
       ) (zip mat_slice lft_per)
+
+entry lud16 [m] (top_per: [m][16][16]f16)
+         (lft_per: [m][16][16]f16)
+         (mat_slice: [m][m][16][16]f32 )
+          =
+  ludMult (top_per, lft_per, mat_slice)
+
 
 entry lud32 [m] (top_per: [m][32][32]f16)
          (lft_per: [m][32][32]f16)
