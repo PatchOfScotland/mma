@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def matmul():
-    attention_like = [((128 ** 3) * 2 * 2 * 10_000, 948)]
+def matmul():    
     matmul_names = ["Baseline",
                     "Swizzling",
                     "Vectorized copies,\nglobal to shared",
@@ -28,20 +27,71 @@ def matmul():
     plt.tight_layout()
     plt.show()
 
+def lud_like():
+    blocks = 1024 * 256
+    ds = np.array([16, 32, 64, 128])
+    ks = np.array([16, 32, 64, 64])
+    time_tc_us = np.array([214, 557, 3981, 11064])
+    time_us_f16 = np.array([14100, 21990, 35660, 129815])
+    # time_us_f32 = np.array([1046, 6680, 68845, 1407986])
+    
+    tflops_tc = blocks * (ds * ds * ks) * 2 / (time_tc_us * 1_000_000)    
+    tflops_orig_f16 = blocks * (ds * ds * ks) * 2 / (time_us_f16 * 1_000_000)
+    # tflops_orig_f32 = blocks * (ds ** 3) * 2 * 2 / (time_us_f32 * 1_000_000)
+
+    # plt.axhline(124, color="r", label="FlashAttention")
+    plt.plot(tflops_tc, marker='o', linestyle='-', color='skyblue', label="CUDA backend + TC f16")
+    plt.plot(tflops_orig_f16, marker='o', linestyle='-', color='red', label="CUDA backend f16")
+    plt.title("Flash Attention Like")
+    plt.xlabel("Matrix size $n$ of $n\\times n \\times n$ matrix multiplication")
+    plt.ylabel("TFLOPS")
+    plt.xticks(range(len(time_tc_us)), labels=ds)
+    plt.grid(alpha=0.5)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+def attention_like():
+    blocks = 1024 * 256
+    ds = np.array([16, 32, 64, 128])
+    ks = np.array([16, 32, 64, 64])
+    time_tc_us = np.array([214, 557, 3981, 11064])
+    time_us_f16 = np.array([14100, 21990, 35660, 129815])
+    # time_us_f32 = np.array([1046, 6680, 68845, 1407986])
+    
+    tflops_tc = blocks * (ds * ds * ks) * 2 / (time_tc_us * 1_000_000)    
+    tflops_orig_f16 = blocks * (ds * ds * ks) * 2 / (time_us_f16 * 1_000_000)
+    # tflops_orig_f32 = blocks * (ds ** 3) * 2 * 2 / (time_us_f32 * 1_000_000)
+
+    # plt.axhline(124, color="r", label="FlashAttention")
+    plt.plot(tflops_tc, marker='o', linestyle='-', color='skyblue', label="CUDA backend + TC f16")
+    plt.plot(tflops_orig_f16, marker='o', linestyle='-', color='red', label="CUDA backend f16")
+    plt.title("Flash Attention Like")
+    plt.xlabel("Matrix size $n$ of $n\\times n \\times n$ matrix multiplication")
+    plt.ylabel("TFLOPS")
+    plt.xticks(range(len(time_tc_us)), labels=ds)
+    plt.grid(alpha=0.5)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
 def custom_attention():
     blocks = 100_000
     ds = np.array([16, 32, 64, 128])
-    time_tc_us = np.array([382, 414, 2545, 9111])
-    time_us_f16 = np.array([831, 5088, 47410, 505696])
+    time_tc_us = np.array([382, 414, 2545, 8410])
+    time_us_f16 = np.array([833, 5088, 47410, 505696])
     time_us_f32 = np.array([1046, 6680, 68845, 1407986])
     
     tflops_tc = blocks * (ds ** 3) * 2 * 2 / (time_tc_us * 1_000_000)
     tflops_orig_f16 = blocks * (ds ** 3) * 2 * 2 / (time_us_f16 * 1_000_000)
     tflops_orig_f32 = blocks * (ds ** 3) * 2 * 2 / (time_us_f32 * 1_000_000)
-    
+
+    # plt.axhline(124, color="r", label="FlashAttention")
     plt.plot(tflops_tc, marker='o', linestyle='-', color='skyblue', label="CUDA backend + TC f16")
-    plt.plot(tflops_orig_f16, marker='o', linestyle='-', color='r', label="CUDA backend f16")
+    plt.plot(tflops_orig_f16, marker='o', linestyle='-', color='b', label="CUDA backend f16")
     plt.plot(tflops_orig_f32, marker='o', linestyle='-', color='lightcoral', label="CUDA backend f32")
+    plt.axhline(124, color="r", label="Flash Attention 1")
+    plt.title("Custom Flash Attention Like")
     plt.xlabel("Matrix size $n$ of $n\\times n \\times n$ matrix multiplication")
     plt.ylabel("TFLOPS")
     plt.xticks(range(len(time_tc_us)), labels=ds)
@@ -50,5 +100,6 @@ def custom_attention():
     plt.tight_layout()
     plt.show()
     
+attention_like()    
 matmul()
 custom_attention()
