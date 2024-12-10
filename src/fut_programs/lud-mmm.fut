@@ -16,15 +16,16 @@ let ludMult [m][b] (r: i64) (top_per: [m][b][b]f16, lft_per: [m][b][b]f16, mat_s
          #[incremental_flattening(only_intra)]
          map (\(mat_blk: [b][b]f32, top: [b][b]f16)  ->
                 let mm = matmulf32 lft top
-                in seq_acc r (-) (copy mat_blk) (copy mm)
+                -- in mm
+                in seq_acc r (+) (copy mat_blk) (copy mm)
              ) (zip mat_arr top_per)
       ) (zip mat_slice lft_per)
   
-entry lud64 [m] (top_per: [m][64][64]f16)
-         (lft_per: [m][64][64]f16)
-         (mat_slice: [m][m][64][64]f32 )
-          =
-  ludMult 32 (top_per, lft_per, mat_slice)
+-- entry lud64 [m] (top_per: [m][64][64]f16)
+--          (lft_per: [m][64][64]f16)
+--          (mat_slice: [m][m][64][64]f32 )
+--           =
+--   ludMult 32 (top_per, lft_per, mat_slice)
 
 entry lud128 [m] (top_per: [m][128][128]f16)
          (lft_per: [m][128][128]f16)
