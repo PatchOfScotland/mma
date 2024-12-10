@@ -1,5 +1,6 @@
 -- ==
 -- compiled random input {[4096][2048]f16 [2048][4096]f16}
+-- compiled random input {[4096][4096]f16 [4096][4096]f16}
 
 import "mmm-helpers"
 
