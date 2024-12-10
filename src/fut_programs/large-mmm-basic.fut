@@ -1,4 +1,5 @@
 -- ==
+-- compiled random input {[2048][1024]f16 [1024][2048]f16}
 -- compiled random input {[4096][2048]f16 [2048][4096]f16}
 -- compiled random input {[4096][4096]f16 [4096][4096]f16}
 
