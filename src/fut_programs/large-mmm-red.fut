@@ -8,7 +8,7 @@
 
 -- ==
 -- entry: run_large
--- compiled random input {[32][64][128][64]f16 [64][32][64][128]f16}
+-- compiled random input {[64][32][128][64]f16 [32][64][64][128]f16}
 
 -- compiled script input { (mk_input 32 32 32 128 128 64) }
 
