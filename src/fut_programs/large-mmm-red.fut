@@ -15,14 +15,6 @@
 
 import "mmm-intra-helpers"
 
--- let M = 32i64
--- let N = 32i64
--- let K = 32i64
-
--- let m = 128i64
--- let n = 128i64
--- let k = 64i64
-
 entry mk_input M N K m n k : ([M][K][m][k]f16, [K][N][k][n]f16) =
   (replicate (M * K * m * k) 1f16 |> unflatten_4d, replicate (K * N * k * n) 1f16 |> unflatten_4d)
 
@@ -53,8 +45,21 @@ def run [M][K][N][m][n][k] (A: [M][K][m][k]f16) (B: [K][N][k][n]f16) : [M][N][m]
         ) (transpose B)
     ) A
 
+entry run_square_small (A: [8][16][128][64]f16) (B: [16][8][64][128]f16) = run A B
+entry run_square_medium (A: [16][32][128][64]f16) (B: [32][16][64][128]f16) = run A B
+entry run_square_large (A: [32][64][128][64]f16) (B: [64][32][64][128]f16) = run A B 
+        
 entry run_small (A: [16][16][128][64]f16) (B: [16][16][64][128]f16) = run A B 
 entry run_medium (A: [32][32][128][64]f16) (B: [32][32][64][128]f16) = run A B
-entry run_large (A: [32][64][128][64]f16) (B: [64][32][64][128]f16) = run A B 
+entry run_large (A: [64][32][128][64]f16) (B: [32][64][64][128]f16) = run A B
         
+
+-- large-mmm-red.fut:run_small (no tuning file):
+-- [16][16][128][64]f16 [16][16][64][128...:        480μs (95% CI: [     479.9,      480.5])
+
+-- large-mmm-red.fut:run_medium (no tuning file):
+-- [32][32][128][64]f16 [32][32][64][128...:       3190μs (95% CI: [    3177.5,     3252.0])
+
+-- large-mmm-red.fut:run_large (no tuning file):
+-- [32][64][128][64]f16 [64][32][64][128...:       6417μs (95% CI: [    6415.6,     6418.5])
 
