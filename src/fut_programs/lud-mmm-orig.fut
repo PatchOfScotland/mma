@@ -1,8 +1,8 @@
 -- ==
--- compiled random input {[128][128][128]f32 [128][128][128]f32 [128][128][128][128]f32}
--- compiled random input {[128][64][64]f32 [128][64][64]f32 [128][128][64][64]f32}
--- compiled random input {[128][32][32]f32 [128][32][32]f32 [128][128][32][32]f32}
--- compiled random input {[128][16][16]f32 [128][16][16]f32 [128][128][16][16]f32}
+-- compiled random input {[256][128][128]f32 [256][128][128]f32 [256][256][128][128]f32}
+-- compiled random input {[256][64][64]f32 [256][64][64]f32 [256][256][64][64]f32}
+-- compiled random input {[256][32][32]f32 [256][32][32]f32 [256][256][32][32]f32}
+-- compiled random input {[256][16][16]f32 [256][16][16]f32 [256][256][16][16]f32}
 
 -- Alternatively try this with default_tile_size=8 and default_reg_tile_size=2
 -- compiled random input {[256][16][16]f32 [256][16][16]f32 [256][256][16][16]f32} auto output

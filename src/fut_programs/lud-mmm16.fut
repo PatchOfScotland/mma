@@ -1,6 +1,6 @@
 -- ==
 -- entry: lud16
--- compiled random input {[128][16][16]f16 [128][16][16]f16 [128][128][16][16]f32}
+-- compiled random input {[256][16][16]f16 [256][16][16]f16 [256][256][16][16]f32}
 
 
 import "lud-mmm"

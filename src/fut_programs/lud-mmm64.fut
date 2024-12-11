@@ -1,6 +1,6 @@
 -- ==
 -- entry: lud64
--- compiled random input {[128][64][64]f16 [128][64][64]f16 [128][128][64][64]f32}
+-- compiled random input {[256][64][64]f16 [256][64][64]f16 [256][256][64][64]f32}
 
 import "lud-mmm"
 entry lud64 [m] (top_per: [m][64][64]f16)
