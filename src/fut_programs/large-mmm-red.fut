@@ -1,4 +1,16 @@
 -- ==
+-- entry: run_square_small
+-- compiled random input {[8][16][128][64]f16 [16][8][64][128]f16}
+
+-- ==
+-- entry: run_square_medium
+-- compiled random input {[16][32][128][64]f16 [32][16][64][128]f16}
+
+-- ==
+-- entry: run_square_large
+-- compiled random input {[32][64][128][64]f16 [64][32][64][128]f16}
+
+-- ==
 -- entry: run_small
 -- compiled random input {[16][16][128][64]f16 [16][16][64][128]f16}
 
