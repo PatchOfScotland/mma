@@ -8,7 +8,7 @@
 
 -- ==
 -- entry: mmm_intra64
--- compiled random input { [8192][128][128]f16 [8192][64][64]f16 }
+-- compiled random input { [8192][64][64]f16 [8192][64][64]f16 }
 
 -- ==
 -- entry: mmm_intra128
