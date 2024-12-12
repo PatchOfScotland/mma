@@ -49,6 +49,9 @@ let seq_acc4 [m][n] (acc: *[m][n]f32) (C: *[m][n]f32) =
 
 def attention_like [q][m][n][k] (A: [m][k]f16) (B: [q][k][n]f16) : [m][n]f32 =
   -- Copy to shared
+  -- let A' = if q > 1
+  --          then copy A
+  --          else replicate (m * k) 0.0f16 |> unflatten
   let A' = A
   let acc_init : *[m][n]f32 = replicate (m * n) 0.0f32 |> unflatten in
   loop (_acc : *[m][n]f32) = (acc_init: *[m][n]f32) for i < q do
