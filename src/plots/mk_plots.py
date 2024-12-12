@@ -1,19 +1,19 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+
 def matmul():
     matmul_names = ["Baseline",
                     "Swizzling",
                     "Vectorized copies,\nglobal to shared",
                     "Double buffering",
-                    "Vectorized copies,\nshared registers",
-                    "Asynchronous copies",
-                    "3-stage pipelining",
+                    "ldmatrix",
+                    "Asynchronous copies,\n3-stage pipelining",
                     "Cublas"]
-
-    matmul = [44.524, 82.2175, 122.244, 131.552, 193.127, 205.562, 229.008, 255.012]
+    matmul = [41.4235, 70.2043, 128.67, 163.375, 233.442, 252.367, 253.18]
     plt.axhline(312, color = "r")
-    plt.legend(["Peak performance"])
+    plt.legend(["Hardware limit"])
     bars = plt.bar(matmul_names, matmul, color='skyblue', edgecolor='black')
     # for bar in bars:
     #     bar.set_hatch("//")
@@ -21,36 +21,12 @@ def matmul():
     bars[-1].set_edgecolor("black")
     # plt.xlabel('Index', fontsize=14)
     plt.ylabel('TFLOPS', fontsize=14)
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=60)
     plt.yticks(fontsize=12)
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
     plt.show()
 
-def large_mmm():
-    ds = np.array([1024, 2048, 4096, 2048, 4096, 8192])
-    ks = np.array([1024, 2048, 4096, 1024, 2048, 2048])
-    time_tc_us = np.array([171, 951, 6413, 481, 3186, 12231])
-    time_us_f16 = np.array([284, 1830, 14600, 943, 7170, 29544])
-    time_us_f32 = np.array([351, 2476, 21515, 1247, 10857, 44688])
-    total_ops = ds * ds * ks * 2
-    tflops_tc = total_ops / (time_tc_us * 1_000_000)
-    tflops_orig_f16 = total_ops / (time_us_f16 * 1_000_000)
-    tflops_orig_f32 = total_ops / (time_us_f32 * 1_000_000)
-
-    labels = [f"d={d}, k={k}" for (d,k) in zip (ds, ks)]
-
-    plt.plot(tflops_tc, marker='o', linestyle='-', color='skyblue', label="CUDA backend + TC f16/f32")
-    plt.plot(tflops_orig_f16, marker='o', linestyle='-', color='red', label="CUDA backend f16")
-    plt.plot(tflops_orig_f32, marker='o', linestyle='-', color='coral', label="CUDA backend f32")
-    plt.title("Large matrix multiplication")
-    plt.xlabel("Matrix size of $d\\times d \\times k$ matrix multiplication")
-    plt.ylabel("TFLOPS")
-    plt.xticks(range(len(time_tc_us)), labels=labels, rotation=45)
-    plt.grid(alpha=0.5)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
 
 def lud_like():
     blocks = 256*256
@@ -65,13 +41,14 @@ def lud_like():
     tflops_orig_f16 = total_ops / (time_us_f16 * 1_000_000)
     tflops_orig_f32 = total_ops / (time_us_f32 * 1_000_000)
 
-    plt.plot(tflops_tc, marker='o', linestyle='-', color='skyblue', label="CUDA backend + TC f16/f32")
-    plt.plot(tflops_orig_f16, marker='o', linestyle='-', color='red', label="CUDA backend f16")
-    plt.plot(tflops_orig_f32, marker='o', linestyle='-', color='coral', label="CUDA backend f32")
-    plt.title("LUD Matmul")
-    plt.xlabel("Matrix size $n$ of $n\\times n \\times n$ matrix multiplication")
+    plt.plot(ds, tflops_tc, marker='o', linestyle='-', color='coral', label="CUDA backend + TC f16/f32 mixed")
+    plt.plot(ds, tflops_orig_f16, marker='o', linestyle='-', color='skyblue', label="CUDA backend f16")
+    plt.plot(ds, tflops_orig_f32, marker='o', linestyle='-', color='b', label="CUDA backend f32")
+    plt.title("LUD like, matrix multiplications of size $n\\times n \\times n$")
+    plt.xlabel("$n$")
     plt.ylabel("TFLOPS")
-    plt.xticks(range(len(time_tc_us)), labels=ds)
+    # plt.xticks(range(len(time_tc_us)), labels=ds)
+    plt.ylim(bottom=0)
     plt.grid(alpha=0.5)
     plt.legend()
     plt.tight_layout()
@@ -80,23 +57,23 @@ def lud_like():
 def attention_like():
     blocks = 1024 * 256
     ds = np.array([16, 32, 64, 128])
-    ks = np.array([16, 32, 64, 64])
     time_tc_us = np.array([214, 557, 3981, 11064])
     time_us_f32 = np.array([14100, 21990, 35660, 129815])
     time_us_f16 = np.array([12276, 17419, 25304, 151786])
 
-    tflops_tc = blocks * (ds * ds * ks) * 2 / (time_tc_us * 1_000_000)
-    tflops_orig_f16 = blocks * (ds * ds * ks) * 2 / (time_us_f16 * 1_000_000)
-    tflops_orig_f32 = blocks * (ds ** 3) * 2 * 2 / (time_us_f32 * 1_000_000)
+    tflops_tc = blocks * (ds ** 3) * 2 / (time_tc_us * 1_000_000)
+    tflops_orig_f16 = blocks * (ds ** 3) * 2 / (time_us_f16 * 1_000_000)
+    tflops_orig_f32 = blocks * (ds ** 3) * 2 / (time_us_f32 * 1_000_000)
 
     # plt.axhline(124, color="r", label="FlashAttention")
-    plt.plot(tflops_tc, marker='o', linestyle='-', color='skyblue', label="CUDA backend + TC f16/f32")
-    plt.plot(tflops_orig_f16, marker='o', linestyle='-', color='red', label="CUDA backend f16")
-    plt.plot(tflops_orig_f32, marker='o', linestyle='-', color='coral', label="CUDA backend f32")
-    plt.title("Flash Attention Like")
-    plt.xlabel("Matrix size $n$ of $n\\times n \\times n$ matrix multiplication")
+    plt.plot(ds, tflops_tc, marker='o', linestyle='-', color='coral', label="CUDA backend + TC f16/f32 mixed")
+    plt.plot(ds, tflops_orig_f16, marker='o', linestyle='-', color='skyblue', label="CUDA backend f16")
+    plt.plot(ds, tflops_orig_f32, marker='o', linestyle='-', color='b', label="CUDA backend f32")
+    plt.title("Flash Attention Like, matrix multiplications of size $n\\times n \\times n$")
+    plt.xlabel("$n$")
     plt.ylabel("TFLOPS")
-    plt.xticks(range(len(time_tc_us)), labels=ds)
+    # plt.xticks(range(len(time_tc_us)), labels=ds)
+    plt.ylim(bottom=0)
     plt.grid(alpha=0.5)
     plt.legend()
     plt.tight_layout()
@@ -114,14 +91,15 @@ def custom_attention():
     tflops_orig_f32 = blocks * (ds ** 3) * 2 * 2 / (time_us_f32 * 1_000_000)
 
     # plt.axhline(124, color="r", label="FlashAttention")
-    plt.plot(tflops_tc, marker='o', linestyle='-', color='skyblue', label="CUDA backend + TC f16/f32")
-    plt.plot(tflops_orig_f16, marker='o', linestyle='-', color='b', label="CUDA backend f16")
-    plt.plot(tflops_orig_f32, marker='o', linestyle='-', color='lightcoral', label="CUDA backend f32")
-    plt.axhline(124, color="r", label="Flash Attention 1")
-    plt.title("Custom Flash Attention Like")
-    plt.xlabel("Matrix size $n$ of $n\\times n \\times n$ matrix multiplication")
+    plt.plot(ds, tflops_tc, marker='o', linestyle='-', color='coral', label="CUDA backend + TC f16/f32 mixed")
+    plt.plot(ds, tflops_orig_f16, marker='o', linestyle='-', color='skyblue', label="CUDA backend f16")
+    plt.plot(ds, tflops_orig_f32, marker='o', linestyle='-', color='b', label="CUDA backend f32")
+    # plt.axhline(124, color="magenta", label="Flash Attention 1")
+    plt.title("Custom Flash Attention Like, matrix multiplications of size $n\\times n \\times n$")
+    plt.xlabel("$n$")
     plt.ylabel("TFLOPS")
-    plt.xticks(range(len(time_tc_us)), labels=ds)
+    # plt.xticks(range(len(time_tc_us)), labels=ds)
+    plt.ylim(bottom=0)
     plt.grid(alpha=0.5)
     plt.legend()
     plt.tight_layout()
@@ -139,22 +117,112 @@ def batched_mmm():
     tflops_orig_f32 = blocks * (ds ** 3) * 2 / (time_us_f32 * 1_000_000)
 
     # plt.axhline(124, color="r", label="FlashAttention")
-    plt.plot(ds, tflops_tc, marker='o', linestyle='-', color='skyblue', label="CUDA backend + TC f16")
-    plt.plot(ds, tflops_orig_f16, marker='o', linestyle='-', color='b', label="CUDA backend f16")
-    plt.plot(ds, tflops_orig_f32, marker='o', linestyle='-', color='lightcoral', label="CUDA backend f32")
-    plt.title("Batched matrix multiplication")
-    plt.xlabel("Matrix size $n$ of $n\\times n \\times n$ matrix multiplication")
+    plt.plot(ds, tflops_tc, marker='o', linestyle='-', color='coral', label="CUDA backend + TC f16/f32 mixed")
+    plt.plot(ds, tflops_orig_f16, marker='o', linestyle='-', color='skyblue', label="CUDA backend f16")
+    plt.plot(ds, tflops_orig_f32, marker='o', linestyle='-', color='b', label="CUDA backend f32")
+    plt.title("Batched Matrix Multiplication, matrix multiplications of size $n\\times n \\times n$")
+    plt.xlabel("$n$")
     plt.ylabel("TFLOPS")
     # plt.xticks(range(len(time_tc_us)), labels=ds)
+    plt.ylim(bottom=0)
     plt.grid(alpha=0.5)
     plt.legend()
     plt.tight_layout()
     plt.show()
 
 
-# matmul()
+def large_mmm():
+    ds = np.array([1024, 2048, 4096, 8192])
+    time_tc_us = np.array([171, 951, 6417, 48287])
+    time_us_f16 = np.array([284, 1821, 14366, 117299])
+    time_us_f32 = np.array([348, 2470, 21387, 176368])
+    total_ops = ds ** 3 * 2
+    tflops_tc = total_ops / (time_tc_us * 1_000_000)
+    tflops_orig_f16 = total_ops / (time_us_f16 * 1_000_000)
+    tflops_orig_f32 = total_ops / (time_us_f32 * 1_000_000)
+
+    plt.plot(ds, tflops_tc, marker='o', linestyle='-', color='coral', label="CUDA backend + TC f16/f32 mixed")
+    plt.plot(ds, tflops_orig_f16, marker='o', linestyle='-', color='skyblue', label="CUDA backend f16")
+    plt.plot(ds, tflops_orig_f32, marker='o', linestyle='-', color='b', label="CUDA backend f32")
+    plt.title("Large Matrix Multiplication of size $n\\times n \\times n$")
+    plt.xlabel("$n$")
+    plt.ylabel("TFLOPS")
+    # plt.xticks(range(len(time_tc_us)), labels=labels, rotation=45)
+    plt.ylim(bottom=0)
+    plt.grid(alpha=0.5)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+def prot_mmm1():
+    ds = np.array([1024, 2048, 4096, 8192])
+    tflops_pure = [54.96,
+                   133.07,
+                   170.22,
+                   160.32,
+                   ]
+    tflops_cute = [108.73,
+                   187.55,
+                   252.37,
+                   238.49,
+                   ]
+    tflops_cublas = [79.98,
+                     198.84,
+                     253.18,
+                     253.50,
+                     ]
+
+    plt.axhline(312, color="r", label="Hardware limit")
+    plt.plot(ds, tflops_pure, marker='o', linestyle='-', color='lime', label="Pure CUDA")
+    plt.plot(ds, tflops_cute, marker='o', linestyle='-', color='green', label="Using CuTe building blocks")
+    plt.plot(ds, tflops_cublas, marker='o', linestyle='-', color='darkviolet', label="Cublas")
+    plt.title("Matrix Multiplication of size $n\\times n \\times n$")
+    plt.xlabel("$n$")
+    plt.ylabel("TFLOPS")
+    # plt.xticks(range(len(time_tc_us)), labels=labels, rotation=45)
+    plt.ylim(bottom=0)
+    plt.grid(alpha=0.5)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+def prot_mmm2():
+    ds = np.array([1024, 2048, 4096, 8192])
+    tflops_pure = [135.33,
+                   157.45,
+                   170.22,
+                   174.03,
+                   ]
+    tflops_cute = [204.16,
+                   231.18,
+                   252.37,
+                   263.41,
+                   ]
+    tflops_cublas = [217.12,
+                     234.42,
+                     253.18,
+                     259.99,
+                     ]
+    plt.axhline(312, color="r", label="Hardware limit")
+    plt.plot(ds, tflops_pure, marker='o', linestyle='-', color='lime', label="Pure CUDA")
+    plt.plot(ds, tflops_cute, marker='o', linestyle='-', color='green', label="Using CuTe building blocks")
+    plt.plot(ds, tflops_cublas, marker='o', linestyle='-', color='darkviolet', label="Cublas")
+    plt.title("Matrix Multiplication of size $4096\\times 4096 \\times k$")
+    plt.xlabel("$k$")
+    plt.ylabel("TFLOPS")
+    # plt.xticks(range(len(time_tc_us)), labels=labels, rotation=45)
+    plt.ylim(bottom=0)
+    plt.grid(alpha=0.5)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+matmul()
 lud_like()
 attention_like()
 custom_attention()
-large_mmm()
 batched_mmm()
+large_mmm()
+prot_mmm1()
+prot_mmm2()
