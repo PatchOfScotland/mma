@@ -1,18 +1,21 @@
 -- ==
--- entry: mmm
--- script input { (mk_input 100000 16 16 16) }
--- compiled script input { (mk_input 100000 32 32 32) }
--- compiled script input { (mk_input 100000 64 64 64) }
--- compiled script input { (mk_input 100000 128 128 128) }
+-- entry: mmmf16
+-- compiled random input { [8192][16][16]f16 [8192][16][16]f16 }
+-- compiled random input { [8192][32][32]f16 [8192][32][32]f16 }
+-- compiled random input { [8192][128][128]f16 [8192][64][64]f16 }
+-- compiled random input { [8192][128][128]f16 [8192][128][128]f16 }
 
-import "batched_mmm"
-import "mmm-helpers"
+-- ==
+-- entry: mmmf32
+-- compiled random input { [8192][16][16]f32 [8192][16][16]f32 }
+-- compiled random input { [8192][32][32]f32 [8192][32][32]f32 }
+-- compiled random input { [8192][128][128]f32 [8192][64][64]f32 }
+-- compiled random input { [8192][128][128]f32 [8192][128][128]f32 }
 
-entry mk_input (q: i64) (m: i64) (n: i64) (k: i64) =
-  let A = replicate (q * m * k) 1.0f16 |> unflatten_3d
-  let B = replicate (q * q * k * n) 1.0f16 |> unflatten_3d
-  in (A, B)                   
+import "mmm-helpers"                
 
-entry mmm [q] [d] (A: [q][d][d]f16) (B: [q][d][d]f16) : [q][d][d]f32 =
-  map2 matmulf32 A B
-                   
+entry mmmf16 [q] [d] (A: [q][d][d]f16) (B: [q][d][d]f16) : [q][d][d]f32 =
+  map2 matmulf16 A B
+
+entry mmmf32 [q] [d] (A: [q][d][d]f16) (B: [q][d][d]f16) : [q][d][d]f32 =
+  map2 mmm_no_intra_f32 A B
