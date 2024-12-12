@@ -76,5 +76,5 @@ entry run32 [q][p] (A: [p][32][32]f16) (B: [p][q][32][32]f16) =
 entry run64 [q][p] (A: [p][64][64]f16) (B: [p][q][64][64]f16) =
   #[incremental_flattening(only_intra)]map2 attention_like A B
 
-entry run128 [q][p] (A: [p][128][128]f16) (B: [p][q][128][128]f16) =
+entry run128 [q][p] (A: [p][128][64]f16) (B: [p][q][64][128]f16) =
   #[incremental_flattening(only_intra)]map2 attention_like A B    
