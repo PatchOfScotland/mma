@@ -14,8 +14,8 @@
 
 import "mmm-helpers"                
 
-entry mmmf16 [q] [d] (A: [q][d][d]f16) (B: [q][d][d]f16) : [q][d][d]f32 =
+entry mmmf16 [q] [d] (A: [q][d][d]f16) (B: [q][d][d]f16) : [q][d][d]f16 =
   map2 matmulf16 A B
 
-entry mmmf32 [q] [d] (A: [q][d][d]f16) (B: [q][d][d]f16) : [q][d][d]f32 =
+entry mmmf32 [q] [d] (A: [q][d][d]f32) (B: [q][d][d]f32) : [q][d][d]f32 =
   map2 mmm_no_intra_f32 A B
