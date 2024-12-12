@@ -12,7 +12,7 @@
 
 -- ==
 -- entry: run128
--- only_intra compiled script input { (mk_input 1024 256 128 128 128) }
+-- only_intra compiled script input { (mk_input 1024 256 128 128 64) }
 import "mmm-helpers"
 
 
