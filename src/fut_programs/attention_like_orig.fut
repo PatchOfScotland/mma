@@ -10,9 +10,9 @@ type real = f16
 
 def attention_like [q][m][n][k] (A: [m][k]f16) (B: [q][k][n]f16) : [m][n]f16 =
   -- Copy to shared
-  -- let A' = if q > 1
-  --          then copy A
-  --          else replicate (m * k) 0.0f16 |> unflatten
+  let A' = if q > 1
+           then copy A
+           else replicate (m * k) 0.0f16 |> unflatten
   let A' = A
   let acc_init : *[m][n]f16 = replicate (m * n) 0.0f16 |> unflatten in
   loop (_acc : *[m][n]f16) = (acc_init: *[m][n]f16) for i < q do
