@@ -67,7 +67,7 @@ def run [M][K][N][m][n][k] (A: [M][K][m][k]f16) (B: [K][N][k][n]f16) : [M][N][m]
 entry run_square_small (A: [8][16][128][64]f16) (B: [16][8][64][128]f16) = run A B
 entry run_square_medium (A: [16][32][128][64]f16) (B: [32][16][64][128]f16) = run A B
 entry run_square_large (A: [32][64][128][64]f16) (B: [64][32][64][128]f16) = run A B
-entry run_square_large (A: [64][128][128][64]f16) (B: [128][64][64][128]f16) = run A B 
+entry run_square_xl (A: [64][128][128][64]f16) (B: [128][64][64][128]f16) = run A B 
         
 entry run_small (A: [16][16][128][64]f16) (B: [16][16][64][128]f16) = run A B 
 entry run_medium (A: [32][32][128][64]f16) (B: [32][32][64][128]f16) = run A B
