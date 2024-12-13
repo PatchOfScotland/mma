@@ -106,11 +106,11 @@ def custom_attention():
     plt.show()
 
 def batched_mmm():
-    blocks = 8192
+    blocks = 100000
     ds = np.array([16, 32, 64, 128])
-    time_tc_us = np.array([38, 74, 237, 822])
-    time_us_f16 = np.array([334, 525, 844, 5164])
-    time_us_f32 = np.array([334, 589, 1031, 6031])
+    time_tc_us = np.array([167, 610, 2487, 9701])
+    time_us_f16 = np.array([4142, 6314, 9889, 60877])
+    time_us_f32 = np.array([4006, 7055, 12238, 71678])
 
     tflops_tc = blocks * (ds ** 3) * 2 / (time_tc_us * 1_000_000)
     tflops_orig_f16 = blocks * (ds ** 3) * 2 / (time_us_f16 * 1_000_000)
