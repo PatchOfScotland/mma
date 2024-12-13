@@ -1,16 +1,16 @@
 -- ==
 -- entry: mmmf16
--- compiled random input { [8192][16][16]f16 [8192][16][16]f16 }
--- compiled random input { [8192][32][32]f16 [8192][32][32]f16 }
--- compiled random input { [8192][64][64]f16 [8192][64][64]f16 }
--- compiled random input { [8192][128][128]f16 [8192][128][128]f16 }
+-- compiled random input { [32768][16][16]f16 [32768][16][16]f16 }
+-- compiled random input { [32768][32][32]f16 [32768][32][32]f16 }
+-- compiled random input { [32768][64][64]f16 [32768][64][64]f16 }
+-- compiled random input { [32768][128][128]f16 [32768][128][128]f16 }
 
 -- ==
 -- entry: mmmf32
--- compiled random input { [8192][16][16]f32 [8192][16][16]f32 }
--- compiled random input { [8192][32][32]f32 [8192][32][32]f32 }
--- compiled random input { [8192][64][64]f32 [8192][64][64]f32 }
--- compiled random input { [8192][128][128]f32 [8192][128][128]f32 }
+-- compiled random input { [32768][16][16]f32 [32768][16][16]f32 }
+-- compiled random input { [32768][32][32]f32 [32768][32][32]f32 }
+-- compiled random input { [32768][64][64]f32 [32768][64][64]f32 }
+-- compiled random input { [32768][128][128]f32 [32768][128][128]f32 }
 
 import "mmm-helpers"                
 

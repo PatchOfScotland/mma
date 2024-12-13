@@ -1,18 +1,18 @@
 -- ==
 -- entry: mmm_intra16
--- compiled random input { [8192][16][16]f16 [8192][16][16]f16 }
+-- compiled random input { [32768][16][16]f16 [32768][16][16]f16 }
 
 -- ==
 -- entry: mmm_intra32
--- compiled random input { [8192][32][32]f16 [8192][32][32]f16 }
+-- compiled random input { [32768][32][32]f16 [32768][32][32]f16 }
 
 -- ==
 -- entry: mmm_intra64
--- compiled random input { [8192][64][64]f16 [8192][64][64]f16 }
+-- compiled random input { [32768][64][64]f16 [32768][64][64]f16 }
 
 -- ==
 -- entry: mmm_intra128
--- compiled random input { [8192][128][128]f16 [8192][128][128]f16 }
+-- compiled random input { [32768][128][128]f16 [32768][128][128]f16 }
 
 import "mmm-helpers"
 
