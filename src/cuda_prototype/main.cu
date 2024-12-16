@@ -598,7 +598,11 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
     using SharedK = decltype(bK);
 
     auto layoutAs = make_layout(make_shape(bM, bK, batches), make_stride(bK, Int<1>{}, bM * bK));
+#ifdef BATCHED
+    auto layoutBss = make_layout(make_shape(bN, bK, batches, Int<1>{}), make_stride(Int<1>{}, bN, bN * bK, Int<0>{}));
+#else
     auto layoutBss = make_layout(make_shape(bN, bK, batches, reuse), make_stride(Int<1>{}, bN, bN * bK * reuse, bN * bK));
+#endif
     auto layoutCs = make_layout(make_shape(bM, bN, batches), make_stride(bN, Int<1>{}, bM * bN));
 
 

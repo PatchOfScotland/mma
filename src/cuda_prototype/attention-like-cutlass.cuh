@@ -135,9 +135,13 @@ attention_like_simple(TA const* As, ALayout layoutAs,
 
     copy(copyA_global_shared, tAgA, tAsA);
 
+#ifdef BATCHED
+    int k_tile = _0{};
+#else
     int k_tile_max = size<3>(tBgB);
     for (int k_tile = 0; k_tile < k_tile_max; k_tile++)
     {
+#endif
         // Copy global -> shared
         __syncthreads();
         copy(copyB_global_shared, tBgB(_,_,_,k_tile), tBsB);
@@ -159,7 +163,9 @@ attention_like_simple(TA const* As, ALayout layoutAs,
             // GEMM on k_block in registers
             gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);
         }
+#ifndef BATCHED
     }
+#endif
 
     // Write back to global with result
     axpby(alpha, tCrC, beta, tCgC);
