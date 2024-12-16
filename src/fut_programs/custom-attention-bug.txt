@@ -5,7 +5,10 @@ Allocated shared memory buffers
 Scratch memory
 - aScratch_9938  @ color_10101
 - bScratch_9939  @ color_10100
+  Safe to ue color_10101 also.
 - cScratch_9953  @ color_10100
+  Only safe to use color_10101 since cScratch_9953 is used in mmm.
+  This makes us compute V @ V, since we do cScratch @ bScratch
 - bScratch_10009 @ color_10100
 - cScratch_10023 @ color_10100
 
