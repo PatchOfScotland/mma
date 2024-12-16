@@ -89,6 +89,18 @@ attention_like_simple(TA const* As, ALayout layoutAs,
     Tensor sA = make_tensor(make_smem_ptr(smemA), sA_layout);            // (BLK_M,BLK_K)
     Tensor sB = make_tensor(make_smem_ptr(smemB), sB_layout);            // (BLK_N,BLK_K)
 
+#ifdef SWIZZLE_BACK
+    CSmemLayout sC_layout;
+
+#ifdef SEPARATE_CMEM
+    auto smemC = reinterpret_cast<TC *>(smemB + cosize_v<BSmemLayout>);
+#else
+    auto smemC = reinterpret_cast<TC *>(smemA);
+#endif
+
+    Tensor sC = make_tensor(make_smem_ptr(smemC), sC_layout);
+#endif
+
     ThrCopy thr_copy_a_global_shared = copyA_global_shared.get_slice(threadIdx.x);
     Tensor tAgA = thr_copy_a_global_shared.partition_S(gA);
     Tensor tAsA = thr_copy_a_global_shared.partition_D(sA);
@@ -98,7 +110,11 @@ attention_like_simple(TA const* As, ALayout layoutAs,
     Tensor tBsB = thr_copy_b_global_shared.partition_D(sB);
 
     ThrMMA thr_mma = tiled_mma.get_slice(threadIdx.x);
-    Tensor tCgC = thr_mma.partition_C(gC);
+#ifdef SWIZZLE_BACK
+    Tensor tCgC = thr_mma.partition_C(sC);                               // (MMA,MMA_M,MMA_N)
+#else
+    Tensor tCgC = thr_mma.partition_C(gC);                               // (MMA,MMA_M,MMA_N)
+#endif
     Tensor tCrC = thr_mma.make_fragment_C(tCgC);
 
     // Create register tensors for the MMA to operate on
@@ -167,6 +183,20 @@ attention_like_simple(TA const* As, ALayout layoutAs,
     }
 #endif
 
+#ifdef SWIZZLE_BACK
+    #ifndef SEPARATE_CMEM
+    cp_async_wait<0>();
+    __syncthreads();
+#endif
+#endif
+
     // Write back to global with result
-    axpby(alpha, tCrC, beta, tCgC);
+    // TODO: use this?
+//    axpby(alpha, tCrC, beta, tCgC);
+    copy(AutoVectorizingCopy{}, tCrC, tCgC);
+
+#ifdef SWIZZLE_BACK
+    __syncthreads();
+    cooperative_copy<decltype(size(TiledMma{}))::value, 128>(threadIdx.x, sC, gC);
+#endif
 }

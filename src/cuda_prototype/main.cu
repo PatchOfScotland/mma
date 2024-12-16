@@ -617,6 +617,11 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
             Stride< _1,_64>
     >;
 
+    constexpr unsigned int sizeKunsigned = bK;
+    constexpr unsigned int shift_lenK = max(bit_width(sizeKunsigned) - 4, _3{});
+    constexpr unsigned int sizeNunsigned = bN;
+    constexpr unsigned int shift_lenN = max(bit_width(sizeNunsigned) - 4, _3{});
+
 #ifdef NO_SWIZZLE
     //    TODO: add padding?
     auto swizzle_layoutAtom_A = layoutAtom_A{};
@@ -664,7 +669,7 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
 #endif
 #endif
 
-    auto sC = make_layout(make_shape(bM, bN), LayoutRight{});
+    auto sC = composition(Swizzle<3,2,shift_lenN>{}, make_layout(make_shape(bM, bN), LayoutRight{}));
 
     // Define global->shared copy tiling (static)
     TiledCopy copyA_global_shared = make_tiled_copy(Copy_Atom<ACopyOpGlobalShared, TA>{},
@@ -737,7 +742,15 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
         decltype(alpha), decltype(beta)
     >;
 
+#ifdef SWIZZLE_BACK
+#ifdef SEPARATE_CMEM
+    const uint32_t shared_memory_used = cosize_v<decltype(sA)> * sizeof(TA) + cosize_v<decltype(sB)> * sizeof(TB) + cosize_v<decltype(sC)> * sizeof(TC);
+#else
+    const uint32_t shared_memory_used = max(cosize_v<decltype(sA)> * sizeof(TA) + cosize_v<decltype(sB)> * sizeof(TB), cosize_v<decltype(sC)> * sizeof(TC));
+#endif
+#else
     const uint32_t shared_memory_used = cosize_v<decltype(sA)> * sizeof(TA) + cosize_v<decltype(sB)> * sizeof(TB);
+#endif
     cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_memory_used);
     dim3 dimBlock(size(tiled_mma));
     dim3 dimGrid(batches);
