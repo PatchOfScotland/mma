@@ -1,0 +1,299 @@
+types {
+  
+}
+
+entry("run128",
+      {Q: [][][]f16,
+       K: [][]f16,
+       V: [][]f16},
+      {*[][][]f16})
+  entry_run128 (Q_mem_10025 : mem@device,
+                K_mem_10026 : mem@device,
+                V_mem_10027 : mem@device,
+                m_8096 : i64,
+                Q_8097 : [m_8096][128i64][128i64]f16 @ Q_mem_10025 ->
+                         {offset: 0i64;
+                          strides: [16384i64, 128i64, 1i64];
+                          shape: [m_8096, 128i64, 128i64]},
+                K_8098 : [128i64][128i64]f16 @ K_mem_10026 ->
+                         {offset: 0i64;
+                          strides: [128i64, 1i64];
+                          shape: [128i64, 128i64]},
+                V_8099 : [128i64][128i64]f16 @ V_mem_10027 ->
+                         {offset: 0i64;
+                          strides: [128i64, 1i64];
+                          shape: [128i64, 128i64]})
+  : {mem@device,
+     *[m_8096][128i64][128i64]f16 @ ?0@device ->
+     {offset: 0i64;
+      strides: [16384i64, 128i64, 1i64];
+      shape: [m_8096, 128i64, 128i64]}} = {
+  let {bytes_10098 : i64} =
+    mul_nw64(32768i64, m_8096)
+  let {mem_10028 : mem@device} =
+    alloc(256i64, @device)
+  let {defunc_0_map_res_8923 : [128i64]f16 @ mem_10028 ->
+                               {offset: 0i64;
+                                strides: [1i64];
+                                shape: [128i64]}} =
+    replicate([128i64], -f16.inf)
+  let {mem_10029 : mem@device} =
+    alloc(256i64, @device)
+  let {defunc_0_map_res_8924 : [128i64]f16 @ mem_10029 ->
+                               {offset: 0i64;
+                                strides: [1i64];
+                                shape: [128i64]}} =
+    replicate([128i64], 0.0f16)
+  let {opaque_res_8974 : [128i64]f16 @ mem_10028 ->
+                         {offset: 0i64;
+                          strides: [1i64];
+                          shape: [128i64]}} =
+    opaque(defunc_0_map_res_8923)
+  let {opaque_res_8975 : [128i64]f16 @ mem_10029 ->
+                         {offset: 0i64;
+                          strides: [1i64];
+                          shape: [128i64]}} =
+    opaque(defunc_0_map_res_8924)
+  let {mem_10099 : mem@device} =
+    #[incremental_flattening(only_intra)]
+    alloc(bytes_10098, @device)
+  let {defunc_0_map_res_9423 : [m_8096][128i64][128i64]f16 @ mem_10099 ->
+                               {offset: 0i64;
+                                strides: [16384i64, 128i64, 1i64];
+                                shape: [m_8096, 128i64, 128i64]}} =
+    #[incremental_flattening(only_intra)]
+    segmap(block; ; grid=m_8096; blocksize=16384i64)
+    (gtid_9424 < m_8096) (~phys_tblock_id_9425) : {[128i64][128i64]f16} {
+      let {color_10100 : mem@shared} =
+        alloc(32768i64, @shared)
+      let {color_10101 : mem@shared} =
+        alloc(32768i64, @shared)
+      let {mem_10044 : mem@[8i64]f16} =
+        alloc(16i64, @[8i64]f16)
+      let {cRegs_9937 : [2048i64][8i64]f16 @ mem_10044 ->
+                        {offset: 0i64;
+                         strides: [0i64, 1i64];
+                         shape: [2048i64, 8i64]}} =
+        segmap(inblock; )
+        (ltid_9925 < 2048i64) (~ltid_flat_9926) : {[8i64]f16} {
+          let {mem_10035 : mem@[8i64]f16} =
+            alloc(16i64, @[8i64]f16)
+          let {cScratch_9932 : [8i64]f16 @ mem_10035 ->
+                               {offset: 0i64;
+                                strides: [1i64];
+                                shape: [8i64]}} =
+            scratch(f16, 8i64)
+          let {loop_9933 : [8i64]f16 @ mem_10035 ->
+                           {offset: 0i64;
+                            strides: [1i64];
+                            shape: [8i64]}} =
+            loop {merge_9935 : *[8i64]f16 @ mem_10035 ->
+                               {offset: 0i64;
+                                strides: [1i64];
+                                shape: [8i64]}} = {cScratch_9932}
+            for i_9934:i64 < 8i64 do {
+              let {cZeroed_9936 : [8i64]f16 @ mem_10035 ->
+                                  {offset: 0i64;
+                                   strides: [1i64];
+                                   shape: [8i64]}} =
+                merge_9935 with [i_9934] = 0.0f16
+              in {cZeroed_9936}
+            }
+          return {returns (private) loop_9933}
+        }
+        
+      let {aScratch_9938 : [128i64][128i64]f16 @ color_10101 ->
+                           {offset: 0i64;
+                            strides: [128i64, 1i64];
+                            shape: [128i64, 128i64]}} =
+        scratch(f16, 128i64, 128i64)
+      let {bScratch_9939 : [128i64][128i64]f16 @ color_10100 ->
+                           {offset: 0i64;
+                            strides: [128i64, 1i64];
+                            shape: [128i64, 128i64]}} =
+        scratch(f16, 128i64, 128i64)
+      let {slicedA_9940 : [128i64][128i64]f16 @ Q_mem_10025 ->
+                          {offset: mul_nw64 (gtid_9424) (16384i64);
+                           strides: [128i64, 1i64];
+                           shape: [128i64, 128i64]}} =
+        Q_8097[gtid_9424, 0i64 :+ 128i64 * 1i64, 0i64 :+ 128i64 * 1i64]
+      let {offsetA_9942 : i64} =
+        mul_nw64(16384i64, gtid_9424)
+      let {ext_mem_10049 : mem@shared,
+           aCopied_9944 : [128i64][128i64]f16 @ ext_mem_10049 ->
+                          {offset: 0i64;
+                           strides: [128i64, 1i64];
+                           shape: [128i64, 128i64]}} =
+        apply copyGlobalShared_9906(Q_mem_10025, color_10101, slicedA_9940, *aScratch_9938, offsetA_9942, 0.0f16, 128i64, 128i64, 8i64, 8i64)
+        : {mem@shared, *[128i64][128i64]f16 @ ?0@shared ->
+        {offset: 0i64;
+         strides: [128i64, 1i64];
+         shape: [128i64, 128i64]}}
+      let {ext_mem_10050 : mem@shared,
+           bCopied_9945 : [128i64][128i64]f16 @ ext_mem_10050 ->
+                          {offset: 0i64;
+                           strides: [128i64, 1i64];
+                           shape: [128i64, 128i64]}} =
+        apply copyGlobalShared_9915(K_mem_10026, color_10100, K_8098, *bScratch_9939, 0i64, 0.0f16, 128i64, 128i64, 8i64, 8i64)
+        : {mem@shared, *[128i64][128i64]f16 @ ?0@shared ->
+        {offset: 0i64;
+         strides: [128i64, 1i64];
+         shape: [128i64, 128i64]}}
+      let {mem_10058 : mem@[8i64]f16} =
+        alloc(16i64, @[8i64]f16)
+      let {inBlockMMAres_9952 : [2048i64][8i64]f16 @ mem_10058 ->
+                                {offset: 0i64;
+                                 strides: [0i64, 1i64];
+                                 shape: [2048i64, 8i64]}} =
+        segmap(inblock; )
+        (ltid_9946 < 2048i64) (~ltid_flat_9947) : {[8i64]f16} {
+          let {threadCregs_9950 : [8i64]f16 @ mem_10044 ->
+                                  {offset: 0i64;
+                                   strides: [1i64];
+                                   shape: [8i64]}} =
+            cRegs_9937[ltid_9946, 0i64 :+ 8i64 * 1i64]
+          let {ext_mem_10051 : mem@[8i64]f16,
+               threadMMAres_9951 : [8i64]f16 @ ext_mem_10051 ->
+                                   {offset: 0i64;
+                                    strides: [1i64];
+                                    shape: [8i64]}} =
+            apply tensorMMM_9897(ext_mem_10049, ext_mem_10050, mem_10044, aCopied_9944, bCopied_9945, *threadCregs_9950, 0.0f16, 0.0f16, 128i64, 128i64, 128i64, 8i64, 8i64, 1i64, 1i64)
+            : {mem@[8i64]f16, *[8i64]f16 @ ?0@[8i64]f16 ->
+            {offset: 0i64;
+             strides: [1i64];
+             shape: [8i64]}}
+          return {returns (private) threadMMAres_9951}
+        }
+      let {cScratch_9953 : [128i64][128i64]f16 @ color_10100 ->
+                           {offset: 0i64;
+                            strides: [128i64, 1i64];
+                            shape: [128i64, 128i64]}} =
+        scratch(f16, 128i64, 128i64)
+      let {ext_mem_10062 : mem@shared,
+           cCopied_9954 : [128i64][128i64]f16 @ ext_mem_10062 ->
+                          {offset: 0i64;
+                           strides: [128i64, 1i64];
+                           shape: [128i64, 128i64]}} =
+        apply copyRegistersShared_9924(mem_10058, color_10100, inBlockMMAres_9952, *cScratch_9953, 0.0f16, 0.0f16, 128i64, 128i64, 8i64, 8i64)
+        : {mem@shared, *[128i64][128i64]f16 @ ?0@shared ->
+        {offset: 0i64;
+         strides: [128i64, 1i64];
+         shape: [128i64, 128i64]}}
+      let {defunc_0_map_res_9441 : [128i64][128i64]f16 @ color_10101 ->
+                                   {offset: 0i64;
+                                    strides: [128i64, 1i64];
+                                    shape: [128i64, 128i64]}} =
+        segmap(inblock; )
+        (gtid_9442 < 128i64, gtid_9443 < 128i64) (~phys_tid_9444) : {f16} {
+          let {eta_p_9445 : f16} =
+            opaque_res_8974[gtid_9442]
+          let {eta_p_9446 : f16} =
+            opaque_res_8975[gtid_9442]
+          let {defunc_0_f_res_9447 : f16} =
+            cCopied_9954[gtid_9442, gtid_9443]
+          let {real_exp_arg0_9448 : f16} =
+            fsub16(defunc_0_f_res_9447, eta_p_9445)
+          let {exp_res_9449 : f16} =
+            apply <unsafe> exp16(real_exp_arg0_9448)
+            : {f16}
+          let {lifted_lambda_res_9450 : f16} =
+            fdiv16(exp_res_9449, eta_p_9446)
+          return {returns lifted_lambda_res_9450}
+        }
+      let {opaque_res_9451 : [128i64][128i64]f16 @ color_10101 ->
+                             {offset: 0i64;
+                              strides: [128i64, 1i64];
+                              shape: [128i64, 128i64]}} =
+        opaque(defunc_0_map_res_9441)
+      let {mem_10077 : mem@[8i64]f16} =
+        alloc(16i64, @[8i64]f16)
+      let {cRegs_10007 : [2048i64][8i64]f16 @ mem_10077 ->
+                         {offset: 0i64;
+                          strides: [0i64, 1i64];
+                          shape: [2048i64, 8i64]}} =
+        segmap(inblock; )
+        (ltid_9995 < 2048i64) (~ltid_flat_9996) : {[8i64]f16} {
+          let {mem_10068 : mem@[8i64]f16} =
+            alloc(16i64, @[8i64]f16)
+          let {cScratch_10002 : [8i64]f16 @ mem_10068 ->
+                                {offset: 0i64;
+                                 strides: [1i64];
+                                 shape: [8i64]}} =
+            scratch(f16, 8i64)
+          let {loop_10003 : [8i64]f16 @ mem_10068 ->
+                            {offset: 0i64;
+                             strides: [1i64];
+                             shape: [8i64]}} =
+            loop {merge_10005 : *[8i64]f16 @ mem_10068 ->
+                                {offset: 0i64;
+                                 strides: [1i64];
+                                 shape: [8i64]}} = {cScratch_10002}
+            for i_10004:i64 < 8i64 do {
+              let {cZeroed_10006 : [8i64]f16 @ mem_10068 ->
+                                   {offset: 0i64;
+                                    strides: [1i64];
+                                    shape: [8i64]}} =
+                merge_10005 with [i_10004] = 0.0f16
+              in {cZeroed_10006}
+            }
+          return {returns (private) loop_10003}
+        }
+      let {bScratch_10009 : [128i64][128i64]f16 @ color_10100 ->
+                            {offset: 0i64;
+                             strides: [128i64, 1i64];
+                             shape: [128i64, 128i64]}} =
+        scratch(f16, 128i64, 128i64)
+      let {ext_mem_10083 : mem@shared,
+           bCopied_10015 : [128i64][128i64]f16 @ ext_mem_10083 ->
+                           {offset: 0i64;
+                            strides: [128i64, 1i64];
+                            shape: [128i64, 128i64]}} =
+        apply copyGlobalShared_9985(V_mem_10027, color_10100, V_8099, *bScratch_10009, 0i64, 0.0f16, 128i64, 128i64, 8i64, 8i64)
+        : {mem@shared, *[128i64][128i64]f16 @ ?0@shared ->
+        {offset: 0i64;
+         strides: [128i64, 1i64];
+         shape: [128i64, 128i64]}}
+      let {mem_10091 : mem@[8i64]f16} =
+        alloc(16i64, @[8i64]f16)
+      let {inBlockMMAres_10022 : [2048i64][8i64]f16 @ mem_10091 ->
+                                 {offset: 0i64;
+                                  strides: [0i64, 1i64];
+                                  shape: [2048i64, 8i64]}} =
+        segmap(inblock; )
+        (ltid_10016 < 2048i64) (~ltid_flat_10017) : {[8i64]f16} {
+          let {threadCregs_10020 : [8i64]f16 @ mem_10077 ->
+                                   {offset: 0i64;
+                                    strides: [1i64];
+                                    shape: [8i64]}} =
+            cRegs_10007[ltid_10016, 0i64 :+ 8i64 * 1i64]
+          let {ext_mem_10084 : mem@[8i64]f16,
+               threadMMAres_10021 : [8i64]f16 @ ext_mem_10084 ->
+                                    {offset: 0i64;
+                                     strides: [1i64];
+                                     shape: [8i64]}} =
+            apply tensorMMM_9967(color_10101, ext_mem_10083, mem_10077, opaque_res_9451, bCopied_10015, *threadCregs_10020, 0.0f16, 0.0f16, 128i64, 128i64, 128i64, 8i64, 8i64, 0i64, 1i64)
+            : {mem@[8i64]f16, *[8i64]f16 @ ?0@[8i64]f16 ->
+            {offset: 0i64;
+             strides: [1i64];
+             shape: [8i64]}}
+          return {returns (private) threadMMAres_10021}
+        }
+      let {cScratch_10023 : [128i64][128i64]f16 @ color_10100 ->
+                            {offset: 0i64;
+                             strides: [128i64, 1i64];
+                             shape: [128i64, 128i64]}} =
+        scratch(f16, 128i64, 128i64)
+      let {ext_mem_10095 : mem@shared,
+           cCopied_10024 : [128i64][128i64]f16 @ ext_mem_10095 ->
+                           {offset: 0i64;
+                            strides: [128i64, 1i64];
+                            shape: [128i64, 128i64]}} =
+        apply copyRegistersShared_9994(mem_10091, color_10100, inBlockMMAres_10022, *cScratch_10023, 0.0f16, 0.0f16, 128i64, 128i64, 8i64, 8i64)
+        : {mem@shared, *[128i64][128i64]f16 @ ?0@shared ->
+        {offset: 0i64;
+         strides: [128i64, 1i64];
+         shape: [128i64, 128i64]}}
+      return {returns cCopied_10024}
+    }
+  in {mem_10099, defunc_0_map_res_9423}
+}
