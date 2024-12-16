@@ -1,0 +1,36 @@
+Allocated shared memory buffers
+- color_10100
+- color_10101
+
+Scratch memory
+- aScratch_9938  @ color_10101
+- bScratch_9939  @ color_10100
+  Safe to ue color_10101 also.
+- cScratch_9953  @ color_10100
+  Only safe to use color_10101 since cScratch_9953 is used in mmm.
+  This makes us compute V @ V, since we do cScratch @ bScratch
+- bScratch_10009 @ color_10100
+- cScratch_10023 @ color_10100
+
+Results
+- aCopied_9944 @ ext_mem_1049
+- 
+
+Alises (shared memory)
+  copyGlobalShared A
+- aScratch_9938  = color_10101
+- ext_mem_10049  = aScratch_9938
+  copyGlobalShared B
+- bScratch_9939  = color_10100
+- ext_mem_10050  = bScratch_9939
+  copyRegistersshared
+- cScratch_9953  = color_10100
+- ext_mem_1062   = cScratch_9953
+  copyGlobalShared B
+- bScratch_10009 = color_10100
+- ext_mem_10083  = bScratch_10009
+  copyRegistersshared
+- cScratch_10023 = color_10100
+- ext_mem_10095  = cScratch
+
+
