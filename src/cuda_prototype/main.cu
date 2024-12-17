@@ -184,173 +184,6 @@ long int benchmark_optimized_tensor_mmm(
 }
 
 
-
-// TODO: remove this
-template <typename elmT, typename elmAccT = elmT>
-long int benchmark_cutlass_mmm_simple(int n_runs, elmT * A, elmT * B, elmAccT * C, int m, int n, int k);
-
-// TODO: make general in element types?
-template<>
-long int benchmark_cutlass_mmm_simple<half_t, float>(int n_runs,
-                                                     half_t * A, half_t * B, float * C,
-                                                     int m, int n, int k)
-{
-    using namespace cute;
-
-    using TA = half_t;
-    using TB = half_t;
-    using TC = float;
-
-//    TODO: get as argument?
-    auto alpha = Int<1>{};
-    auto beta = Int<0>{};
-
-    // Define shapes (dynamic)
-    auto M = int(m);
-    auto N = int(n);
-    auto K = int(k);
-    auto prob_shape = make_shape(M, N, K);                   // (M, N, K)
-
-    // Define strides (mixed)
-    auto dA = make_stride(K, Int<1>{});                      // (dM, dK)
-    auto dB = make_stride(Int<1>{}, N);                      // (dN, dK)
-    auto dC = make_stride(N, Int<1>{});                      // (dM, dN)
-
-
-    // Define mma tiles (static)
-    TiledMMA tiled_mma = make_tiled_mma(
-        MMA_Atom<SM80_16x8x16_F32F16F16F32_TN>{},
-        Layout<Shape<Int<BLOCK_TILES_M>,Int<BLOCK_TILES_N>,_1>>{},
-        Tile<Int<BLOCK_TILES_M * WMMA_M>, Int<BLOCK_TILES_N * WMMA_N>, Int<WMMA_K>>{}
-    );
-
-
-    //    TODO: try more configs, pipelining, prefetched synchronous copies
-    // Define shared memory layout (static)
-    auto bM = Int<WMMA_M * FRAGS_M * WARP_TILES_M * BLOCK_TILES_M>{};
-    auto bN = Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N>{};
-    auto bK = Int<WMMA_K * FRAGS_K * WARP_TILES_K>{};
-    auto cta_tiler = make_shape(bM, bN, bK);                 // (BLK_M, BLK_N, BLK_K)
-
-    auto swizzle_layoutAtom_A =
-            composition(
-            Swizzle<3,3,3>{},
-            Layout<
-                    Shape < _8,_64>,
-                    Stride<_64, _1>
-            >{}
-    );
-    auto swizzle_layoutAtom_B =
-            composition(
-            Swizzle<3,3,3>{},
-            Layout<
-                    Shape <_64, _8>,
-                    Stride< _1,_64>
-            >{}
-    );
-
-    auto sA = tile_to_shape(swizzle_layoutAtom_A, make_shape(bM, bK));
-    auto sB = tile_to_shape(swizzle_layoutAtom_B, make_shape(bN, bK));
-    auto sC = make_layout(make_shape(bM, bN), LayoutRight{});
-
-    // Define global->shared copy tiling (static)
-#ifdef SYNC_CPY
-    using ACopyOpGlobalShared = UniversalCopy<uint128_t>;
-    using BCopyOpGlobalShared = UniversalCopy<uint128_t>;
-#else
-    using ACopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<uint128_t>;
-    using BCopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<uint128_t>;
-#endif
-
-    TiledCopy copyA_global_shared = make_tiled_copy(Copy_Atom<ACopyOpGlobalShared, TA>{},
-            Layout<
-                    Shape<Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_K * FRAGS_K * WARP_TILES_K / 8)>, Int<WMMA_K * FRAGS_K * WARP_TILES_K / 8>>,
-                    Stride<Int<WMMA_K * FRAGS_K * WARP_TILES_K / 8>,_1>
-            >{},
-            Layout<Shape<_1,_8>>{}
-    );
-
-    TiledCopy copyB_global_shared = make_tiled_copy(Copy_Atom<BCopyOpGlobalShared, TB>{},
-            Layout<
-                    Shape<Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / 8>, Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / 8)>>,
-                    Stride<_1, Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N / 8>>
-            >{},
-            Layout<Shape<_8,_1>>{}
-    );
-
-
-    // Define shared->register copy tiling (static)
-#ifdef NO_LDSM
-    using ACopyOpSharedRegisters = AutoVectorizingCopy;
-    using BCopyOpSharedRegisters = AutoVectorizingCopy;
-#else
-    using ACopyOpSharedRegisters = SM75_U32x4_LDSM_N;
-    using BCopyOpSharedRegisters = SM75_U16x8_LDSM_T;
-#endif
-
-    TiledCopy copyA_shared_registers = make_tiled_copy_A(Copy_Atom<ACopyOpSharedRegisters, TA>{}, tiled_mma);
-    TiledCopy copyB_shared_registers = make_tiled_copy_B(Copy_Atom<BCopyOpSharedRegisters, TB>{}, tiled_mma);
-
-
-    // Define kernel parameters
-    auto kernel = gemm_simple<
-            decltype(prob_shape), decltype(cta_tiler),
-            TA, decltype(dA), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
-            TB, decltype(dB), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
-            TC, decltype(dC), decltype(sC), decltype(tiled_mma),
-            decltype(alpha), decltype(beta)
-    >;
-
-    const uint32_t shared_memory_used = cosize_v<decltype(sA)> * sizeof(TA) + cosize_v<decltype(sB)> * sizeof(TB);
-    cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_memory_used);
-    dim3 dimBlock(size(tiled_mma));
-    dim3 dimGrid(size(ceil_div(M, bM)), size(ceil_div(N, bN)));
-
-
-//    print_latex(swizzle_layoutAtom_A);
-//
-//    print_latex(copyA_global_shared);
-//
-////    TODO: figure out how to best show swizzled copy
-//    auto [layoutS_MN_global_shared, thrID_S_global_shared] = copyA_global_shared.get_layoutS_MN();
-//    auto [layoutD_MN_global_shared, thrID_D_global_shared] = copyA_global_shared.get_layoutD_MN();
-////    print_latex_copy(layoutS_MN_global_shared, thrID_S_global_shared, composition(sA, layoutD_MN_global_shared), thrID_D_global_shared);
-////    print_latex_copy(layoutS_MN_global_shared, thrID_S_global_shared, sA, thrID_D_global_shared);
-////    print_latex_copy(layoutS_MN_global_shared, thrID_S_global_shared, composition(layoutD_MN_global_shared, right_inverse(swizzle_layoutAtom_A).with_shape(layoutD_MN_global_shared.shape())), thrID_D_global_shared);
-////    print_latex_copy(layoutS_MN_global_shared, thrID_S_global_shared, composition(right_inverse(tile_to_shape(swizzle_layoutAtom_A, Shape<_16, _64>{})), layoutD_MN_global_shared), thrID_D_global_shared);
-////    print_latex_copy(layoutS_MN_global_shared, thrID_S_global_shared, composition(tile_to_shape(swizzle_layoutAtom_A, Shape<_16, _64>{}), layoutD_MN_global_shared), thrID_D_global_shared);
-//    print_latex_copy(layoutS_MN_global_shared, thrID_S_global_shared, layoutD_MN_global_shared, thrID_D_global_shared, tile_to_shape(swizzle_layoutAtom_A, Shape<_16, _64>{}));
-//
-//    print_latex(copyA_shared_registers);
-//
-//    auto [layoutS_MN_shared_registers, thrID_S_shared_registers] = copyA_shared_registers.get_layoutS_MN();
-//    auto [layoutD_MN_shared_registers, thrID_D_shared_registers] = copyA_shared_registers.get_layoutD_MN();
-//    print_latex_copy(composition(sA, layoutS_MN_shared_registers), thrID_S_shared_registers, layoutD_MN_shared_registers, thrID_D_shared_registers);
-//
-//    print_latex(tiled_mma);
-
-
-    // Launch kernel
-    TimeMeasurement t;
-    t.start();
-    for (int i = 0; i < n_runs; i++) {
-        kernel<<<dimGrid, dimBlock, shared_memory_used>>>(
-            prob_shape,
-            A, dA,
-            B, dB,
-            C, dC,
-            alpha, beta
-        );
-    }
-    cudaDeviceSynchronize();
-    t.stop();
-
-    // Check if kernel launch was successfull
-    gpuAssert(cudaPeekAtLastError());
-    return t.elapsed();
-}
-
-
 // TODO: generalize to any elm types
 template <typename elmT, typename elmAccT = elmT>
 long int benchmark_cute_mmm(int n_runs, elmT * A, elmT * B, elmAccT * C, int m, int n, int k);
@@ -399,13 +232,13 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
 
     using layoutAtom_A = Layout<
             // TODO: use min of shared_k and 64 instead of 64?
-            Shape < _8,_64>,
-            Stride<_64, _1>
+            Shape < SharedM,SharedK>,
+            Stride< SharedK, _1>
     >;
     using layoutAtom_B = Layout<
             // TODO: use min of shared_n and 64 instead of 64?
-            Shape <_64, _8>,
-            Stride< _1,_64>
+            Shape <SharedN, SharedK>,
+            Stride< _1,SharedN>
     >;
 
     constexpr unsigned int sizeKunsigned = bK;
@@ -414,13 +247,12 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
     constexpr unsigned int shift_lenN = max(bit_width(sizeNunsigned) - 4, _3{});
 
 #ifdef NO_SWIZZLE
-//    TODO: add padding?
+    //    TODO: add padding?
     auto swizzle_layoutAtom_A = layoutAtom_A{};
     auto swizzle_layoutAtom_B = layoutAtom_B{};
 #else
-    //    TODO: calculate based on leading dimension size and type
-    auto swizzle_layoutAtom_A = composition(Swizzle<3,3,3>{}, layoutAtom_A{});
-    auto swizzle_layoutAtom_B = composition(Swizzle<3,3,3>{}, layoutAtom_B{});
+    auto swizzle_layoutAtom_A = composition(Swizzle<3,3,shift_lenK>{}, layoutAtom_A{});
+    auto swizzle_layoutAtom_B = composition(Swizzle<3,3,shift_lenN>{}, layoutAtom_B{});
 #endif
 
 #ifdef SYNC_CPY
@@ -608,13 +440,13 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
 
     using layoutAtom_A = Layout<
             // TODO: use min of shared_k and 64 instead of 64?
-            Shape < _8,_64>,
-            Stride<_64, _1>
+            Shape < SharedM,SharedK>,
+            Stride< SharedK, _1>
     >;
     using layoutAtom_B = Layout<
             // TODO: use min of shared_n and 64 instead of 64?
-            Shape <_64, _8>,
-            Stride< _1,_64>
+            Shape <SharedN, SharedK>,
+            Stride< _1,SharedN>
     >;
 
     constexpr unsigned int sizeKunsigned = bK;
@@ -627,8 +459,8 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
     auto swizzle_layoutAtom_A = layoutAtom_A{};
     auto swizzle_layoutAtom_B = layoutAtom_B{};
 #else
-    auto swizzle_layoutAtom_A = composition(Swizzle<3,3,3>{}, layoutAtom_A{});
-    auto swizzle_layoutAtom_B = composition(Swizzle<3,3,3>{}, layoutAtom_B{});
+    auto swizzle_layoutAtom_A = composition(Swizzle<3,3,shift_lenK>{}, layoutAtom_A{});
+    auto swizzle_layoutAtom_B = composition(Swizzle<3,3,shift_lenN>{}, layoutAtom_B{});
 #endif
 
 #ifdef SYNC_CPY
