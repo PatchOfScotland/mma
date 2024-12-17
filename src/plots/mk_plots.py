@@ -61,8 +61,8 @@ def attention_like():
     time_tc_us_copy = np.array([214, 557, 3981])
     time_tc_us_no_copy = np.array([220, 528, 2555, 11608])
     time_tc_prot = np.array([167, 345, 1391, 5913])
-    time_us_f32 = np.array([14100, 21990, 35660, 129815])
-    time_us_f16 = np.array([12276, 17419, 25304, 151786])
+    time_us_f16 = np.array([5872, 8807, 17280, 105050])
+    time_us_f32 = np.array([6747, 9367, 18451, 103141])
     # NOTE: Below is with ks <= 64 and the above is ks < 128
     # time_us_f16
 
