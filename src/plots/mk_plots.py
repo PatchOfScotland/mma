@@ -32,8 +32,8 @@ def lud_like():
     blocks = 256*256
     ds = np.array([16, 32, 64, 128])
     time_tc_us = np.array([154, 451, 1797, 10113])
-    time_us_f32 = np.array([3088, 4791, 7461, 47724])
-    time_us_f16 = np.array([3057, 4471, 6873, 39440])
+    time_us_f32 = np.array([1737, 2617, 5629, 35165])
+    time_us_f16 = np.array([1490, 2264, 4561, 29344])
     # time_us_f32 = np.array([1046, 6680, 68845, 1407986])
     total_ops = blocks * (ds * ds * ds * 2 + ds * ds)
 
@@ -95,8 +95,8 @@ def custom_attention():
     ds = np.array([16, 32, 64, 128])
     time_tc_us = np.array([382, 414, 2545, 8410])
     time_tc_no_mbm_us = np.array([341, 398, 3894, 10858])
-    time_us_f16 = np.array([833, 5088, 47410, 505696])
-    time_us_f32 = np.array([1046, 6680, 68845, 1407986])
+    time_us_f16 = np.array([837, 5189, 48471, 509904])
+    time_us_f32 = np.array([1027, 6716, 69502, 1408956])
 
     tflops_tc = blocks * (ds ** 3) * 2 * 2 / (time_tc_us * 1_000_000)
     tflops_tc_no_mbm = blocks * (ds ** 3) * 2 * 2 / (time_tc_no_mbm_us * 1_000_000)
@@ -124,8 +124,8 @@ def batched_mmm():
     ds = np.array([16, 32, 64, 128])
     time_tc_us = np.array([75, 215, 819, 3107])
     time_tc_prot = np.array([53, 199, 776, 3056])
-    time_us_f16 = np.array([4142, 6314, 9889, 60877])
-    time_us_f32 = np.array([4006, 7055, 12238, 71678])
+    time_us_f16 = np.array([633, 1012, 2147, 14441])
+    time_us_f32 = np.array([788, 1260, 2911, 17760])
 
     tflops_tc = blocks * (ds ** 3) * 2 / (time_tc_us * 1_000_000)
     tflops_tc_prot = blocks * (ds ** 3) * 2 / (time_tc_prot * 1_000_000)
@@ -151,8 +151,8 @@ def batched_mmm():
 def large_mmm():
     ds = np.array([1024, 2048, 4096, 8192])
     time_tc_us = np.array([169, 921, 6036, 45527])
-    time_us_f16 = np.array([284, 1821, 14366, 117299])
-    time_us_f32 = np.array([348, 2470, 21387, 176368])
+    time_us_f16 = np.array([247, 1399, 10698, 86309])
+    time_us_f32 = np.array([233, 1355, 10512, 86190])
     total_ops = ds ** 3 * 2
     tflops_tc = total_ops / (time_tc_us * 1_000_000)
     tflops_orig_f16 = total_ops / (time_us_f16 * 1_000_000)
@@ -243,10 +243,10 @@ def prot_mmm2():
     plt.show()
 
 # matmul()
-# lud_like()
-#attention_like()
+lud_like()
+attention_like()
 custom_attention()
-# batched_mmm()
-# large_mmm()
+batched_mmm()
+large_mmm()
 # prot_mmm1()
 # prot_mmm2()
