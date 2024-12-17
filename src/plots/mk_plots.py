@@ -58,8 +58,7 @@ def attention_like():
     blocks = 1024 * 256
     ds = np.array([16, 32, 64, 128])
     # Note size 128 does not fit in the k dimension
-    ks = np.array([16, 32, 64, 64])
-    time_tc_us_copy = np.array([214, 557, 3981, 11064])
+    time_tc_us_copy = np.array([214, 557, 3981])
     time_tc_us_no_copy = np.array([220, 528, 2555, 11608])
     time_tc_prot = np.array([167, 345, 1391, 5913])
     time_us_f32 = np.array([14100, 21990, 35660, 129815])
@@ -67,7 +66,7 @@ def attention_like():
     # NOTE: Below is with ks <= 64 and the above is ks < 128
     # time_us_f16
 
-    tflops_tc_copy = blocks * (ds * ds * ks) * 2 / (time_tc_us_copy * 1_000_000)
+    tflops_tc_copy = blocks * (ds[:-1] * ds[:-1] * ds[:-1]) * 2 / (time_tc_us_copy * 1_000_000)
     tflops_tc_no_copy = blocks * (ds * ds * ds) * 2 / (time_tc_us_no_copy * 1_000_000)
     tflops_tc_prot = blocks * (ds * ds * ds) * 2 / (time_tc_prot * 1_000_000)
     # NOTE these use k=128
@@ -75,12 +74,12 @@ def attention_like():
     tflops_orig_f32 = blocks * (ds * ds * ds) * 2 / (time_us_f32 * 1_000_000)
 
     # plt.axhline(124, color="r", label="FlashAttention")
-    plt.plot(ds, tflops_tc_copy, marker='o', linestyle='-', color='coral', label="CUDA backend + TC f16/f32 Futhark copy A")
+    plt.plot(ds[:-1], tflops_tc_copy, marker='o', linestyle='-', color='coral', label="CUDA backend + TC f16/f32 Futhark copy A")
     plt.plot(ds, tflops_tc_no_copy, marker='o', linestyle='-', color='red', label="CUDA backend + TC f16/f32 CuTe copy A")
     plt.plot(ds, tflops_tc_prot, marker='o', linestyle='-', color='g', label="Handwritten implementation using CuTe (without pipelining)")
     plt.plot(ds, tflops_orig_f16, marker='o', linestyle='-', color='skyblue', label="CUDA backend f16 Futhark copy A")
     plt.plot(ds, tflops_orig_f32, marker='o', linestyle='-', color='b', label="CUDA backend f32 Futhark copy A")
-    plt.title("Flash Attention Like, matrix multiplications of size $n\\times n \\times k$")
+    plt.title("Flash Attention Like, matrix multiplications of size $n\\times n \\times n$")
     plt.xlabel("$n$")
     plt.ylabel("TFLOPS")
     #plt.xticks(range(len(time_tc_us)), labels=ds)
