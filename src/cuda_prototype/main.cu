@@ -182,12 +182,12 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
     auto M = int(m);
     auto N = int(n);
     auto K = int(k);
-    auto prob_shape = make_shape(M, N, K);                   // (M, N, K)
+    auto prob_shape = make_shape(M, N, K);
 
     // Define strides (mixed)
-    auto dA = make_stride(K, Int<1>{});                      // (dM, dK)
-    auto dB = make_stride(Int<1>{}, N);                      // (dN, dK)
-    auto dC = make_stride(N, Int<1>{});                      // (dM, dN)
+    auto dA = make_stride(K, Int<1>{});
+    auto dB = make_stride(Int<1>{}, N);
+    auto dC = make_stride(N, Int<1>{});
 
     // Define mma tiles (static)
     TiledMMA tiled_mma = make_tiled_mma(
@@ -201,7 +201,7 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
     auto bN = Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N>{};
     auto bK = Int<WMMA_K * FRAGS_K * WARP_TILES_K>{};
     auto bP = Int<NUM_STAGES>{};
-    auto cta_tiler = make_shape(bM, bN, bK);                 // (BLK_M, BLK_N, BLK_K)
+    auto cta_tiler = make_shape(bM, bN, bK);
 
     using SharedM = decltype(bM);
     using SharedN = decltype(bN);
