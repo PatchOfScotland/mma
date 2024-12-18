@@ -13,6 +13,21 @@
 #include <cublas_v2.h>
 
 
+// Most useful macros:
+
+// For setting configuration values:
+// FRAGS_M, FRAGS_N, FRAGS_K
+// BLOCK_TILES_M, BLOCK_TILES_N
+// NUM_STAGES
+// Only pure CUDA:
+// WARP_TILES_M, WARP_TILES_N, WARP_TILES_K, SHARED_PADDING
+
+// For enabling/disabling optimizations:
+// SYNC_CPY, NO_SWIZZLE
+// Only CuTe:
+// NO_LDSM, NO_VECTORIZE,
+
+
 #define WARP_SIZE 32
 #define SHARED_MEM_SIZE 49152
 #define MAX_THREADS_PER_BLOCK 1024
