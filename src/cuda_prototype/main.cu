@@ -132,12 +132,12 @@ long int benchmark_optimized_tensor_mmm(
     int max_shared_memory;
     cudaDeviceGetAttribute(&max_shared_memory, cudaDevAttrMaxSharedMemoryPerBlockOptin, 0);
 
-    #ifndef NO_SWIZZLE
-    constexpr unsigned int shared_memory_used_A = shared_m * shared_k * sizeof(elmT) * NUM_STAGES;
-    constexpr unsigned int shared_memory_used_B = shared_k * shared_n * sizeof(elmT) * NUM_STAGES;
-    #else
+    #ifdef NO_SWIZZLE
     constexpr unsigned int shared_memory_used_A = shared_m * (shared_k + SHARED_PADDING) * sizeof(elmT) * NUM_STAGES;
     constexpr unsigned int shared_memory_used_B = shared_k * (shared_n + SHARED_PADDING) * sizeof(elmT) * NUM_STAGES;
+    #else
+    constexpr unsigned int shared_memory_used_A = shared_m * shared_k * sizeof(elmT) * NUM_STAGES;
+    constexpr unsigned int shared_memory_used_B = shared_k * shared_n * sizeof(elmT) * NUM_STAGES;
     #endif
 
     constexpr unsigned int shared_memory_used = shared_memory_used_A + shared_memory_used_B;
@@ -178,25 +178,23 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
     using TB = half_t;
     using TC = float;
 
-    // Define shapes (dynamic)
-    auto M = int(m);
-    auto N = int(n);
-    auto K = int(k);
-    auto prob_shape = make_shape(M, N, K);
-
-    // Define strides (mixed)
-    auto dA = make_stride(K, Int<1>{});
-    auto dB = make_stride(Int<1>{}, N);
-    auto dC = make_stride(N, Int<1>{});
-
-    // Define mma tiles (static)
+    // mma tiling
     TiledMMA tiled_mma = make_tiled_mma(
         MMA_Atom<SM80_16x8x16_F32F16F16F32_TN>{},
         Layout<Shape<Int<BLOCK_TILES_M>,Int<BLOCK_TILES_N>,_1>>{},
         Tile<Int<BLOCK_TILES_M * WMMA_M>, Int<BLOCK_TILES_N * WMMA_N>, Int<WMMA_K>>{}
     );
 
-    // Define shared memory layout (static)
+    // Full matrix shape and stride
+    auto M = int(m);
+    auto N = int(n);
+    auto K = int(k);
+    auto dA = make_stride(K, Int<1>{});
+    auto dB = make_stride(Int<1>{}, N);
+    auto dC = make_stride(N, Int<1>{});
+    auto prob_shape = make_shape(M, N, K);
+
+    // Shared memory layout
     auto bM = Int<WMMA_M * FRAGS_M * WARP_TILES_M * BLOCK_TILES_M>{};
     auto bN = Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N>{};
     auto bK = Int<WMMA_K * FRAGS_K * WARP_TILES_K>{};
@@ -254,6 +252,7 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
         auto sB = tile_to_shape(swizzle_layoutAtom_B, make_shape(bN, bK, bP));
 #endif
 
+    // global->shared copy tiling
 #ifdef NO_VECTORIZE
     using ACopyOpGlobalShared = SM80_CP_ASYNC_CACHEALWAYS<uint32_t>;
     using BCopyOpGlobalShared = SM80_CP_ASYNC_CACHEALWAYS<uint32_t>;
@@ -267,9 +266,6 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
 #endif
 #endif
 
-    auto sC = composition(Swizzle<3,2,shift_lenN>{}, make_layout(make_shape(bM, bN), LayoutRight{}));
-
-    // Define global->shared copy tiling (static)
     TiledCopy copyA_global_shared = make_tiled_copy(Copy_Atom<ACopyOpGlobalShared, TA>{},
         Layout<
             Shape<Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load)>, Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>>,
@@ -286,7 +282,9 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
         Layout<Shape<Int<elms_per_load>,_1>>{}
     );
 
-    // Define shared->register copy tiling (static)
+    auto sC = composition(Swizzle<3,2,shift_lenN>{}, make_layout(make_shape(bM, bN), LayoutRight{}));
+
+    // shared->register copy tiling
 #ifdef NO_LDSM
     using ACopyOpSharedRegisters = AutoVectorizingCopy;
     using BCopyOpSharedRegisters = AutoVectorizingCopy;
@@ -298,7 +296,6 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
     TiledCopy copyA_shared_registers = make_tiled_copy_A(Copy_Atom<ACopyOpSharedRegisters, TA>{}, tiled_mma);
     TiledCopy copyB_shared_registers = make_tiled_copy_B(Copy_Atom<BCopyOpSharedRegisters, TB>{}, tiled_mma);
 
-    // Define kernel parameters
 #if (NUM_STAGES == 1)
     auto kernel = gemm_simple<
             decltype(prob_shape), decltype(cta_tiler),
@@ -336,6 +333,8 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
 #else
     const uint32_t shared_memory_used = cosize_v<decltype(sA)> * sizeof(TA) + cosize_v<decltype(sB)> * sizeof(TB);
 #endif
+
+    // Set dynamic shared memory size
     cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_memory_used);
     dim3 dimBlock(size(tiled_mma));
     dim3 dimGrid(size(ceil_div(M, bM)), size(ceil_div(N, bN)));
@@ -370,14 +369,14 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
     using TB = half_t;
     using TC = float;
 
-    // Define mma tiles (static)
+    // mma tiling
     TiledMMA tiled_mma = make_tiled_mma(
         MMA_Atom<SM80_16x8x16_F32F16F16F32_TN>{},
         Layout<Shape<Int<BLOCK_TILES_M>,Int<BLOCK_TILES_N>,_1>>{},
         Tile<Int<BLOCK_TILES_M * WMMA_M>, Int<BLOCK_TILES_N * WMMA_N>, Int<WMMA_K>>{}
     );
 
-    // Define shared memory layout (static)
+    // Shared memory layout
     auto bM = Int<WMMA_M * FRAGS_M * WARP_TILES_M * BLOCK_TILES_M>{};
     auto bN = Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N>{};
     auto bK = Int<WMMA_K * FRAGS_K * WARP_TILES_K>{};
@@ -394,7 +393,6 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
     auto layoutBss = make_layout(make_shape(bN, bK, batches, reuse), make_stride(Int<1>{}, bN, bN * bK * reuse, bN * bK));
 #endif
     auto layoutCs = make_layout(make_shape(bM, bN, batches), make_stride(bN, Int<1>{}, bM * bN));
-
 
     using layoutAtom_A = Layout<
         Shape<SharedM, SharedK>,
@@ -443,6 +441,7 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
     auto sB = tile_to_shape(swizzle_layoutAtom_B, make_shape(bN, bK, bP));
 #endif
 
+    // global->shared copy tiling
 #ifdef NO_VECTORIZE
     using ACopyOpGlobalShared = SM80_CP_ASYNC_CACHEALWAYS<uint32_t>;
     using BCopyOpGlobalShared = SM80_CP_ASYNC_CACHEALWAYS<uint32_t>;
@@ -458,7 +457,7 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
 
     auto sC = composition(Swizzle<3,2,shift_lenN>{}, make_layout(make_shape(bM, bN), LayoutRight{}));
 
-    // Define global->shared copy tiling (static)
+    // global->shared copy tiling
     TiledCopy copyA_global_shared = make_tiled_copy(Copy_Atom<ACopyOpGlobalShared, TA>{},
         Layout<
             Shape<Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load)>, Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>>,
@@ -506,6 +505,8 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
 #else
     const uint32_t shared_memory_used = cosize_v<decltype(sA)> * sizeof(TA) + cosize_v<decltype(sB)> * sizeof(TB);
 #endif
+
+    // Set dynamic shared memory size
     cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_memory_used);
     dim3 dimBlock(size(tiled_mma));
     dim3 dimGrid(batches);
