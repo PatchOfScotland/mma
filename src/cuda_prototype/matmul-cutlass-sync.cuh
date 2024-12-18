@@ -1,3 +1,4 @@
+// Written with inspiration and snippets from https://github.com/NVIDIA/cutlass/tree/main/examples/cute/tutorial
 #include <cute/tensor.hpp>
 
 
@@ -129,7 +130,7 @@ gemm_sync_cpy(ProblemShape shape_MNK,
             }
 
             // Copy shared->registers for next k_block
-            int k_block_next = (k_block + 1) % K_BLOCK_MAX;
+            auto k_block_next = (k_block + Int<1>{}) % K_BLOCK_MAX;
             copy(copyA_shared_registers, tCsA(_,_,k_block_next), tCrA_copy_view(_,_,k_block_next));
             copy(copyB_shared_registers, tCsB(_,_,k_block_next), tCrB_copy_view(_,_,k_block_next));
 

@@ -23,7 +23,7 @@
 #endif
 
 #ifndef NUM_STAGES
-#define NUM_STAGES 2
+#define NUM_STAGES 3
 #endif
 
 // Set constants using compiler options
@@ -58,7 +58,7 @@
 #define BLOCK_TILES_M 2
 #endif
 #ifndef BLOCK_TILES_N
-#define BLOCK_TILES_N 2
+#define BLOCK_TILES_N 4
 #endif
 
 typedef cutlass::half_t half_t;

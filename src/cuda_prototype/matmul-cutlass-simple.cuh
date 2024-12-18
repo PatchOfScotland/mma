@@ -1,3 +1,4 @@
+// Written with inspiration and snippets from https://github.com/NVIDIA/cutlass/tree/main/examples/cute/tutorial
 #include <cute/tensor.hpp>
 
 

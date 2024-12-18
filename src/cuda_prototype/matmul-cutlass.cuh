@@ -1,3 +1,4 @@
+// Written with inspiration and snippets from https://github.com/NVIDIA/cutlass/tree/main/examples/cute/tutorial
 #include <cute/tensor.hpp>
 
 
@@ -78,7 +79,7 @@ gemm_pipelined(
 #else
     Tensor tCgC = thr_mma.partition_C(gC);
 #endif
-    
+
     int k_tile_max = size<3>(tAgA);
     auto k_tiles_left = k_tile_max;
     int k_tile = 0;
@@ -92,6 +93,7 @@ gemm_pipelined(
         copy(copyA_global_shared, tAgA(_,_,_,k_tile), tAsA(_,_,_,stage));
         copy(copyB_global_shared, tBgB(_,_,_,k_tile), tBsB(_,_,_,stage));
         cp_async_fence();
+
         --k_tiles_left;
         if (k_tiles_left > 0) {
             ++k_tile;
@@ -133,8 +135,8 @@ gemm_pipelined(
     CUTE_NO_UNROLL
     while (k_tiles_left > -(num_stages - 1))
     {
-        // Unrolled by the compiler
-        for_each(make_int_sequence<K_BLOCK_MAX>{}, [&] (auto k_block)
+        CUTE_UNROLL
+        for (int k_block = 0; k_block < K_BLOCK_MAX; ++k_block)
         {
             if (k_block == K_BLOCK_MAX - 1)
             {
@@ -172,7 +174,7 @@ gemm_pipelined(
 
             // Perform mma on k_block in registers
             gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);
-        });
+        }
     }
 
 #ifdef SWIZZLE_BACK
