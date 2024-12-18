@@ -8,7 +8,6 @@
 #include "matmul-cutlass-simple.cuh"
 #include "attention-like-cutlass.cuh"
 #include "matmul-cutlass-sync.cuh"
-#include "matmul-cutlass2.cuh"
 //#include "cuda_fp16.h"
 #include "cutlass/half.h"
 #include <cassert>
@@ -163,17 +162,14 @@ long int benchmark_optimized_tensor_mmm(
     auto kernel = matMulTiledTensor<elmT, elmAccT, WMMA_M, WMMA_N, WMMA_K, FRAGS_M, FRAGS_N, FRAGS_K, WARP_TILES_M, WARP_TILES_N, WARP_TILES_K, BLOCK_TILES_M, BLOCK_TILES_N, threads_per_block, NUM_STAGES>;
 
     cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_memory_used);
-//    cudaFuncSetAttribute(kernel, cudaFuncAttributePreferredSharedMemoryCarveout, 100);
-//    cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
     TimeMeasurement t;
 
     t.start();
     for (int i = 0; i < n_runs; i++) {
-//        TODO: fix requested amount of shared memory
         kernel<<<grid, block, shared_memory_used>>>(
             A_device, B_device, C_device, m, n, k
-            );
+        );
     }
     cudaDeviceSynchronize();
     t.stop();
@@ -195,10 +191,6 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
     using TA = half_t;
     using TB = half_t;
     using TC = float;
-
-//    TODO: get as argument?
-    auto alpha = Int<1>{};
-    auto beta = Int<0>{};
 
     // Define shapes (dynamic)
     auto M = int(m);
@@ -331,8 +323,7 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
             decltype(prob_shape), decltype(cta_tiler),
             TA, decltype(dA), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
             TB, decltype(dB), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
-            TC, decltype(dC), decltype(sC), decltype(tiled_mma),
-            decltype(alpha), decltype(beta)
+            TC, decltype(dC), decltype(sC), decltype(tiled_mma)
     >;
 #else
 #ifdef SYNC_CPY
@@ -342,8 +333,7 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
             decltype(prob_shape), decltype(cta_tiler),
             TA, decltype(dA), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
             TB, decltype(dB), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
-            TC, decltype(dC), decltype(sC), decltype(tiled_mma),
-            decltype(alpha), decltype(beta)
+            TC, decltype(dC), decltype(sC), decltype(tiled_mma)
     >;
 #else
     auto kernel = gemm_pipelined<
@@ -351,7 +341,6 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
             TA, decltype(dA), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
             TB, decltype(dB), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
             TC, decltype(dC), decltype(sC), decltype(tiled_mma),
-            decltype(alpha), decltype(beta),
             NUM_STAGES
     >;
 #endif
@@ -380,8 +369,7 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
                 prob_shape,
                 A, dA,
                 B, dB,
-                C, dC,
-                alpha, beta
+                C, dC
         );
     }
     cudaDeviceSynchronize();
@@ -406,10 +394,6 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
     using TA = half_t;
     using TB = half_t;
     using TC = float;
-
-//    TODO: get as argument?
-    auto alpha = Int<1>{};
-    auto beta = Int<0>{};
 
     // Define mma tiles (static)
     TiledMMA tiled_mma = make_tiled_mma(
@@ -533,45 +517,13 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
     TiledCopy copyB_shared_registers = make_tiled_copy_B(Copy_Atom<BCopyOpSharedRegisters, TB>{}, tiled_mma);
 
     // Define kernel parameters
-//    TODO: allow setting num_stages?
-//#if (NUM_STAGES == 1)
-//    auto kernel = gemm_simple<
-//            decltype(prob_shape), decltype(cta_tiler),
-//            TA, decltype(dA), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
-//            TB, decltype(dB), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
-//            TC, decltype(dC), decltype(sC), decltype(tiled_mma),
-//            decltype(alpha), decltype(beta)
-//    >;
-//#else
-//#ifdef SYNC_CPY
-//    static_assert(NUM_STAGES == 2, "NUM_STAGES must be 2 for gemm_sync_cpy");
-//
-//    auto kernel = gemm_sync_cpy<
-//            decltype(prob_shape), decltype(cta_tiler),
-//            TA, decltype(dA), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
-//            TB, decltype(dB), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
-//            TC, decltype(dC), decltype(sC), decltype(tiled_mma),
-//            decltype(alpha), decltype(beta)
-//    >;
-//#else
-//    auto kernel = gemm_pipelined<
-//            decltype(prob_shape), decltype(cta_tiler),
-//            TA, decltype(dA), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
-//            TB, decltype(dB), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
-//            TC, decltype(dC), decltype(sC), decltype(tiled_mma),
-//            decltype(alpha), decltype(beta),
-//            NUM_STAGES
-//    >;
-//#endif
-//#endif
     #ifdef ATTENTION_LIKE
     static_assert(NUM_STAGES == 1, "NUM_STAGES must be 1 for attention_like");
 
     auto kernel = attention_like_simple<
         TA, decltype(layoutAs), decltype(sA), decltype(copyA_global_shared), decltype(copyA_shared_registers),
         TB, decltype(layoutBss), decltype(sB), decltype(copyB_global_shared), decltype(copyB_shared_registers),
-        TC, decltype(layoutCs), decltype(sC), decltype(tiled_mma),
-        decltype(alpha), decltype(beta)
+        TC, decltype(layoutCs), decltype(sC), decltype(tiled_mma)
     >;
 
 #ifdef SWIZZLE_BACK
@@ -596,8 +548,7 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
         kernel<<<dimGrid, dimBlock, shared_memory_used>>>(
                 As, layoutAs,
                 Bss, layoutBss,
-                Cs, layoutCs,
-                alpha, beta
+                Cs, layoutCs
         );
     }
     cudaDeviceSynchronize();
@@ -610,269 +561,6 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
     return 0;
     #endif
 }
-
-
-template <typename elmT, typename elmAccT = elmT>
-long int benchmark_cute_default(int n_runs, elmT * A, elmT * B, elmAccT * C, int m, int n, int k);
-
-template<>
-long int benchmark_cute_default<half_t, float>(int n_runs, half_t * A, half_t * B, float * C, int m, int n, int k) {
-    using namespace cute;
-
-    // TODO: remove?
-    const auto alpha = static_cast<float>(1);
-    const auto beta  = static_cast<float>(0);
-
-    // Define shapes (dynamic)
-    auto M = int(m);
-    auto N = int(n);
-    auto K = int(k);
-    auto prob_shape = make_shape(M, N, K);                     // (M, N, K)
-
-    // Define strides (mixed)
-    auto dA = make_stride(K, Int<1>{});                      // (dM, dK)
-    auto dB = make_stride(Int<1>{}, N);                      // (dN, dK)
-    auto dC = make_stride(N, Int<1>{});                      // (dM, dN)
-
-//    // Define CTA tile sizes (static)
-////    TODO: get from calculation, use 128 rather than 64
-//    auto bM = Int<64>{};
-//    auto bN = Int<64>{};
-//    auto bK = Int<32>{};
-//    auto cta_tiler = make_shape(bM, bN, bK);                   // (BLK_M, BLK_N, BLK_K)
-//    auto bP = Int<3>{};  // Pipeline
-//
-//    auto sA_buffer = make_layout(make_shape(bM, bK), make_stride(bK + Int<8>{}, Int<1>{}));
-//    auto sB_buffer = make_layout(make_shape(bN, bK), make_stride(Int<1>{}, bN + Int<8>{}));
-//
-//    // Define the smem layouts (static)
-////    auto sA = make_layout(make_shape(bM, bK, bP), make_stride(bK, Int<1>{}));
-////    auto sB = make_layout(make_shape(bK, bN, bP), LayoutRight{});
-//    auto sA = tile_to_shape(sA_buffer, make_shape(bM, bK, bP));
-//    auto sB = tile_to_shape(sB_buffer, make_shape(bN, bK, bP));
-//    auto sC = make_layout(make_shape(bM, bN), LayoutRight{});
-
-    using ALayout = decltype(dA);
-    using BLayout = decltype(dB);
-    using CLayout = decltype(dC);
-
-    // TODO: set
-//    using ThreadBlockSize = _128;
-//    using TiledMma = ;
-
-    using CopyMaxVecBits = _128;
-    using TA = half_t;
-    using TB = half_t;
-    using TC = float;
-    using Alpha = decltype(alpha);
-    using Beta = decltype(beta);
-
-//    auto kernel = cooperative_gemm_kernel<
-//            SMemALayout, SMemBLayout, SMemCLayout,
-//            SmemCopyOpA, SmemCopyOpB, SmemCopyOpC,
-//            ThreadBlockSize, TiledMma, CopyMaxVecBits,
-//            TA, TB, TC, Alpha, Beta,
-//            ALayout, BLayout, CLayout
-//    >;
-
-//    TODO: use?
-//    dim3 dimBlock(size(mmaC));
-//    dim3 dimGrid(size(ceil_div(M, bM)), size(ceil_div(N, bN)));
-
-//    constexpr uint32_t copy_max_vec_bytes = CopyMaxVecBits / 8;
-//    const size_t shared_memory_size = round_up(sizeof(TA) * h_a.size(), copy_max_vec_bytes)
-//                                      + round_up(sizeof(TB) * h_b.size(), copy_max_vec_bytes)
-//                                      +         (sizeof(TC) * h_c.size());
-//    ASSERT_EQ(cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, static_cast<int>(shared_memory_size)), 0);
-
-    TimeMeasurement t;
-    t.start();
-    for (int i = 0; i < n_runs; i++) {
-//        TODO: set grid size
-//        kernel<<<1, ThreadBlockSize, shared_memory_size>>>(
-//                thrust::raw_pointer_cast(d_a.data()),
-//                thrust::raw_pointer_cast(d_b.data()),
-//                thrust::raw_pointer_cast(d_c.data()),
-//                thrust::raw_pointer_cast(d_c_out.data()),
-//                alpha,
-//                beta,
-//                a_load_transform,
-//                b_load_transform,
-//                c_load_transform,
-//                c_store_transform
-//        );
-    }
-    cudaDeviceSynchronize();
-    t.stop();
-
-    // Check if kernel launch was successfull
-    gpuAssert(cudaPeekAtLastError());
-    return t.elapsed();
-}
-
-template <cutlass_version cutlass_mmm, typename elmT, typename elmAccT = elmT>
-long int benchmark_cutlass_mmm(int n_runs, elmT * A, elmT * B, elmAccT * C, int m, int n, int k)
-{
-    switch (cutlass_mmm)
-    {
-    case DEFAULT : 
-        return cutlass_default_mmm(n_runs, A, B, C, m, n, k);     
-    case PADDING:
-        return cutlass_spadding_mmm(n_runs, A, B, C, m, n, k);
-    case VECTORIZED : 
-        return cutlass_vectorized_mmm(n_runs, A, B, C, m, n, k);
-    default: return -1;
-    }
-}
-
-// TODO: generalize to any elm types
-template <typename elmT, typename elmAccT = elmT>
-long int benchmark_cutlass_default(int n_runs, elmT * A, elmT * B, elmAccT * C, int m, int n, int k);
-
-template<>
-long int benchmark_cutlass_default<half_t, float>(int n_runs, half_t * A, half_t * B, float * C, int m, int n, int k) {
-    using ElementA_ = half_t;
-    using ElementB_ = half_t;
-    using ElementC_ = float;
-    using ElementAccumulator_ = float;
-    using OperatorClass_ = cutlass::arch::OpClassTensorOp;
-    using ArchTag_ = cutlass::arch::Sm80;
-
-    using GemmConfiguration = cutlass::gemm::device::DefaultGemmConfiguration<
-            OperatorClass_, ArchTag_, ElementA_, ElementB_, ElementC_,
-            ElementAccumulator_
-    >;
-
-    using CutlassGemm = cutlass::gemm::device::Gemm<
-            ElementA_,        // Data-type of A matrix
-            cutlass::layout::RowMajor,  // Layout of A matrix
-            ElementB_,        // Data-type of B matrix
-            cutlass::layout::RowMajor,  // Layout of B matrix
-            ElementC_,        // Data-type of C matrix
-            cutlass::layout::RowMajor,  // Layout of C matrix
-            ElementAccumulator_,
-            OperatorClass_,
-            ArchTag_,
-            GemmConfiguration::ThreadblockShape,
-            GemmConfiguration::WarpShape,
-            GemmConfiguration::InstructionShape,
-            GemmConfiguration::EpilogueOutputOp,
-            cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<>,
-            GemmConfiguration::kStages
-    >;
-
-    CutlassGemm gemm_operator;
-
-    CutlassGemm::Arguments args({m , n, k},  // Gemm Problem dimensions
-                                {A, k},    // Tensor-ref for source matrix A
-                                {B, n},    // Tensor-ref for source matrix B
-                                {C, n},    // Tensor-ref for source matrix C
-                                {C, n},    // Tensor-ref for destination matrix D (may be different memory than source C matrix)
-                                {1, 0}     // Scalars used in the Epilogue
-    );
-
-    TimeMeasurement t;
-    t.start();
-    for (int i = 0; i < n_runs; i++) {
-        gemm_operator(args);
-    }
-    cudaDeviceSynchronize();
-    t.stop();
-
-    // Check if kernel launch was successfull
-    gpuAssert(cudaPeekAtLastError());
-    return t.elapsed();
-}
-
-
-template <typename elmT, typename elmAccT = elmT>
-long int benchmark_cutlass_custom(int n_runs, elmT * A, elmT * B, elmAccT * C, int m, int n, int k);
-
-//template<>
-//long int benchmark_cutlass_custom<half_t, float>(int n_runs, half_t * A, half_t * B, float * C, int m, int n, int k) {
-//    using namespace cute;
-//
-//    // Define shapes (dynamic)
-//    auto M = int(m);
-//    auto N = int(n);
-//    auto K = int(k);
-//    auto prob_shape = make_shape(M, N, K);                     // (M, N, K)
-//
-//    // Define strides (mixed)
-////    auto dA = make_stride(K, Int<1>{});                      // (dM, dK)
-////    auto dB = make_stride(Int<1>{}, N);                      // (dN, dK)
-////    auto dC = make_stride(N, Int<1>{});                      // (dM, dN)
-//
-//    using ElementA = half_t;
-//    using LayoutA = cutlass::layout::RowMajor;
-//    const int AlignmentA = 128 / sizeof_bits<ElementA>::value;
-//    using ElementB = half_t;
-//    using LayoutB = cutlass::layout::RowMajor;
-//    const int AlignmentB = 128 / sizeof_bits<ElementB>::value;
-//
-//    using ElementC = float;
-//    using LayoutC = cutlass::layout::RowMajor;
-//    using ElementAccumulator = float;
-//
-//    using OperatorClass = cutlass::arch::OpClassTensorOp;
-//    using ArchTag = cutlass::arch::Sm80;
-//
-////    using GemmConfiguration = cutlass::gemm::device::DefaultGemmConfiguration<
-////            OperatorClass, ArchTag, ElementA, ElementB, ElementC,
-////            ElementAccumulator
-////    >;
-//
-//    // Step 1: Generate the required collective layer mainloop specialization
-//    using CollectiveMainloop = typename cutlass::gemm::collective::CollectiveBuilder<
-//            ArchTag, OperatorClass,
-//            ElementA, LayoutA, AlignmentA,
-//            ElementB, LayoutB, AlignmentB,
-//            ElementAccumulator,
-//            Shape<_64, _64, _64>, Shape<_1, _1, _1>,
-//            cutlass::gemm::collective::StageCountAuto,
-//            cutlass::gemm::collective::KernelScheduleAuto
-//    >::CollectiveOp;
-//
-//// Step 2: Specify the collective layer epilogue type
-//    using CollectiveEpilogue = cutlass::epilogue::collective::DefaultEpilogue<
-//            cutlass::gemm::TagToStrideC_t<LayoutC>,
-//            cutlass::gemm::TagToStrideC_t<LayoutC>,
-//            cutlass::epilogue::thread::LinearCombination<ElementC, 1, ElementAccumulator, ElementAccumulator>>;
-//
-//// Step 3: Compose the mainloop and epilogue together at the kernel layer
-//    using GemmKernel = cutlass::gemm::kernel::GemmUniversal<
-//            cute::Shape<int,int,int,int>, // ProblemShape [M,N,K,L]
-//            CollectiveMainloop,
-//            CollectiveEpilogue
-//    >;
-//
-//// Step 4: Wrap up the kernel::GemmUniversal kernel class
-//// with the device adapter to obtain a host-side handle to the kernel
-//    using CutlassGemm = cutlass::gemm::device::GemmUniversalAdapter<GemmKernel>;
-//
-//    CutlassGemm gemm_operator;
-//
-//    CutlassGemm::Arguments args({m , n, k},  // Gemm Problem dimensions
-//                                {A, k},    // Tensor-ref for source matrix A
-//                                {B, n},    // Tensor-ref for source matrix B
-//                                {C, n},    // Tensor-ref for source matrix C
-//                                {C, n},    // Tensor-ref for destination matrix D (may be different memory than source C matrix)
-//                                {1, 0}     // Scalars used in the Epilogue
-//    );
-//
-//    TimeMeasurement t;
-//    t.start();
-//    for (int i = 0; i < n_runs; i++) {
-//        gemm_operator(args);
-//    }
-//    cudaDeviceSynchronize();
-//    t.stop();
-//
-//    // Check if kernel launch was successfull
-//    gpuAssert(cudaPeekAtLastError());
-//    return t.elapsed();
-//}
-
 
 template <typename elmT, typename elmAccT = elmT>
 unsigned benchmark_naive_tensor_mmm(
@@ -891,20 +579,10 @@ unsigned benchmark_naive_tensor_mmm(
     constexpr int wmma_m = 16;
     constexpr int wmma_k = 16;
 
-
-    // Let block work on block_tiles * wmma elements.
-    // there are n elements on the x direction and we know each thread works on block_tiles_n
     int dimx = ceil(((float) n)/(wmma_n * block_tiles_n));
     int dimy = ceil( ((float) m)/(wmma_m * block_tiles_m));
     dim3 grid(dimx, dimy, 1);
-    // dim3 block(threads_per_block, 1, 1); // 1D block of 256 elements
-    /* Okay so what do we want? Each mm will be done by the entire warp and works warp level.
-    So whatever we want to tile for should be multiple of the warp size.
-    Here we say that the block should compute block_tiles_m x block_tiles_n tensor mm.
 
-    This also works for the grid specification, since we tile so that each warp computes
-    a wmma_m x wmma_n result, and we use block_tiles_m x block_tiles_n warps in the block.
-    */
     dim3 block(block_tiles_n * WARP_SIZE, block_tiles_m, 1);
 
     TimeMeasurement t;
@@ -917,7 +595,6 @@ unsigned benchmark_naive_tensor_mmm(
     }
     cudaDeviceSynchronize();
     t.stop();
-    // Check if kernel launch was successfull
     gpuAssert(cudaPeekAtLastError());
 
     return t.elapsed();
@@ -950,7 +627,6 @@ long int benchmark_tiled_mmm(
     }
     cudaDeviceSynchronize();
     t.stop();
-    // Check if kernel launch was successfull
     gpuAssert(cudaPeekAtLastError());
     return t.elapsed();
 }
@@ -1226,8 +902,6 @@ void benchmark_attention_like(
     Bss.fill_rand<float_range>(shared_k, shared_n, batches, reuse);
     Cs.fill_zeros(shared_m, shared_n, batches);
 
-//    TODO: validation
-
     unsigned long total_ops = 2 * (unsigned long)batches * (unsigned long)reuse * shared_m * shared_n * shared_k;
 
     auto As_device = As.to_gpu();
@@ -1245,7 +919,6 @@ void benchmark_attention_like(
 
     if (!total_elapsed) {
         printf("Kernel launch failed\n");
-//        memset(C.to_cpu(), 0, m * n);
     } else {
         printGFlops(total_elapsed, total_ops);
         printf("Average Time elapsed: %ld ms\n", total_elapsed);
@@ -1260,7 +933,6 @@ void benchmark_attention_like(
 
         if (!total_elapsed) {
             printf("Kernel launch failed\n");
-//        memset(C.to_cpu(), 0, m * n);
         } else {
             printGFlops(total_elapsed, total_ops * n_runs);
             printf("Average Time elapsed: %ld ms\n", total_elapsed / n_runs);
@@ -1332,35 +1004,18 @@ int main(int argc, char * argv[])
 
     benchmark_kernel<acc_type, acc_type, 2, mm_kernel::register_tiled, false>(
         n_runs, m, n, k, A_accT, B_accT, C_target, C_target, std::string("GPU register tiled")
-        );
-
-    // TODO: make this work for Cutlass half, or cast?
-//    benchmark_kernel<element_type, acc_type, 2, mm_kernel::tensor_naive, true>(
-//        n_runs, m, n, k, A, B, C, C_target, std::string("GPU tensor naive")
-//    );
+    );
 
     benchmark_kernel<element_type, acc_type, 2, mm_kernel::cublas, true>(
         n_runs, m, n, k, A, B, C, C_target, std::string("cublas")
-        );
-
-//    benchmark_kernel<element_type, acc_type, 2, mm_kernel::cutlass_default, true>(
-//            n_runs, m, n, k, A, B, C, C_target, std::string("Cutlass default")
-//    );
-
-//    benchmark_kernel<element_type, acc_type, 2, mm_kernel::cutlass_custom, true>(
-//            n_runs, m, n, k, A, B, C, C_target, std::string("Cutlass custom")
-//    );
-
-//    benchmark_kernel<element_type, acc_type, 2, mm_kernel::cutlass_simple, true>(
-//            n_runs, m, n, k, A, B, C, C_target, std::string("Cutlass Simple")
-//    );
-
-    benchmark_kernel<element_type, acc_type, 2, mm_kernel::cute_mm, true>(
-            n_runs, m, n, k, A, B, C, C_target, std::string("Cute")
     );
 
     benchmark_kernel<element_type, acc_type, 2, mm_kernel::tensor_optimized, true>(
             n_runs, m, n, k, A, B, C, C_target, std::string("GPU tensor optimized")
+    );
+
+    benchmark_kernel<element_type, acc_type, 2, mm_kernel::cute_mm, true>(
+            n_runs, m, n, k, A, B, C, C_target, std::string("Cute")
     );
 
     cudaFree(A.to_gpu());

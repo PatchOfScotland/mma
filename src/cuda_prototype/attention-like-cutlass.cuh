@@ -32,25 +32,21 @@
 #include <cstdio>
 #include <cassert>
 
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-
 #include <cute/tensor.hpp>
 
 
 template <
-        class TA, class ALayout, class ASmemLayout, class TiledCopyAGlobalShared, class TiledCopyASharedRegisters,
-        class TB, class BLayout, class BSmemLayout, class TiledCopyBGlobalShared, class TiledCopyBSharedRegisters,
-        class TC, class CLayout, class CSmemLayout, class TiledMma,
-        class Alpha, class Beta
+    class TA, class ALayout, class ASmemLayout, class TiledCopyAGlobalShared, class TiledCopyASharedRegisters,
+    class TB, class BLayout, class BSmemLayout, class TiledCopyBGlobalShared, class TiledCopyBSharedRegisters,
+    class TC, class CLayout, class CSmemLayout, class TiledMma
 >
 __global__ static
 __launch_bounds__(decltype(size(TiledMma{}))::value)
 void
-attention_like_simple(TA const* As, ALayout layoutAs,
-            TB const* Bss, BLayout layoutBss,
-            TC      * Cs, CLayout layoutCs,
-            Alpha alpha, Beta beta
+attention_like_simple(
+    TA const* As, ALayout layoutAs,
+    TB const* Bss, BLayout layoutBss,
+    TC      * Cs, CLayout layoutCs
 )
 {
     using namespace cute;
@@ -66,15 +62,6 @@ attention_like_simple(TA const* As, ALayout layoutAs,
     TiledCopyBSharedRegisters smem_tiled_copy_B;
     TiledMma tiled_mma;
 
-#if 1
-    CUTE_STATIC_ASSERT_V(size(copyA_global_shared) == size(tiled_mma));                     // NumThreads
-    CUTE_STATIC_ASSERT_V(size(copyB_global_shared) == size(tiled_mma));                     // NumThreads
-
-    static_assert(is_static<ASmemLayout>::value);
-    static_assert(is_static<BSmemLayout>::value);
-    static_assert(is_static<CSmemLayout>::value);
-#endif
-
     Tensor mAs = make_tensor(make_gmem_ptr(As), layoutAs);
     Tensor mBss = make_tensor(make_gmem_ptr(Bss), layoutBss);
     Tensor mCs = make_tensor(make_gmem_ptr(Cs), layoutCs);
@@ -86,8 +73,8 @@ attention_like_simple(TA const* As, ALayout layoutAs,
     // Shared memory buffers
     auto smemA = reinterpret_cast<TA *>(shared);
     auto smemB = reinterpret_cast<TB *>(smemA + cosize_v<ASmemLayout>);
-    Tensor sA = make_tensor(make_smem_ptr(smemA), sA_layout);            // (BLK_M,BLK_K)
-    Tensor sB = make_tensor(make_smem_ptr(smemB), sB_layout);            // (BLK_N,BLK_K)
+    Tensor sA = make_tensor(make_smem_ptr(smemA), sA_layout);
+    Tensor sB = make_tensor(make_smem_ptr(smemB), sB_layout);
 
 #ifdef SWIZZLE_BACK
     CSmemLayout sC_layout;
@@ -111,15 +98,15 @@ attention_like_simple(TA const* As, ALayout layoutAs,
 
     ThrMMA thr_mma = tiled_mma.get_slice(threadIdx.x);
 #ifdef SWIZZLE_BACK
-    Tensor tCgC = thr_mma.partition_C(sC);                               // (MMA,MMA_M,MMA_N)
+    Tensor tCgC = thr_mma.partition_C(sC);
 #else
-    Tensor tCgC = thr_mma.partition_C(gC);                               // (MMA,MMA_M,MMA_N)
+    Tensor tCgC = thr_mma.partition_C(gC);
 #endif
     Tensor tCrC = thr_mma.make_fragment_C(tCgC);
 
     // Create register tensors for the MMA to operate on
-    Tensor tCrA  = thr_mma.partition_fragment_A(sA);                    // (MMA,MMA_M,MMA_K)
-    Tensor tCrB  = thr_mma.partition_fragment_B(sB);                    // (MMA,MMA_N,MMA_K)
+    Tensor tCrA  = thr_mma.partition_fragment_A(sA);
+    Tensor tCrB  = thr_mma.partition_fragment_B(sB);
 
     auto smem_thr_copy_A   = smem_tiled_copy_A.get_thread_slice(threadIdx.x);
     Tensor tCsA            = smem_thr_copy_A.partition_S(sA);
@@ -129,22 +116,6 @@ attention_like_simple(TA const* As, ALayout layoutAs,
     Tensor tCsB            = smem_thr_copy_B.partition_S(sB);
     Tensor tCrB_copy_view  = smem_thr_copy_B.retile_D(tCrB);
 
-#if 1
-    CUTE_STATIC_ASSERT_V(size<1>(tAgA) == size<1>(tAsA));                // CPY_M
-    CUTE_STATIC_ASSERT_V(size<2>(tAgA) == size<2>(tAsA));                // CPY_K
-    CUTE_STATIC_ASSERT_V(size<1>(tBgB) == size<1>(tBsB));                // CPY_N
-    CUTE_STATIC_ASSERT_V(size<2>(tBgB) == size<2>(tBsB));                // CPY_K
-    CUTE_STATIC_ASSERT_V(  shape(tCrC) ==   shape(tCgC));                // (MMA,MMA_M,MMA_N)
-
-    CUTE_STATIC_ASSERT_V(size<1>(tCsA) == size<1>(tCrA_copy_view));             // CPY_M
-    CUTE_STATIC_ASSERT_V(size<2>(tCsA) == size<2>(tCrA_copy_view));             // CPY_K
-    CUTE_STATIC_ASSERT_V(size<1>(tCsB) == size<1>(tCrB_copy_view));            // CPY_N
-    CUTE_STATIC_ASSERT_V(size<2>(tCsB) == size<2>(tCrB_copy_view));            // CPY_K
-
-    CUTE_STATIC_ASSERT_V(size<1>(tCgC) == size<1>(tCrA));                // MMA_M
-    CUTE_STATIC_ASSERT_V(size<2>(tCgC) == size<1>(tCrB));                // MMA_N
-    CUTE_STATIC_ASSERT_V(size<2>(tCrA) == size<2>(tCrB));                // MMA_K
-#endif
 
     // Clear the accumulators
     clear(tCrC);
@@ -190,9 +161,6 @@ attention_like_simple(TA const* As, ALayout layoutAs,
 #endif
 #endif
 
-    // Write back to global with result
-    // TODO: use this?
-//    axpby(alpha, tCrC, beta, tCgC);
     copy(AutoVectorizingCopy{}, tCrC, tCgC);
 
 #ifdef SWIZZLE_BACK
