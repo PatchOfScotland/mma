@@ -1,7 +1,3 @@
-#ifndef CODE_MATMUL_TENSOR_CUH
-#define CODE_MATMUL_TENSOR_CUH
-
-
 #define WARP_SIZE 32
 
 #ifndef SHARED_PADDING
@@ -505,6 +501,3 @@ matMulTiledTensor(elmType* A, elmType* B, accType* C, int m, int n, int k) {
         }
     }
 }
-
-
-#endif //CODE_MATMUL_TENSOR_CUH
