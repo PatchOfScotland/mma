@@ -8,21 +8,9 @@
 #include "matmul-cutlass-simple.cuh"
 #include "attention-like-cutlass.cuh"
 #include "matmul-cutlass-sync.cuh"
-//#include "cuda_fp16.h"
-#include "cutlass/half.h"
-#include <cassert>
-//#include <cublas.h>
-#include <cublas_v2.h>
-#include "cutlass/gemm/device/gemm.h"
-#include "cutlass/arch/arch.h"
-#include "cutlass/arch/mma.h"
-#include "cutlass/gemm/kernel/gemm_universal.h"
-#include "cutlass/gemm/device/gemm_universal_adapter.h"
-#include "cutlass/gemm/collective/collective_builder.hpp"
-#include "cutlass/epilogue/collective/collective_epilogue.hpp"
 
-//#include "../../cutlass/test/unit/gemm/device/default_gemm_configuration.hpp"
-//#include "../../cutlass/test/unit/cute/cooperative_gemm_common.hpp"
+#include "cutlass/half.h"
+#include <cublas_v2.h>
 
 
 #define WARP_SIZE 32
@@ -139,7 +127,6 @@ long int benchmark_optimized_tensor_mmm(
     dim3 block(threads_per_block, 1, 1);
 
     printf("    Blocks used: %d x %d = %d\n", dimx, dimy, dimx * dimy);
-
     printf("    Available registers per thread: %d (%d per block)\n", MAX_REGISTERS_PER_BLOCK / threads_per_block, MAX_REGISTERS_PER_BLOCK);
 
     int max_shared_memory;
@@ -180,7 +167,6 @@ long int benchmark_optimized_tensor_mmm(
 }
 
 
-// TODO: generalize to any elm types
 template <typename elmT, typename elmAccT = elmT>
 long int benchmark_cute_mmm(int n_runs, elmT * A, elmT * B, elmAccT * C, int m, int n, int k);
 
@@ -210,7 +196,6 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
         Tile<Int<BLOCK_TILES_M * WMMA_M>, Int<BLOCK_TILES_N * WMMA_N>, Int<WMMA_K>>{}
     );
 
-    //    TODO: smarter way to calculate config from compiler defs
     // Define shared memory layout (static)
     auto bM = Int<WMMA_M * FRAGS_M * WARP_TILES_M * BLOCK_TILES_M>{};
     auto bN = Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N>{};
@@ -223,14 +208,12 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
     using SharedK = decltype(bK);
 
     using layoutAtom_A = Layout<
-            // TODO: use min of shared_k and 64 instead of 64?
-            Shape < SharedM,SharedK>,
-            Stride< SharedK, _1>
+        Shape<SharedM, SharedK>,
+        Stride<SharedK, _1>
     >;
     using layoutAtom_B = Layout<
-            // TODO: use min of shared_n and 64 instead of 64?
-            Shape <SharedN, SharedK>,
-            Stride< _1,SharedN>
+        Shape<SharedN, SharedK>,
+        Stride<_1, SharedN>
     >;
 
     constexpr unsigned int sizeKunsigned = bK;
@@ -239,7 +222,6 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
     constexpr unsigned int shift_lenN = max(bit_width(sizeNunsigned) - 4, _3{});
 
 #ifdef NO_SWIZZLE
-    //    TODO: add padding?
     auto swizzle_layoutAtom_A = layoutAtom_A{};
     auto swizzle_layoutAtom_B = layoutAtom_B{};
 #else
@@ -285,14 +267,13 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
 #endif
 #endif
 
-//    TODO: calculate based on leading dimension size and type
     auto sC = composition(Swizzle<3,2,shift_lenN>{}, make_layout(make_shape(bM, bN), LayoutRight{}));
 
     // Define global->shared copy tiling (static)
     TiledCopy copyA_global_shared = make_tiled_copy(Copy_Atom<ACopyOpGlobalShared, TA>{},
         Layout<
             Shape<Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load)>, Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>>,
-            Stride<Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>,_1>
+            Stride<Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>, _1>
         >{},
         Layout<Shape<_1,Int<elms_per_load>>>{}
     );
@@ -361,7 +342,6 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
 
     printf("Used shared memory: %d, threads: %d\n", shared_memory_used, (int)(size(tiled_mma)));
 
-    // Launch kernel
     TimeMeasurement t;
     t.start();
     for (int i = 0; i < n_runs; i++) {
@@ -375,7 +355,6 @@ long int benchmark_cute_mmm<half_t, float>(int n_runs, half_t * A, half_t * B, f
     cudaDeviceSynchronize();
     t.stop();
 
-    // Check if kernel launch was successfull
     gpuAssert(cudaPeekAtLastError());
     return t.elapsed();
 }
@@ -385,10 +364,6 @@ long int benchmark_cute_attention_like(unsigned int n_runs, elmT * As, elmT * Bs
 
 template<>
 long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_t * As, half_t * Bss, float * Cs, unsigned int batches, unsigned int reuse) {
-//        constexpr unsigned int shared_m = WMMA_M * FRAGS_M * WARP_TILES_M * BLOCK_TILES_M;
-//        constexpr unsigned int shared_n = WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N;
-//        constexpr unsigned int shared_k = WMMA_K * FRAGS_K * WARP_TILES_K;
-
     using namespace cute;
 
     using TA = half_t;
@@ -402,7 +377,6 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
         Tile<Int<BLOCK_TILES_M * WMMA_M>, Int<BLOCK_TILES_N * WMMA_N>, Int<WMMA_K>>{}
     );
 
-    //    TODO: smarter way to calculate config from compiler defs
     // Define shared memory layout (static)
     auto bM = Int<WMMA_M * FRAGS_M * WARP_TILES_M * BLOCK_TILES_M>{};
     auto bN = Int<WMMA_N * FRAGS_N * WARP_TILES_N * BLOCK_TILES_N>{};
@@ -423,14 +397,12 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
 
 
     using layoutAtom_A = Layout<
-            // TODO: use min of shared_k and 64 instead of 64?
-            Shape < SharedM,SharedK>,
-            Stride< SharedK, _1>
+        Shape<SharedM, SharedK>,
+        Stride<SharedK, _1>
     >;
     using layoutAtom_B = Layout<
-            // TODO: use min of shared_n and 64 instead of 64?
-            Shape <SharedN, SharedK>,
-            Stride< _1,SharedN>
+        Shape<SharedN, SharedK>,
+        Stride<_1, SharedN>
     >;
 
     constexpr unsigned int sizeKunsigned = bK;
@@ -439,7 +411,6 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
     constexpr unsigned int shift_lenN = max(bit_width(sizeNunsigned) - 4, _3{});
 
 #ifdef NO_SWIZZLE
-    //    TODO: add padding?
     auto swizzle_layoutAtom_A = layoutAtom_A{};
     auto swizzle_layoutAtom_B = layoutAtom_B{};
 #else
@@ -491,7 +462,7 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
     TiledCopy copyA_global_shared = make_tiled_copy(Copy_Atom<ACopyOpGlobalShared, TA>{},
         Layout<
             Shape<Int<BLOCK_TILES_M * BLOCK_TILES_N * WARP_SIZE / (WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load)>, Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>>,
-            Stride<Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>,_1>
+            Stride<Int<WMMA_K * FRAGS_K * WARP_TILES_K / elms_per_load>, _1>
         >{},
         Layout<Shape<_1,Int<elms_per_load>>>{}
     );
@@ -541,20 +512,18 @@ long int benchmark_cute_attention_like<half_t, float>(unsigned int n_runs, half_
 
     printf("Used shared memory: %d, threads: %d\n", shared_memory_used, (int)(size(tiled_mma)));
 
-    // Launch kernel
     TimeMeasurement t;
     t.start();
     for (int i = 0; i < n_runs; i++) {
         kernel<<<dimGrid, dimBlock, shared_memory_used>>>(
-                As, layoutAs,
-                Bss, layoutBss,
-                Cs, layoutCs
+            As, layoutAs,
+            Bss, layoutBss,
+            Cs, layoutCs
         );
     }
     cudaDeviceSynchronize();
     t.stop();
 
-    // Check if kernel launch was successfull
     gpuAssert(cudaPeekAtLastError());
     return t.elapsed();
     #else
