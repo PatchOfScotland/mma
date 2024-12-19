@@ -132,6 +132,7 @@ gemm_pipelined(
         copy(copyB_shared_registers, tCsB_read(_,_,Int<0>{}), tCrB_copy_view(_,_,Int<0>{}));
     }
 
+    // Loop with copy global->shared pipelined in shared memory
     CUTE_NO_UNROLL
     while (k_tiles_left > -(num_stages - 1))
     {
