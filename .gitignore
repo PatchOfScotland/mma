@@ -6,3 +6,4 @@ src/cuda_prototype/main
 .idea
 .clangd
 cmake
+*slurm-*.out
