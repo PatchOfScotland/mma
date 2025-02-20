@@ -1,18 +1,18 @@
 -- ==
--- entry: lud128
--- compiled random input {[256][128][128]f16 [256][128][128]f16 [256][256][128][128]f32}
-
--- ==
--- entry: lud64
--- compiled random input {[256][64][64]f16 [256][64][64]f16 [256][256][64][64]f32}
+-- entry: lud16
+-- compiled random input {[256][16][16]f16 [256][16][16]f16 [256][256][16][16]f32}
 
 -- ==
 -- entry: lud32
 -- compiled random input {[256][32][32]f16 [256][32][32]f16 [256][256][32][32]f32}
 
 -- ==
--- entry: lud16
--- compiled random input {[256][16][16]f16 [256][16][16]f16 [256][256][16][16]f32}
+-- entry: lud64
+-- compiled random input {[256][64][64]f16 [256][64][64]f16 [256][256][64][64]f32}
+
+-- ==
+-- entry: lud128
+-- compiled random input {[256][128][128]f16 [256][128][128]f16 [256][256][128][128]f32}
 
 
 import "mmm-helpers"

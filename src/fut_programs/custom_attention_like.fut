@@ -55,3 +55,4 @@ entry run64 [m] (Q: [m][64][64]real) (K: [64][64]real) (V: [64][64]real) =
 
 entry run128 [m] (Q: [m][128][128]real) (K: [128][128]real) (V: [128][128]real) =
   #[incremental_flattening(only_intra)]flashAttention Q K V
+

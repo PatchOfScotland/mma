@@ -1,16 +1,16 @@
 -- ==
--- compiled random input {[256][128][128]f16 [256][128][128]f16 [256][256][128][128]f16}
--- compiled random input {[256][64][64]f16 [256][64][64]f16 [256][256][64][64]f16}
--- compiled random input {[256][32][32]f16 [256][32][32]f16 [256][256][32][32]f16}
 -- compiled random input {[256][16][16]f16 [256][16][16]f16 [256][256][16][16]f16}
+-- compiled random input {[256][32][32]f16 [256][32][32]f16 [256][256][32][32]f16}
+-- compiled random input {[256][64][64]f16 [256][64][64]f16 [256][256][64][64]f16}
+-- compiled random input {[256][128][128]f16 [256][128][128]f16 [256][256][128][128]f16}
 
 -- Alternatively try this with default_tile_size=8 and default_reg_tile_size=2
 -- compiled random input {[256][16][16]f16 [256][16][16]f16 [256][256][16][16]f16} auto output
 
--- compiled random input {[256][128][128]f32 [256][128][128]f32 [256][256][128][128]f32}
--- compiled random input {[256][64][64]f32 [256][64][64]f32 [256][256][64][64]f32}
--- compiled random input {[256][32][32]f32 [256][32][32]f32 [256][256][32][32]f32}
 -- compiled random input {[256][16][16]f32 [256][16][16]f32 [256][256][16][16]f32}
+-- compiled random input {[256][32][32]f32 [256][32][32]f32 [256][256][32][32]f32}
+-- compiled random input {[256][64][64]f32 [256][64][64]f32 [256][256][64][64]f32}
+-- compiled random input {[256][128][128]f32 [256][128][128]f32 [256][256][128][128]f32}
 
 -- Alternatively try this with default_tile_size=8 and default_reg_tile_size=2
 -- compiled random input {[256][16][16]f32 [256][16][16]f32 [256][256][16][16]f32} auto output
