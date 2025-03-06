@@ -1,0 +1,12 @@
+run_origf16.suff_intra_par_1=4096
+run_origf16.suff_intra_par_3=16384
+run_origf16.suff_outer_par_0=100000
+run_origf16.suff_outer_par_2=1600000
+run_origf16.suff_outer_par_4=25600000
+run_origf16.suff_outer_par_5=25600000
+run_origf32.suff_intra_par_1=4096
+run_origf32.suff_intra_par_3=16384
+run_origf32.suff_outer_par_0=100000
+run_origf32.suff_outer_par_2=1600000
+run_origf32.suff_outer_par_4=409600000
+run_origf32.suff_outer_par_5=25600000

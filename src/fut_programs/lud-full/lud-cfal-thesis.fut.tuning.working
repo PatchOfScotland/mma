@@ -1,0 +1,12 @@
+main128.suff_intra_par_1=16384
+main128.suff_outer_par_0=2000000000
+main128.suff_outer_par_2=1048576
+main128.suff_outer_par_3=1048576
+main64.suff_intra_par_1=4096
+main64.suff_outer_par_0=2000000000
+main64.suff_outer_par_2=524288
+main64.suff_outer_par_3=524288
+validate.suff_intra_par_1=1
+validate.suff_outer_par_0=1
+validate.suff_outer_par_2=1
+validate.suff_outer_par_3=1

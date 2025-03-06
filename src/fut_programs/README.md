@@ -1,0 +1,1 @@
+futmma autotune --backend=cuda --pass-option=-default-tile-size=16 --pass-option=-default-reg-tile-size=4 ./lud-cfal-orig.fut

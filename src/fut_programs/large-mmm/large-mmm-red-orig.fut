@@ -1,14 +1,25 @@
 -- ==
--- compiled random input {[32][32][128][64]f16 [32][32][64][128]f16}
+-- entry: main
+-- compiled random input {[8][16][128][64]f16 [16][8][64][128]f16}
 
+-- compiled random input {[8][16][128][64]f16 [16][8][64][128]f16}
+-- compiled random input {[16][32][128][64]f16 [32][16][64][128]f16}
+-- compiled random input {[32][64][128][64]f16 [64][32][64][128]f16}
+-- compiled random input {[64][128][128][64]f16 [128][64][64][128]f16} 
+
+
+
+--                        [M] [K] [m]  [k]     [K] [N] [k] [n]
+--                        [8] [16][128][64]    [16][8] [64][128]  
+-- compiled random input {[32][32][128][64]f16 [32][32][64][128]f16}
 -- compiled script input { (mk_input 32 32 32 128 128 64) }
 
 
 import "mmm-intra-helpers"
 
-let M = 32i64
-let N = 32i64
-let K = 32i64
+let M = 8i64
+let N = 8i64
+let K = 16i64
 
 let m = 128i64
 let n = 128i64
