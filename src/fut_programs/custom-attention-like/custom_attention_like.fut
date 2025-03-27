@@ -46,13 +46,16 @@ entry mk_input (m: i64) (d: i64) : ([m][d][d]real, [d][d]real, [d][d]real) =
 
 entry run16 [m] (Q: [m][16][16]real) (K: [16][16]real) (V: [16][16]real) =
   #[incremental_flattening(only_intra)]flashAttention Q K V
+  --flashAttention Q K V
 
 entry run32 [m] (Q: [m][32][32]real) (K: [32][32]real) (V: [32][32]real) =
   #[incremental_flattening(only_intra)]flashAttention Q K V
+  --flashAttention Q K V
 
 entry run64 [m] (Q: [m][64][64]real) (K: [64][64]real) (V: [64][64]real) =
   #[incremental_flattening(only_intra)]flashAttention Q K V
+  --flashAttention Q K V
 
 entry run128 [m] (Q: [m][128][128]real) (K: [128][128]real) (V: [128][128]real) =
   #[incremental_flattening(only_intra)]flashAttention Q K V
-
+  --flashAttention Q K V

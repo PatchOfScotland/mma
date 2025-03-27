@@ -20,16 +20,20 @@ def plot_graph(title, xlabel, ylabel, plots):
     plt.grid(alpha=0.5)
     plt.legend()
     plt.tight_layout()
+    #plt.xscale('log')
     filename = title[:title.index(',')].replace(' ', '_') if ',' in title else title.replace(' ', '_')
     plt.savefig(os.path.join("graphs", f"{filename}.pdf"))
 
-def run_command(backend, results_file, entry_point, script, working_dir):
+def run_command(backend, results_file, entry_point, script, working_dir, tuning):
     args = [
         "futmma", 
         "bench", 
         f"--backend={backend}",
         "--pass-option=--nvrtc-option=-I../../../cutlass/include" if backend=="cudatc" else "",
+        "--pass-option=-default-tile-size=16",
+        "--pass-option=-default-reg-tile-size=4",
         f"--json={results_file}", 
+        f"--tuning={tuning}" if tuning else "",
         f"--entry-point={entry_point}", 
         script
     ]
@@ -40,11 +44,21 @@ def assemble(experiment_list, blocks, result_func, n_lookups, working_dir):
     to_plot = []
     results_file = "tmp.json"
     results_path = os.path.join(working_dir, results_file)
-    for script, entry_point, backend, title in experiment_list:
+    for list_entries in experiment_list:
+        if len(list_entries) == 4:
+            script, entry_point, backend, title = list_entries
+            tuning = None
+        elif len(list_entries) == 5:
+            script, entry_point, backend, title, tuning = list_entries
         if type(entry_point) == list:
             tflops = [None]*len(entry_point)
-            for ep in entry_point:
-                run_command(backend, results_file, ep, script, working_dir)
+            for i, ep in enumerate(entry_point):
+                if type(tuning) == list:
+                    t = tuning[i]
+                else:
+                    t = tuning
+                    
+                run_command(backend, results_file, ep, script, working_dir, t)
 
                 with open(results_path, 'r') as json_file:
                     data = json.load(json_file)
@@ -58,7 +72,7 @@ def assemble(experiment_list, blocks, result_func, n_lookups, working_dir):
             to_plot.append([ns, tflops, title])
 
         else:
-            run_command(backend, results_file, entry_point, script, working_dir)
+            run_command(backend, results_file, entry_point, script, working_dir, tuning)
 
             with open(results_path, 'r') as json_file:
                 data = json.load(json_file)
@@ -177,7 +191,7 @@ def lud():
 
     plot_graph("LUD like, matrix multiplications of size $n\\times n \\times n$", "$n$", "TFLOPS", to_plot)
 
-def lud_full_result(results, experiment, blocks):
+def flash_full_result(results, experiment, blocks):
     runtimes = results["runtimes"]
     mean_runtime = mean(runtimes)
     if experiment.startswith("Class "):
@@ -185,23 +199,30 @@ def lud_full_result(results, experiment, blocks):
         d = int(experiment[experiment.index('-')+1:])
         tflops = (4 * d * n * n) / (mean_runtime * 1e6)
         return (tflops, d)
+    elif experiment.startswith("Block "):
+        blocks = int(experiment[6:experiment.index('-')])
+        d = int(experiment[experiment.index('-')+1:])
+        tflops = blocks * (d ** 3) * 2 * 2 / (mean_runtime * 1e6)
+        return (tflops, d)
     else:
         return (-1, -1)
 
-def lud_full():
+def flash_full():
     blocks = 1
     experiment_list = [
-        #("lud-cfal-orig.fut", "main64", "cuda", "CUDA, d:64"),
-        #("lud-cfal-orig.fut", "main128", "cuda", "CUDA, d:128"),
-        #("lud-cfal-modified.fut", "main64", "cuda", "CUDA my backend w/ TC, d:64"),
-        #("lud-cfal-modified.fut", "main128", "cuda", "CUDA my backend w/ TC, d:128"),
-        #("lud-cfal-thesis.fut", "main64", "cuda", "CUDA thesis backend w/ TC, d:64"),
-        #("lud-cfal-thesis.fut", "main128", "cuda", "CUDA thesis backend w/ TC, d:128"),
-        ("lud-cfal-orig.fut", "thesislike", "cuda", "CUDA"),
-        ("lud-cfal-modified.fut", "thesislike", "cudatc", "CUDA my backend w/ TC"),
-        ("lud-cfal-thesis.fut", "thesislike", "cudatc", "CUDA thesis backend w/ TC"),
+        #("flash-cfal-orig.fut", "main64", "cuda", "CUDA, d:64"),
+        #("flash-cfal-orig.fut", "main128", "cuda", "CUDA, d:128"),
+        #("flash-cfal-modified.fut", "main64", "cuda", "CUDA my backend w/ TC, d:64"),
+        #("flash-cfal-modified.fut", "main128", "cuda", "CUDA my backend w/ TC, d:128"),
+        #("flash-cfal-thesis.fut", "main64", "cuda", "CUDA thesis backend w/ TC, d:64"),
+        #("flash-cfal-thesis.fut", "main128", "cuda", "CUDA thesis backend w/ TC, d:128"),
+        ("flash-cfal-orig.fut", "thesislike16", "cuda", "basic CUDA f16", "tuning"),
+        ("flash-cfal-orig.fut", "thesislike32", "cuda", "basic CUDA f32", "tuning"),
+        #("flash-cfal-thesis.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128"], "cudatc", "CUDA thesis backend w/ TC", ["tuning16", "tuning32", "tuning64", "tuning128"]),
+        ("flash-cfal-modified.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128", "thesislike256", "thesislike512"], "cudatc", "CUDA my backend w/ TC"),#, "xxx"),
     ]
-    working_dir = os.path.abspath("./lud-full")
+    
+    working_dir = os.path.abspath("./flash-full")
     d_lookups = {
         16: 0,
         32: 1,
@@ -210,9 +231,9 @@ def lud_full():
         256: 4,
         512: 5
     }
-    to_plot = assemble(experiment_list, blocks, lud_full_result, d_lookups, working_dir)
+    to_plot = assemble(experiment_list, blocks, flash_full_result, d_lookups, working_dir)
 
-    plot_graph("LU Decomposition, matrix size $m\\times n \\times n$, $m equals 8192 over n$", "$n$", "TFLOPS", to_plot)
+    plot_graph("Flash Attention, matrix size $m\\times n \\times n$, $m = 8192 / n$", "$n$", "TFLOPS", to_plot)
 
 def large_mmm_result(results, experiment, blocks):
     runtimes = results["runtimes"]
@@ -251,5 +272,5 @@ def large_mmm():
 #custom_attention()
 #attention()##TBD
 #lud()
-lud_full()
+flash_full()
 #large_mmm()

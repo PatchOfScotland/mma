@@ -131,6 +131,11 @@ def batched_mmm():
     tflops_orig_f16 = blocks * (ds ** 3) * 2 / (time_us_f16 * 1_000_000)
     tflops_orig_f32 = blocks * (ds ** 3) * 2 / (time_us_f32 * 1_000_000)
 
+    print(tflops_tc)
+    print(tflops_tc_prot)
+    print(tflops_orig_f16)
+    print(tflops_orig_f32)
+
     # plt.axhline(124, color="r", label="FlashAttention")
     plt.plot(ds, tflops_tc, marker='o', linestyle='-', color='coral', label="CUDA backend + TC f16/f32 mixed")
     plt.plot(ds, tflops_tc_prot, marker='o', linestyle='-', color='g', label="Handwritten implementation using CuTe (without pipelining)")
@@ -144,7 +149,7 @@ def batched_mmm():
     plt.grid(alpha=0.5)
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    plt.savefig("A.pdf")
 
 
 def large_mmm():
@@ -242,10 +247,10 @@ def prot_mmm2():
     plt.show()
 
 # matmul()
-lud_like()
-attention_like()
-custom_attention()
+#lud_like()
+#attention_like()
+#custom_attention()
 batched_mmm()
-large_mmm()
+#large_mmm()
 # prot_mmm1()
 # prot_mmm2()
