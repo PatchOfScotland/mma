@@ -67,6 +67,9 @@ def assemble(experiment_list, blocks, result_func, n_lookups, working_dir):
                     for experiment, results in datasets["datasets"].items():
                         res, n = result_func(results, experiment, blocks)
                         if (res != -1):
+                            print(f"Looking up n: {n}")
+                            print(f"In n_lookups: {n_lookups}")
+                            print(f"In tflops: {tflops}")
                             tflops[n_lookups[n]] = res
             ns = [i for i in n_lookups.keys() if n_lookups[i] < len(tflops)]
             to_plot.append([ns, tflops, title])
@@ -195,8 +198,9 @@ def flash_full_result(results, experiment, blocks):
     runtimes = results["runtimes"]
     mean_runtime = mean(runtimes)
     if experiment.startswith("Class "):
-        n = int(experiment[6:experiment.index('-')])
+        m = int(experiment[6:experiment.index('-')])
         d = int(experiment[experiment.index('-')+1:])
+        n=m*d
         tflops = (4 * d * n * n) / (mean_runtime * 1e6)
         return (tflops, d)
     elif experiment.startswith("Block "):
@@ -219,7 +223,7 @@ def flash_full():
         ("flash-cfal-orig.fut", "thesislike16", "cuda", "basic CUDA f16", "tuning"),
         ("flash-cfal-orig.fut", "thesislike32", "cuda", "basic CUDA f32", "tuning"),
         #("flash-cfal-thesis.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128"], "cudatc", "CUDA thesis backend w/ TC", ["tuning16", "tuning32", "tuning64", "tuning128"]),
-        ("flash-cfal-modified.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128", "thesislike256", "thesislike512"], "cudatc", "CUDA my backend w/ TC"),#, "xxx"),
+        ("flash-cfal-modified.fut", ["thesislike16", "thesislike32", yy"thesislike64", "thesislike128", "thesislike256", "thesislike512"], "cudatc", "CUDA my backend w/ TC", "xxx"),
     ]
     
     working_dir = os.path.abspath("./flash-full")
@@ -233,7 +237,7 @@ def flash_full():
     }
     to_plot = assemble(experiment_list, blocks, flash_full_result, d_lookups, working_dir)
 
-    plot_graph("Flash Attention, matrix size $m\\times n \\times n$, $m = 8192 / n$", "$n$", "TFLOPS", to_plot)
+    plot_graph("Flash Attention, matrix size $m\\times n \\times n$, $m = 128$", "$n$", "TFLOPS", to_plot)
 
 def large_mmm_result(results, experiment, blocks):
     runtimes = results["runtimes"]

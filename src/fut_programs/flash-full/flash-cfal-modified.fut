@@ -62,7 +62,7 @@ def matmulT [m][n][k] (a: [m][k]f16) (b: [n][k]f16) : [m][n]f16 =
 def matmul [m][n][k] (a: [m][k]f16) (b: [k][n]f16) : [m][n]f16 =
   matmulT a (transpose b)
 
-def matmul_batched [n] (A: [n][n]f16) (B: [n][n]f16) : [n][n]f16 =
+def matmul_sqr [n] (A: [n][n]f16) (B: [n][n]f16) : [n][n]f16 =
     let c = map (\Arow ->
         map (\Bcol ->
             map2 (*) Arow Bcol
@@ -80,21 +80,21 @@ def combine [d] (m:i64) (A:[m][d][d]f16): [d][m*d]f16 =
     transpose (flatten A)
 
 def matmul_split_batched [d] (m: i64) (Qi:[d][d]f16) (K:[m*d][d]f16): [d][m*d]f16 =
-  let splits = unflatten_to m d K  --[n][d][d]f16
-  let s=64i64
+  let splits = unflatten_to m d K  --[m][d][d]f16
+  let s=16i64
   let batches = unflatten_to (m/s) s splits --[m/s][s][d][d]f16
-  let mmm_nf = map (#[incremental_flattening(only_intra)]map (matmulT Qi)) batches --[m/s][s][d][d]f16
+  let mmm_nf = map (map (matmulT Qi)) batches --[m/s][s][d][d]f16
   let mmm = (#[incremental_flattening(only_intra)]map (\i -> mmm_nf[i/s][i%s]) (iota (m))) --[m][d][d]f16
-  let combined = combine m mmm --[j][i]f16
+  let combined = combine m mmm --[d][m*d]f16
   in (combined)
 
 def matmul_split [d] (m: i64) (Qi:[d][d]f16) (K:[m*d][d]f16): [d][m*d]f16 =
-  combine m (map (matmul_batched (Qi)) (unflatten_to m d K)) --[j][i]f16
+  combine m (map (matmul_sqr (Qi)) (unflatten_to m d K)) --[d][m*d]f16
 
 def oneIterBatched [d] (m: i64) (K: [m*d][d]f16) (V: [m*d][d]f16) (Qi: [d][d]f16) : [d][d]f16 =
   let P_block = matmul_split_batched m Qi K |> opaque -- : [d][m*d]f16
   let P_block = softmaxOnline P_block  -- : [d][m*d]f16
-  in matmul P_block V      -- : [d][d]f16
+  in #[incremental_flattening(only_intra)]matmul P_block V      -- : [d][d]f16
 
 def oneIter [d] (m: i64) (K: [m*d][d]f16) (V: [m*d][d]f16) (Qi: [d][d]f16) : [d][d]f16 =
   let P_block = #[incremental_flattening(only_intra)]matmul_split m Qi K |> opaque -- : [d][m*d]f16
@@ -121,26 +121,42 @@ entry mk_input (m:i64) (d:i64): ([m][d][d]f16, [m*d][d]f16, [m*d][d]f16) =
   let V = replicate d 1.0 |> replicate (m*d)
   in  (Q, K, V)
 
+------
+------ ==
+------ entry: thesislike16
+------ "Class 128-16 " script input { (mk_input 128i64 16i64) }
+----
+----entry thesislike16 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
+----  FlashAttentionBatched Q K V
+----
+------
+------ ==
+------ entry: thesislike32
+------ "Class 128-32 " script input { (mk_input 128i64 32i64) }
+----
+----entry thesislike32 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
+----  FlashAttentionBatched Q K V
+
 --
 -- ==
 -- entry: thesislike16
--- "Class 8192-16 " script input { (mk_input 512i64 16i64) }
+-- "Class 128-16 " script input { (mk_input 128i64 16i64) }
 
 entry thesislike16 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
-  FlashAttentionBatched Q K V
+  FlashAttention Q K V
 
 --
 -- ==
 -- entry: thesislike32
--- "Class 8192-32 " script input { (mk_input 256i64 32i64) }
+-- "Class 128-32 " script input { (mk_input 128i64 32i64) }
 
 entry thesislike32 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
-  FlashAttentionBatched Q K V
+  FlashAttention Q K V
 
 --
 -- ==
 -- entry: thesislike64
--- "Class 8192-64 " script input { (mk_input 128i64 64i64) }
+-- "Class 128-64 " script input { (mk_input 128i64 64i64) }
 
 entry thesislike64 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
   FlashAttention Q K V
@@ -148,7 +164,7 @@ entry thesislike64 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
 --
 -- ==
 -- entry: thesislike128
--- "Class 8192-128" script input { (mk_input 64i64 128i64) }
+-- "Class 128-128" script input { (mk_input 128i64 128i64) }
 
 entry thesislike128 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
   FlashAttention Q K V
@@ -156,7 +172,7 @@ entry thesislike128 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
 --
 -- ==
 -- entry: thesislike256
--- "Class 8192-256" script input { (mk_input 32i64 256i64) }
+-- "Class 128-256" script input { (mk_input 128i64 256i64) }
 
 entry thesislike256 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
   FlashAttention Q K V
@@ -164,7 +180,7 @@ entry thesislike256 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
 --
 -- ==
 -- entry: thesislike512
--- "Class 8192-512" script input { (mk_input 16i64 512i64) }
+-- "Class 128-512" script input { (mk_input 128i64 512i64) }
 
 entry thesislike512 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
   FlashAttention Q K V

@@ -137,23 +137,23 @@ entry mk_input32 (m:i64) (d:i64) : ([m][d][d]f32, [m*d][d]f32, [m*d][d]f32) =
 --
 -- ==
 -- entry: thesislike16
--- "Class 8192-16 " script input { (mk_input16 512i64 16i64) }
--- "Class 8192-32 " script input { (mk_input16 256i64 32i64) }
--- "Class 8192-64 " script input { (mk_input16 128i64 64i64) }
--- "Class 8192-128" script input { (mk_input16 64i64 128i64) }
--- "Class 8192-256" script input { (mk_input16 32i64 256i64) }
--- "Class 8192-512" script input { (mk_input16 16i64 512i64) }
+-- "Class 128-16 " script input { (mk_input16 128i64 16i64) }
+-- "Class 128-32 " script input { (mk_input16 128i64 32i64) }
+-- "Class 128-64 " script input { (mk_input16 128i64 64i64) }
+-- "Class 128-128" script input { (mk_input16 128i64 128i64) }
+-- "Class 128-256" script input { (mk_input16 128i64 256i64) }
+-- "Class 128-512" script input { (mk_input16 128i64 512i64) }
 entry thesislike16 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
   FlashAttention16 Q K V
 
 --
 -- ==
 -- entry: thesislike32
--- "Class 8192-16 " script input { (mk_input32 512i64 16i64) }
--- "Class 8192-32 " script input { (mk_input32 256i64 32i64) }
--- "Class 8192-64 " script input { (mk_input32 128i64 64i64) }
--- "Class 8192-128" script input { (mk_input32 64i64 128i64) }
--- "Class 8192-256" script input { (mk_input32 32i64 256i64) }
--- "Class 8192-512" script input { (mk_input32 16i64 512i64) }
+-- "Class 128-16 " script input { (mk_input32 128i64 16i64) }
+-- "Class 128-32 " script input { (mk_input32 128i64 32i64) }
+-- "Class 128-64 " script input { (mk_input32 128i64 64i64) }
+-- "Class 128-128" script input { (mk_input32 128i64 128i64) }
+-- "Class 128-256" script input { (mk_input32 128i64 256i64) }
+-- "Class 128-512" script input { (mk_input32 128i64 512i64) }
 entry thesislike32 [m][d] (Q: [m][d][d]f32) (K: [m*d][d]f32) (V: [m*d][d]f32) =
   FlashAttention32 Q K V
