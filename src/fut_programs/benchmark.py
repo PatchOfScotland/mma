@@ -223,7 +223,7 @@ def flash_full():
         ("flash-cfal-orig.fut", "thesislike16", "cuda", "basic CUDA f16", "tuning"),
         ("flash-cfal-orig.fut", "thesislike32", "cuda", "basic CUDA f32", "tuning"),
         #("flash-cfal-thesis.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128"], "cudatc", "CUDA thesis backend w/ TC", ["tuning16", "tuning32", "tuning64", "tuning128"]),
-        ("flash-cfal-modified.fut", ["thesislike16", "thesislike32", yy"thesislike64", "thesislike128", "thesislike256", "thesislike512"], "cudatc", "CUDA my backend w/ TC", "xxx"),
+        ("flash-cfal-modified.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128", "thesislike256", "thesislike512"], "cudatc", "CUDA my backend w/ TC", "xxx"),
     ]
     
     working_dir = os.path.abspath("./flash-full")
