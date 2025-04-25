@@ -93,15 +93,15 @@ def matmul_split [d] (m: i64) (Qi:[d][d]f16) (K:[m*d][d]f16): [d][m*d]f16 =
 
 def oneIterSmall [d] (m: i64) (K: [m*d][d]f16) (V: [m*d][d]f16) (Qi: [d][d]f16) : [d][d]f16 =
   -- Pad K
-  let padded_rows_K : [m*d][d+d]f16 = map (\row -> concat row (replicate d 0f16)) K
-  let bottom_rows_K : [m*d][d+d]f16 = replicate (m*d) (replicate (d+d) 0f16)
+  let padded_rows_K = #[incremental_flattening(only_intra)]map (\row -> concat row (replicate d 0f16)) K --[m*d][d+d]f16
+  let bottom_rows_K = replicate (m*d) (replicate (d+d) 0f16) --[m*d][d+d]f16
   let paddedK_bad = concat padded_rows_K bottom_rows_K
   let paddedK_flat = flatten paddedK_bad
   let paddedK_good = unflatten_to (m*(d+d)) (d+d) paddedK_flat
 
   -- Pad Q
-  let padded_rows_Qi : [d][d+d]f16 = map (\row -> concat row (replicate d 0f16)) Qi
-  let bottom_rows_Qi : [d][d+d]f16 = replicate d (replicate (d+d) 0f16)
+  let padded_rows_Qi = #[incremental_flattening(only_intra)]map (\row -> concat row (replicate d 0f16)) Qi --[d][d+d]f16
+  let bottom_rows_Qi = replicate d (replicate (d+d) 0f16) --[d][d+d]f16
   let paddedQi = concat padded_rows_Qi bottom_rows_Qi  
 
   -- Get initial P_block
@@ -114,24 +114,20 @@ def oneIterSmall [d] (m: i64) (K: [m*d][d]f16) (V: [m*d][d]f16) (Qi: [d][d]f16) 
   let P_block = softmaxOnline P_block  -- : [d][m*d]f16
   
   -- Pad P_block
-  let padded_rows_pblock : [d][m*d+m*d]f16 = map (\row -> concat row (replicate (m*d) 0f16)) P_block
-  let bottom_rows_pblock : [d][m*d+m*d]f16 = replicate d (replicate (m*d+m*d) 0f16)
+  let padded_rows_pblock = #[incremental_flattening(only_intra)]map (\row -> concat row (replicate (m*d) 0f16)) P_block --[d][m*d+m*d]f16
+  let bottom_rows_pblock = replicate d (replicate (m*d+m*d) 0f16) --[d][m*d+m*d]f16
   let padded_P_block_2 = concat padded_rows_pblock bottom_rows_pblock
 
   -- Pad V
-  let padded_rows_V : [m*d][d+d]f16 = map (\row -> concat row (replicate d 0f16)) V
-  let bottom_rows_V : [m*d][d+d]f16 = replicate (m*d) (replicate (d+d) 0f16)
-  let paddedV_bad = concat padded_rows_V bottom_rows_V
-  let paddedV_flat = flatten paddedV_bad
-  let paddedV_good = unflatten_to (m*(d+d)) (d+d) paddedV_flat
+  let padded_rows_V = #[incremental_flattening(only_intra)]map (\row -> concat row (replicate d 0f16)) V --[m*d][d+d]f16
+  let bottom_rows_V = replicate (m*d) (replicate (d+d) 0f16) --[m*d][d+d]f16
+  let paddedV = concat padded_rows_V bottom_rows_V
 
   -- Get initial result
-  let padded_result = #[incremental_flattening(only_intra)]matmul padded_P_block_2 paddedV_bad
+  let padded_result = #[incremental_flattening(only_intra)]matmul padded_P_block_2 paddedV
 
   -- Unpad
   let result = map (\r -> map (\l -> padded_result[r][l]) (iota (d))) (iota (d))
-
-  --in #[incremental_flattening(only_intra)]matmul P_block V      -- : [d][d]f16
   in result
 
 def oneIter [d] (m: i64) (K: [m*d][d]f16) (V: [m*d][d]f16) (Qi: [d][d]f16) : [d][d]f16 =
@@ -158,22 +154,6 @@ entry mk_input (m:i64) (d:i64): ([m][d][d]f16, [m*d][d]f16, [m*d][d]f16) =
   let K = replicate d 1.0 |> replicate (m*d)
   let V = replicate d 1.0 |> replicate (m*d)
   in  (Q, K, V)
-
-------
------- ==
------- entry: thesislike16
------- "Class 128-16 " script input { (mk_input 128i64 16i64) }
-----
-----entry thesislike16 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
-----  FlashAttentionSmall Q K V
-----
-------
------- ==
------- entry: thesislike32
------- "Class 128-32 " script input { (mk_input 128i64 32i64) }
-----
-----entry thesislike32 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
-----  FlashAttentionSmall Q K V
 
 --
 -- ==
