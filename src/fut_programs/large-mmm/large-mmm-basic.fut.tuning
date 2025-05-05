@@ -1,2 +1,8 @@
 mmm_f16.suff_outer_par_0=1048576
 mmm_f32.suff_outer_par_0=1048576
+mmm_f16.Ry_6445=4
+mmm_f16.Tk_6443=32
+mmm_f16.Ty_6444=16
+mmm_f32.Ry_6445=4
+mmm_f32.Tk_6443=32
+mmm_f32.Ty_6444=16

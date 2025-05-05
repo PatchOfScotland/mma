@@ -37,7 +37,7 @@ entry mk_input M N K m n k : ([M][K][m][k]f16, [K][N][k][n]f16) =
 let ne (m: i64) (n: i64) = (replicate (m * n) 0.0f32 |> unflatten)
 
 -- TODO try different options, degrees of sequentialization, even just return elm
-def reduceOp [m][n] (acc: *[m][n]f32) (elm: [m][n]f32): [m][n]f32 =
+def matMul [m][n] (acc: *[m][n]f32) (elm: [m][n]f32): [m][n]f32 =
   loop acc': *[m][n]f32 = (acc : *[m][n]f32) for i < m do
         acc' with [i, :] = map2 (+) elm[i] acc'[i]
 --  ne ()
@@ -47,10 +47,10 @@ def reduceOp [m][n] (acc: *[m][n]f32) (elm: [m][n]f32): [m][n]f32 =
 def handleKBlocks[K][m][n][k] (Arow: [K][m][k]f16) (Bcol: [K][k][n]f16) : [m][n]f32 =
     let acc_init = ne m n in
 --    map2 matmul Arow Bcol |>
---    reduce reduceOp acc_init
+--    reduce matMul acc_init
     loop (acc: *[m][n]f32) = acc_init for K_i < K do
         let C = matmul Arow[K_i] Bcol[K_i]
-        in reduceOp acc C
+        in matMul acc C
 
 
 def run [M][K][N][m][n][k] (A: [M][K][m][k]f16) (B: [K][N][k][n]f16) : [M][N][m][n]f32 =

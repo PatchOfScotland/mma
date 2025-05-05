@@ -67,9 +67,6 @@ def assemble(experiment_list, blocks, result_func, n_lookups, working_dir):
                     for experiment, results in datasets["datasets"].items():
                         res, n = result_func(results, experiment, blocks)
                         if (res != -1):
-                            print(f"Looking up n: {n}")
-                            print(f"In n_lookups: {n_lookups}")
-                            print(f"In tflops: {tflops}")
                             tflops[n_lookups[n]] = res
             ns = [i for i in n_lookups.keys() if n_lookups[i] < len(tflops)]
             to_plot.append([ns, tflops, title])
@@ -192,7 +189,7 @@ def lud():
     }
     to_plot = assemble(experiment_list, blocks, lud_result, n_lookups, working_dir)
 
-    plot_graph("LUD like, matrix multiplications of size $n\\times n \\times n$", "$n$", "TFLOPS", to_plot)
+    plot_graph("Rodinia LUD, matrix multiplication of size $n\\times n \\times n$", "$n$", "TFLOPS", to_plot)
 
 def flash_full_result(results, experiment, blocks):
     runtimes = results["runtimes"]
@@ -223,7 +220,7 @@ def flash_full():
         ("flash-cfal-orig.fut", "thesislike16", "cuda", "basic CUDA f16", "tuning"),
         ("flash-cfal-orig.fut", "thesislike32", "cuda", "basic CUDA f32", "tuning"),
         #("flash-cfal-thesis.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128"], "cudatc", "CUDA thesis backend w/ TC", ["tuning16", "tuning32", "tuning64", "tuning128"]),
-        ("flash-cfal-modified.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128", "thesislike256", "thesislike512"], "cudatc", "CUDA my backend w/ TC", "xxx"),
+        ("flash-cfal-modified.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128", "thesislike256", "thesislike512"], "cudatc", "CUDA my backend w/ TC", "tuning"),
     ]
     
     working_dir = os.path.abspath("./flash-full")
@@ -258,6 +255,7 @@ def large_mmm():
         ("large-mmm-basic.fut", "mmm_f16", "cuda", "basic CUDA backend f16"),
         ("large-mmm-basic.fut", "mmm_f32", "cuda", "basic CUDA backend f32"),
         ("large-mmm-red-orig.fut", "main", "cuda", "CUDA backend?"),
+        ("large-mmm-red-more-par-orig.fut", ["run_square_small", "run_square_medium", "run_square_large", "run_square_xl"], "cuda", "CUDA backend improved?"),
         ("large-mmm-red.fut", ["run_square_small", "run_square_medium", "run_square_large", "run_square_xl"], "cudatc", "CUDA backend w/ TC & mixed f16/f32")
     ]
     working_dir = os.path.abspath("./large-mmm")
@@ -274,7 +272,7 @@ def large_mmm():
 
 #batched_mmm()
 #custom_attention()
-#attention()##TBD
-#lud()
-flash_full()
+lud()
+#flash_full()
+
 #large_mmm()

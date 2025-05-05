@@ -10711,7 +10711,7 @@ FUTHARK_FUN_ATTR int futrts_entry_mk_input(struct futhark_context *ctx, struct m
     bool dim_ok_cert_8558;
     
     if (!binop_y_8556) {
-        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) replicate_arg0_8548, "] to array of shape [", (long long) zt_lhs_8547, "][", (long long) k_7078, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  /prelude/array.fut:193:40-194:29\n   #3  large-mmm-red.fut:35:38-50\n   #4  /prelude/functional.fut:9:44-45\n   #5  large-mmm-red.fut:34:1-35:99\n"));
+        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) replicate_arg0_8548, "] to array of shape [", (long long) zt_lhs_8547, "][", (long long) k_7078, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  /prelude/array.fut:193:40-194:29\n   #3  ./large-mmm/large-mmm-red.fut:35:38-50\n   #4  /prelude/functional.fut:9:44-45\n   #5  ./large-mmm/large-mmm-red.fut:34:1-35:99\n"));
         err = FUTHARK_PROGRAM_ERROR;
         goto cleanup;
     }
@@ -10722,7 +10722,7 @@ FUTHARK_FUN_ATTR int futrts_entry_mk_input(struct futhark_context *ctx, struct m
     bool dim_ok_cert_8564;
     
     if (!binop_y_8562) {
-        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_8547, "] to array of shape [", (long long) zt_lhs_8546, "][", (long long) m_7076, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  /prelude/array.fut:193:40-194:29\n   #3  large-mmm-red.fut:35:38-50\n   #4  /prelude/functional.fut:9:44-45\n   #5  large-mmm-red.fut:34:1-35:99\n"));
+        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_8547, "] to array of shape [", (long long) zt_lhs_8546, "][", (long long) m_7076, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  /prelude/array.fut:193:40-194:29\n   #3  ./large-mmm/large-mmm-red.fut:35:38-50\n   #4  /prelude/functional.fut:9:44-45\n   #5  ./large-mmm/large-mmm-red.fut:34:1-35:99\n"));
         err = FUTHARK_PROGRAM_ERROR;
         goto cleanup;
     }
@@ -10733,7 +10733,7 @@ FUTHARK_FUN_ATTR int futrts_entry_mk_input(struct futhark_context *ctx, struct m
     bool dim_ok_cert_8570;
     
     if (!binop_y_8568) {
-        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_8546, "] to array of shape [", (long long) M_7073, "][", (long long) K_7075, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:193:40-194:29\n   #2  large-mmm-red.fut:35:38-50\n   #3  /prelude/functional.fut:9:44-45\n   #4  large-mmm-red.fut:34:1-35:99\n"));
+        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_8546, "] to array of shape [", (long long) M_7073, "][", (long long) K_7075, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:193:40-194:29\n   #2  ./large-mmm/large-mmm-red.fut:35:38-50\n   #3  /prelude/functional.fut:9:44-45\n   #4  ./large-mmm/large-mmm-red.fut:34:1-35:99\n"));
         err = FUTHARK_PROGRAM_ERROR;
         goto cleanup;
     }
@@ -10751,7 +10751,7 @@ FUTHARK_FUN_ATTR int futrts_entry_mk_input(struct futhark_context *ctx, struct m
     bool dim_ok_cert_8600;
     
     if (!binop_y_8598) {
-        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) replicate_arg0_8590, "] to array of shape [", (long long) zt_lhs_8589, "][", (long long) n_7077, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  /prelude/array.fut:193:40-194:29\n   #3  large-mmm-red.fut:35:86-98\n   #4  /prelude/functional.fut:9:44-45\n   #5  large-mmm-red.fut:34:1-35:99\n"));
+        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) replicate_arg0_8590, "] to array of shape [", (long long) zt_lhs_8589, "][", (long long) n_7077, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  /prelude/array.fut:193:40-194:29\n   #3  ./large-mmm/large-mmm-red.fut:35:86-98\n   #4  /prelude/functional.fut:9:44-45\n   #5  ./large-mmm/large-mmm-red.fut:34:1-35:99\n"));
         err = FUTHARK_PROGRAM_ERROR;
         goto cleanup;
     }
@@ -10760,7 +10760,7 @@ FUTHARK_FUN_ATTR int futrts_entry_mk_input(struct futhark_context *ctx, struct m
     bool dim_ok_cert_8606;
     
     if (!binop_x_8602) {
-        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_8589, "] to array of shape [", (long long) zt_lhs_8588, "][", (long long) k_7078, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  /prelude/array.fut:193:40-194:29\n   #3  large-mmm-red.fut:35:86-98\n   #4  /prelude/functional.fut:9:44-45\n   #5  large-mmm-red.fut:34:1-35:99\n"));
+        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_8589, "] to array of shape [", (long long) zt_lhs_8588, "][", (long long) k_7078, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  /prelude/array.fut:193:40-194:29\n   #3  ./large-mmm/large-mmm-red.fut:35:86-98\n   #4  /prelude/functional.fut:9:44-45\n   #5  ./large-mmm/large-mmm-red.fut:34:1-35:99\n"));
         err = FUTHARK_PROGRAM_ERROR;
         goto cleanup;
     }
@@ -10769,7 +10769,7 @@ FUTHARK_FUN_ATTR int futrts_entry_mk_input(struct futhark_context *ctx, struct m
     bool dim_ok_cert_8612;
     
     if (!binop_y_8609) {
-        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_8588, "] to array of shape [", (long long) K_7075, "][", (long long) N_7074, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:193:40-194:29\n   #2  large-mmm-red.fut:35:86-98\n   #3  /prelude/functional.fut:9:44-45\n   #4  large-mmm-red.fut:34:1-35:99\n"));
+        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_8588, "] to array of shape [", (long long) K_7075, "][", (long long) N_7074, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:193:40-194:29\n   #2  ./large-mmm/large-mmm-red.fut:35:86-98\n   #3  /prelude/functional.fut:9:44-45\n   #4  ./large-mmm/large-mmm-red.fut:34:1-35:99\n"));
         err = FUTHARK_PROGRAM_ERROR;
         goto cleanup;
     }
