@@ -14,21 +14,6 @@
 -- entry: run_square_xl
 -- compiled random input {[64][128][128][64]f16 [128][64][64][128]f16}
 
--- ==
--- entry: run_small
--- compiled random input {[16][16][128][64]f16 [16][16][64][128]f16}
-
--- ==
--- entry: run_medium
--- compiled random input {[32][32][128][64]f16 [32][32][64][128]f16}
-
--- ==
--- entry: run_large
--- compiled random input {[64][32][128][64]f16 [32][64][64][128]f16}
-
--- compiled script input { (mk_input 32 32 32 128 128 64) }
-
-
 import "mmm-intra-helpers"
 
 entry mk_input M N K m n k : ([M][K][m][k]f16, [K][N][k][n]f16) =
@@ -65,26 +50,3 @@ entry run_square_small (A: [8][16][128][64]f16) (B: [16][8][64][128]f16) = run A
 entry run_square_medium (A: [16][32][128][64]f16) (B: [32][16][64][128]f16) = run A B
 entry run_square_large (A: [32][64][128][64]f16) (B: [64][32][64][128]f16) = run A B
 entry run_square_xl (A: [64][128][128][64]f16) (B: [128][64][64][128]f16) = run A B 
-        
-entry run_small (A: [16][16][128][64]f16) (B: [16][16][64][128]f16) = run A B 
-entry run_medium (A: [32][32][128][64]f16) (B: [32][32][64][128]f16) = run A B
-entry run_large (A: [64][32][128][64]f16) (B: [32][64][64][128]f16) = run A B
-       
- 
--- large-mmm-red.fut:run_square_small (no tuning file):
--- [8][16][128][64]f16 [16][8][64][128]f16:         171μs (95% CI: [     170.7,      171.1])
-
--- large-mmm-red.fut:run_square_medium (no tuning file):
--- [16][32][128][64]f16 [32][16][64][128...:        951μs (95% CI: [     950.5,      951.1])
-
--- large-mmm-red.fut:run_square_large (no tuning file):
--- [32][64][128][64]f16 [64][32][64][128...:       6413μs (95% CI: [    6411.5,     6414.9])
-
--- large-mmm-red.fut:run_small (no tuning file):
--- [16][16][128][64]f16 [16][16][64][128...:        481μs (95% CI: [     480.5,      480.6])
-
--- large-mmm-red.fut:run_medium (no tuning file):
--- [32][32][128][64]f16 [32][32][64][128...:       3186μs (95% CI: [    3185.2,     3186.4])
-
--- large-mmm-red.fut:run_large (no tuning file):
--- [64][32][128][64]f16 [32][64][64][128...:      12231μs (95% CI: [   12230.2,    12232.4])

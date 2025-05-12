@@ -24,7 +24,7 @@ def plot_graph(title, xlabel, ylabel, plots):
     filename = title[:title.index(',')].replace(' ', '_') if ',' in title else title.replace(' ', '_')
     plt.savefig(os.path.join("graphs", f"{filename}.pdf"))
 
-def run_command(backend, results_file, entry_point, script, working_dir, tuning):
+def run_command(backend, results_file, entry_point, script, working_dir, tuning, cuda):
     args = [
         "futmma", 
         "bench", 
@@ -32,6 +32,7 @@ def run_command(backend, results_file, entry_point, script, working_dir, tuning)
         "--pass-option=--nvrtc-option=-I../../../cutlass/include" if backend=="cudatc" else "",
         "--pass-option=-default-tile-size=16",
         "--pass-option=-default-reg-tile-size=4",
+        f"--pass-option=--load-cuda={cuda}" if cuda else "",
         f"--json={results_file}", 
         f"--tuning={tuning}" if tuning else "",
         f"--entry-point={entry_point}", 
@@ -40,16 +41,31 @@ def run_command(backend, results_file, entry_point, script, working_dir, tuning)
     args = [a for a in args if a != ""]
     subprocess.run(args, cwd=working_dir)
 
+def parse_experiment_list(list_entry):
+    script = list_entry[0]
+    entry_point = list_entry[1]
+    backend = list_entry[2]
+    title = list_entry[3]
+    tuning = None
+    cuda = None
+    for i in range(4, len(list_entry)):
+        if isinstance(list_entry[i], str) and list_entry[i].startswith("tuning="):
+            tuning = list_entry[i].replace("tuning=", "")
+            if tuning.count(','):
+                tuning = tuning.split(',')
+        if isinstance(list_entry[i], str) and list_entry[i].startswith("cuda="):
+            cuda = list_entry[i].replace("cuda=", "")
+            if cuda.count(','):
+                cuda = cuda.split(',')
+    print(f"cuda: {cuda}")
+    return script, entry_point, backend, title, tuning, cuda
+
 def assemble(experiment_list, blocks, result_func, n_lookups, working_dir):
     to_plot = []
     results_file = "tmp.json"
     results_path = os.path.join(working_dir, results_file)
     for list_entries in experiment_list:
-        if len(list_entries) == 4:
-            script, entry_point, backend, title = list_entries
-            tuning = None
-        elif len(list_entries) == 5:
-            script, entry_point, backend, title, tuning = list_entries
+        script, entry_point, backend, title, tuning, cuda = parse_experiment_list(list_entries)
         if type(entry_point) == list:
             tflops = [None]*len(entry_point)
             for i, ep in enumerate(entry_point):
@@ -57,8 +73,12 @@ def assemble(experiment_list, blocks, result_func, n_lookups, working_dir):
                     t = tuning[i]
                 else:
                     t = tuning
+                if type(cuda) == list:
+                    c = cuda[i]
+                else:
+                    c = cuda
                     
-                run_command(backend, results_file, ep, script, working_dir, t)
+                run_command(backend, results_file, ep, script, working_dir, t, c)
 
                 with open(results_path, 'r') as json_file:
                     data = json.load(json_file)
@@ -72,7 +92,7 @@ def assemble(experiment_list, blocks, result_func, n_lookups, working_dir):
             to_plot.append([ns, tflops, title])
 
         else:
-            run_command(backend, results_file, entry_point, script, working_dir, tuning)
+            run_command(backend, results_file, entry_point, script, working_dir, tuning, cuda)
 
             with open(results_path, 'r') as json_file:
                 data = json.load(json_file)
@@ -217,10 +237,10 @@ def flash_full():
         #("flash-cfal-modified.fut", "main128", "cuda", "CUDA my backend w/ TC, d:128"),
         #("flash-cfal-thesis.fut", "main64", "cuda", "CUDA thesis backend w/ TC, d:64"),
         #("flash-cfal-thesis.fut", "main128", "cuda", "CUDA thesis backend w/ TC, d:128"),
-        ("flash-cfal-orig.fut", "thesislike16", "cuda", "basic CUDA f16", "tuning"),
-        ("flash-cfal-orig.fut", "thesislike32", "cuda", "basic CUDA f32", "tuning"),
-        #("flash-cfal-thesis.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128"], "cudatc", "CUDA thesis backend w/ TC", ["tuning16", "tuning32", "tuning64", "tuning128"]),
-        ("flash-cfal-modified.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128", "thesislike256", "thesislike512"], "cudatc", "CUDA my backend w/ TC", "tuning"),
+        ("flash-cfal-orig.fut", "thesislike16", "cuda", "basic CUDA f16", "tuning=tuning"),
+        ("flash-cfal-orig.fut", "thesislike32", "cuda", "basic CUDA f32", "tuning=tuning"),
+        #("flash-cfal-thesis.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128"], "cudatc", "CUDA thesis backend w/ TC", "tuning=tuning16,tuning32,tuning64,tuning128"),
+        ("flash-cfal-modified.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128", "thesislike256", "thesislike512"], "cudatc", "CUDA my backend w/ TC", "tuning=tuning"),
     ]
     
     working_dir = os.path.abspath("./flash-full")
@@ -254,9 +274,10 @@ def large_mmm():
     experiment_list = [
         ("large-mmm-basic.fut", "mmm_f16", "cuda", "basic CUDA backend f16"),
         ("large-mmm-basic.fut", "mmm_f32", "cuda", "basic CUDA backend f32"),
-        ("large-mmm-red-orig.fut", "main", "cuda", "CUDA backend?"),
-        ("large-mmm-red-more-par-orig.fut", ["run_square_small", "run_square_medium", "run_square_large", "run_square_xl"], "cuda", "CUDA backend improved?"),
-        ("large-mmm-red.fut", ["run_square_small", "run_square_medium", "run_square_large", "run_square_xl"], "cudatc", "CUDA backend w/ TC & mixed f16/f32")
+        #("large-mmm-red-orig.fut", "main", "cuda", "CUDA backend?"),
+        #("large-mmm-red-more-par-orig.fut", ["run_square_small", "run_square_medium", "run_square_large", "run_square_xl"], "cuda", "CUDA backend improved?"),
+        ("large-mmm-red.fut", ["run_square_small", "run_square_medium", "run_square_large", "run_square_xl"], "cudatc", "CUDA backend w/ TC & mixed f16/f32"),
+        ("large-mmm-red.fut", ["run_square_small", "run_square_medium", "run_square_large", "run_square_xl"], "cudatc", "modified CUDA backend w/ TC & mixed f16/f32", "cuda=large-mmm-red-modified.cu")
     ]
     working_dir = os.path.abspath("./large-mmm")
     n_lookups = {
@@ -272,7 +293,7 @@ def large_mmm():
 
 #batched_mmm()
 #custom_attention()
-lud()
+#lud()
 #flash_full()
 
-#large_mmm()
+large_mmm()

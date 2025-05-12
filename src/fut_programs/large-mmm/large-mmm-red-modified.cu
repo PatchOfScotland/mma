@@ -1,4 +1,5 @@
 #define FUTHARK_CUDA
+#define FUTHARK_CUDATC
 // start of prelude.cu
 #define SCALAR_FUN_ATTR __device__ static inline
 #define FUTHARK_FUN_ATTR __device__ static
@@ -4835,270 +4836,270 @@ SCALAR_FUN_ATTR int64_t atomic_xor_i64_shared(volatile __local int64_t *p, int64
 // End of atomics.h
 // Start of transpose.cl
 
-#define GEN_TRANSPOSE_KERNELS(NAME, ELEM_TYPE)                          \\
-FUTHARK_KERNEL_SIZED(TR_BLOCK_DIM*2, TR_TILE_DIM/TR_ELEMS_PER_THREAD, 1)\\
-void map_transpose_##NAME(SHARED_MEM_PARAM                              \\
-                          __global ELEM_TYPE *dst_mem,                  \\
-                          int64_t dst_offset,                           \\
-                          __global ELEM_TYPE *src_mem,                  \\
-                          int64_t src_offset,                           \\
-                          int32_t num_arrays,                           \\
-                          int32_t x_elems,                              \\
-                          int32_t y_elems,                              \\
-                          int32_t mulx,                                 \\
-                          int32_t muly,                                 \\
-                          int32_t repeat_1,                             \\
-                          int32_t repeat_2) {                           \\
-  (void)mulx; (void)muly;                                               \\
-  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;            \\
-  int tblock_id_0 = get_tblock_id(0);                                   \\
-  int global_id_0 = get_global_id(0);                                   \\
-  int tblock_id_1 = get_tblock_id(1);                                   \\
-  int global_id_1 = get_global_id(1);                                   \\
-  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \\
-    int tblock_id_2 = get_tblock_id(2);                                 \\
-    int global_id_2 = get_global_id(2);                                 \\
-    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \\
-      int32_t our_array_offset = tblock_id_2 * x_elems * y_elems;       \\
-      int32_t odata_offset = dst_offset + our_array_offset;             \\
-      int32_t idata_offset = src_offset + our_array_offset;             \\
-      int32_t x_index = global_id_0;                                    \\
-      int32_t y_index = tblock_id_1 * TR_TILE_DIM + get_local_id(1);    \\
-      if (x_index < x_elems) {                                          \\
-        for (int32_t j = 0; j < TR_ELEMS_PER_THREAD; j++) {             \\
-          int32_t index_i = (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * x_elems + x_index; \\
-          if (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD) < y_elems) { \\
-            block[(get_local_id(1) + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * (TR_TILE_DIM+1) + \\
-                  get_local_id(0)] =                                    \\
-              src_mem[idata_offset + index_i];                          \\
-          }                                                             \\
-        }                                                               \\
-      }                                                                 \\
-      barrier_local();                                                  \\
-      x_index = tblock_id_1 * TR_TILE_DIM + get_local_id(0);            \\
-      y_index = tblock_id_0 * TR_TILE_DIM + get_local_id(1);            \\
-      if (x_index < y_elems) {                                          \\
-        for (int32_t j = 0; j < TR_ELEMS_PER_THREAD; j++) {             \\
-          int32_t index_out = (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * y_elems + x_index; \\
-          if (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD) < x_elems) { \\
-            dst_mem[(odata_offset + index_out)] =                       \\
-              block[get_local_id(0) * (TR_TILE_DIM+1) +                 \\
-                    get_local_id(1) + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)]; \\
-          }                                                             \\
-        }                                                               \\
-      }                                                                 \\
-      tblock_id_2 += get_num_tblocks(2);                                \\
-      global_id_2 += get_global_size(2);                                \\
-    }                                                                   \\
-    tblock_id_1 += get_num_tblocks(1);                                  \\
-    global_id_1 += get_global_size(1);                                  \\
-  }                                                                     \\
-}                                                                       \\
-                                                                        \\
-FUTHARK_KERNEL_SIZED(TR_BLOCK_DIM, TR_BLOCK_DIM, 1)                     \\
-void map_transpose_##NAME##_low_height(SHARED_MEM_PARAM                 \\
-                                                __global ELEM_TYPE *dst_mem, \\
-                                                int64_t dst_offset,     \\
-                                                __global ELEM_TYPE *src_mem, \\
-                                                int64_t src_offset,     \\
-                                                int32_t num_arrays,     \\
-                                                int32_t x_elems,        \\
-                                                int32_t y_elems,        \\
-                                                int32_t mulx,           \\
-                                                int32_t muly,           \\
-                                                int32_t repeat_1,       \\
-                                                int32_t repeat_2) {     \\
-  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;            \\
-  int tblock_id_0 = get_tblock_id(0);                                   \\
-  int global_id_0 = get_global_id(0);                                   \\
-  int tblock_id_1 = get_tblock_id(1);                                   \\
-  int global_id_1 = get_global_id(1);                                   \\
-  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \\
-    int tblock_id_2 = get_tblock_id(2);                                 \\
-    int global_id_2 = get_global_id(2);                                 \\
-    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \\
-      int32_t our_array_offset = tblock_id_2 * x_elems * y_elems;       \\
-      int32_t odata_offset = dst_offset + our_array_offset;             \\
-      int32_t idata_offset = src_offset + our_array_offset;             \\
-      int32_t x_index =                                                 \\
-        tblock_id_0 * TR_BLOCK_DIM * mulx +                             \\
-        get_local_id(0) +                                               \\
-        get_local_id(1)%mulx * TR_BLOCK_DIM;                            \\
-      int32_t y_index = tblock_id_1 * TR_BLOCK_DIM + get_local_id(1)/mulx; \\
-      int32_t index_in = y_index * x_elems + x_index;                   \\
-      if (x_index < x_elems && y_index < y_elems) {                     \\
-        block[get_local_id(1) * (TR_BLOCK_DIM+1) + get_local_id(0)] =   \\
-          src_mem[idata_offset + index_in];                             \\
-      }                                                                 \\
-      barrier_local();                                                  \\
-      x_index = tblock_id_1 * TR_BLOCK_DIM + get_local_id(0)/mulx;      \\
-      y_index =                                                         \\
-        tblock_id_0 * TR_BLOCK_DIM * mulx +                             \\
-        get_local_id(1) +                                               \\
-        (get_local_id(0)%mulx) * TR_BLOCK_DIM;                          \\
-      int32_t index_out = y_index * y_elems + x_index;                  \\
-      if (x_index < y_elems && y_index < x_elems) {                     \\
-        dst_mem[odata_offset + index_out] =                             \\
-          block[get_local_id(0) * (TR_BLOCK_DIM+1) + get_local_id(1)];  \\
-      }                                                                 \\
-      tblock_id_2 += get_num_tblocks(2);                                \\
-      global_id_2 += get_global_size(2);                                \\
-    }                                                                   \\
-    tblock_id_1 += get_num_tblocks(1);                                  \\
-    global_id_1 += get_global_size(1);                                  \\
-  }                                                                     \\
-}                                                                       \\
-                                                                        \\
-FUTHARK_KERNEL_SIZED(TR_BLOCK_DIM, TR_BLOCK_DIM, 1)                     \\
-void map_transpose_##NAME##_low_width(SHARED_MEM_PARAM                  \\
-                                      __global ELEM_TYPE *dst_mem,      \\
-                                      int64_t dst_offset,               \\
-                                      __global ELEM_TYPE *src_mem,      \\
-                                      int64_t src_offset,               \\
-                                      int32_t num_arrays,               \\
-                                      int32_t x_elems,                  \\
-                                      int32_t y_elems,                  \\
-                                      int32_t mulx,                     \\
-                                      int32_t muly,                     \\
-                                      int32_t repeat_1,                 \\
-                                      int32_t repeat_2) {               \\
-  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;            \\
-  int tblock_id_0 = get_tblock_id(0);                                   \\
-  int global_id_0 = get_global_id(0);                                   \\
-  int tblock_id_1 = get_tblock_id(1);                                   \\
-  int global_id_1 = get_global_id(1);                                   \\
-  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \\
-    int tblock_id_2 = get_tblock_id(2);                                 \\
-    int global_id_2 = get_global_id(2);                                 \\
-    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \\
-      int32_t our_array_offset = tblock_id_2 * x_elems * y_elems;       \\
-      int32_t odata_offset = dst_offset + our_array_offset;             \\
-      int32_t idata_offset = src_offset + our_array_offset;             \\
-      int32_t x_index = tblock_id_0 * TR_BLOCK_DIM + get_local_id(0)/muly; \\
-      int32_t y_index =                                                 \\
-        tblock_id_1 * TR_BLOCK_DIM * muly +                             \\
-        get_local_id(1) + (get_local_id(0)%muly) * TR_BLOCK_DIM;        \\
-      int32_t index_in = y_index * x_elems + x_index;                   \\
-      if (x_index < x_elems && y_index < y_elems) {                     \\
-        block[get_local_id(1) * (TR_BLOCK_DIM+1) + get_local_id(0)] =   \\
-          src_mem[idata_offset + index_in];                             \\
-      }                                                                 \\
-      barrier_local();                                                  \\
-      x_index = tblock_id_1 * TR_BLOCK_DIM * muly +                     \\
-        get_local_id(0) + (get_local_id(1)%muly) * TR_BLOCK_DIM;        \\
-      y_index = tblock_id_0 * TR_BLOCK_DIM + get_local_id(1)/muly;      \\
-      int32_t index_out = y_index * y_elems + x_index;                  \\
-      if (x_index < y_elems && y_index < x_elems) {                     \\
-        dst_mem[odata_offset + index_out] =                             \\
-          block[get_local_id(0) * (TR_BLOCK_DIM+1) + get_local_id(1)];  \\
-      }                                                                 \\
-      tblock_id_2 += get_num_tblocks(2);                                \\
-      global_id_2 += get_num_tblocks(2) * get_local_size(2);            \\
-    }                                                                   \\
-    tblock_id_1 += get_num_tblocks(1);                                  \\
-    global_id_1 += get_num_tblocks(1) * get_local_size(1);              \\
-  }                                                                     \\
-}                                                                       \\
-                                                                        \\
-FUTHARK_KERNEL_SIZED(TR_BLOCK_DIM*TR_BLOCK_DIM, 1, 1)                   \\
-void map_transpose_##NAME##_small(SHARED_MEM_PARAM                       \\
-                                  __global ELEM_TYPE *dst_mem,          \\
-                                  int64_t dst_offset,                   \\
-                                  __global ELEM_TYPE *src_mem,          \\
-                                  int64_t src_offset,                   \\
-                                  int32_t num_arrays,                   \\
-                                  int32_t x_elems,                      \\
-                                  int32_t y_elems,                      \\
-                                  int32_t mulx,                         \\
-                                  int32_t muly,                         \\
-                                  int32_t repeat_1,                     \\
-                                  int32_t repeat_2) {                   \\
-  (void)mulx; (void)muly;                                               \\
-  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;            \\
-  int tblock_id_0 = get_tblock_id(0);                                   \\
-  int global_id_0 = get_global_id(0);                                   \\
-  int tblock_id_1 = get_tblock_id(1);                                   \\
-  int global_id_1 = get_global_id(1);                                   \\
-  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \\
-    int tblock_id_2 = get_tblock_id(2);                                 \\
-    int global_id_2 = get_global_id(2);                                 \\
-    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \\
-      int32_t our_array_offset = global_id_0/(y_elems * x_elems) * y_elems * x_elems; \\
-      int32_t x_index = (global_id_0 % (y_elems * x_elems))/y_elems;    \\
-      int32_t y_index = global_id_0%y_elems;                            \\
-      int32_t odata_offset = dst_offset + our_array_offset;             \\
-      int32_t idata_offset = src_offset + our_array_offset;             \\
-      int32_t index_in = y_index * x_elems + x_index;                   \\
-      int32_t index_out = x_index * y_elems + y_index;                  \\
-      if (global_id_0 < x_elems * y_elems * num_arrays) {               \\
-        dst_mem[odata_offset + index_out] = src_mem[idata_offset + index_in]; \\
-      }                                                                 \\
-      tblock_id_2 += get_num_tblocks(2);                                \\
-      global_id_2 += get_global_size(2);                                \\
-    }                                                                   \\
-    tblock_id_1 += get_num_tblocks(1);                                  \\
-    global_id_1 += get_global_size(1);                                  \\
-  }                                                                     \\
-}                                                                       \\
-                                                                        \\
-FUTHARK_KERNEL_SIZED(TR_BLOCK_DIM*2, TR_TILE_DIM/TR_ELEMS_PER_THREAD, 1)\\
-void map_transpose_##NAME##_large(SHARED_MEM_PARAM                      \\
-                                  __global ELEM_TYPE *dst_mem,          \\
-                                  int64_t dst_offset,                   \\
-                                  __global ELEM_TYPE *src_mem,          \\
-                                  int64_t src_offset,                   \\
-                                  int64_t num_arrays,                   \\
-                                  int64_t x_elems,                      \\
-                                  int64_t y_elems,                      \\
-                                  int64_t mulx,                         \\
-                                  int64_t muly,                         \\
-                                  int32_t repeat_1,                     \\
-                                  int32_t repeat_2) {                   \\
-  (void)mulx; (void)muly;                                               \\
-  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;             \\
-  int tblock_id_0 = get_tblock_id(0);                                   \\
-  int global_id_0 = get_global_id(0);                                   \\
-  int tblock_id_1 = get_tblock_id(1);                                   \\
-  int global_id_1 = get_global_id(1);                                   \\
-  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \\
-    int tblock_id_2 = get_tblock_id(2);                                 \\
-    int global_id_2 = get_global_id(2);                                 \\
-    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \\
-      int64_t our_array_offset = tblock_id_2 * x_elems * y_elems;       \\
-      int64_t odata_offset = dst_offset + our_array_offset;             \\
-      int64_t idata_offset = src_offset + our_array_offset;             \\
-      int64_t x_index = global_id_0;                                    \\
-      int64_t y_index = tblock_id_1 * TR_TILE_DIM + get_local_id(1);    \\
-      if (x_index < x_elems) {                                          \\
-        for (int64_t j = 0; j < TR_ELEMS_PER_THREAD; j++) {             \\
-          int64_t index_i = (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * x_elems + x_index; \\
-          if (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD) < y_elems) { \\
-            block[(get_local_id(1) + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * (TR_TILE_DIM+1) + \\
-                  get_local_id(0)] =                                    \\
-              src_mem[idata_offset + index_i];                          \\
-          }                                                             \\
-        }                                                               \\
-      }                                                                 \\
-      barrier_local();                                                  \\
-      x_index = tblock_id_1 * TR_TILE_DIM + get_local_id(0);            \\
-      y_index = tblock_id_0 * TR_TILE_DIM + get_local_id(1);            \\
-      if (x_index < y_elems) {                                          \\
-        for (int64_t j = 0; j < TR_ELEMS_PER_THREAD; j++) {             \\
-          int64_t index_out = (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * y_elems + x_index; \\
-          if (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD) < x_elems) { \\
-            dst_mem[(odata_offset + index_out)] =                       \\
-              block[get_local_id(0) * (TR_TILE_DIM+1) +                 \\
-                    get_local_id(1) + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)]; \\
-          }                                                             \\
-        }                                                               \\
-      }                                                                 \\
-      tblock_id_2 += get_num_tblocks(2);                                \\
-      global_id_2 += get_global_size(2);                                \\
-    }                                                                   \\
-    tblock_id_1 += get_num_tblocks(1);                                  \\
-    global_id_1 += get_global_size(1);                                  \\
-  }                                                                     \\
-}                                                                       \\
+#define GEN_TRANSPOSE_KERNELS(NAME, ELEM_TYPE)                          \
+FUTHARK_KERNEL_SIZED(TR_BLOCK_DIM*2, TR_TILE_DIM/TR_ELEMS_PER_THREAD, 1)\
+void map_transpose_##NAME(SHARED_MEM_PARAM                              \
+                          __global ELEM_TYPE *dst_mem,                  \
+                          int64_t dst_offset,                           \
+                          __global ELEM_TYPE *src_mem,                  \
+                          int64_t src_offset,                           \
+                          int32_t num_arrays,                           \
+                          int32_t x_elems,                              \
+                          int32_t y_elems,                              \
+                          int32_t mulx,                                 \
+                          int32_t muly,                                 \
+                          int32_t repeat_1,                             \
+                          int32_t repeat_2) {                           \
+  (void)mulx; (void)muly;                                               \
+  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;            \
+  int tblock_id_0 = get_tblock_id(0);                                   \
+  int global_id_0 = get_global_id(0);                                   \
+  int tblock_id_1 = get_tblock_id(1);                                   \
+  int global_id_1 = get_global_id(1);                                   \
+  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \
+    int tblock_id_2 = get_tblock_id(2);                                 \
+    int global_id_2 = get_global_id(2);                                 \
+    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \
+      int32_t our_array_offset = tblock_id_2 * x_elems * y_elems;       \
+      int32_t odata_offset = dst_offset + our_array_offset;             \
+      int32_t idata_offset = src_offset + our_array_offset;             \
+      int32_t x_index = global_id_0;                                    \
+      int32_t y_index = tblock_id_1 * TR_TILE_DIM + get_local_id(1);    \
+      if (x_index < x_elems) {                                          \
+        for (int32_t j = 0; j < TR_ELEMS_PER_THREAD; j++) {             \
+          int32_t index_i = (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * x_elems + x_index; \
+          if (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD) < y_elems) { \
+            block[(get_local_id(1) + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * (TR_TILE_DIM+1) + \
+                  get_local_id(0)] =                                    \
+              src_mem[idata_offset + index_i];                          \
+          }                                                             \
+        }                                                               \
+      }                                                                 \
+      barrier_local();                                                  \
+      x_index = tblock_id_1 * TR_TILE_DIM + get_local_id(0);            \
+      y_index = tblock_id_0 * TR_TILE_DIM + get_local_id(1);            \
+      if (x_index < y_elems) {                                          \
+        for (int32_t j = 0; j < TR_ELEMS_PER_THREAD; j++) {             \
+          int32_t index_out = (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * y_elems + x_index; \
+          if (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD) < x_elems) { \
+            dst_mem[(odata_offset + index_out)] =                       \
+              block[get_local_id(0) * (TR_TILE_DIM+1) +                 \
+                    get_local_id(1) + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)]; \
+          }                                                             \
+        }                                                               \
+      }                                                                 \
+      tblock_id_2 += get_num_tblocks(2);                                \
+      global_id_2 += get_global_size(2);                                \
+    }                                                                   \
+    tblock_id_1 += get_num_tblocks(1);                                  \
+    global_id_1 += get_global_size(1);                                  \
+  }                                                                     \
+}                                                                       \
+                                                                        \
+FUTHARK_KERNEL_SIZED(TR_BLOCK_DIM, TR_BLOCK_DIM, 1)                     \
+void map_transpose_##NAME##_low_height(SHARED_MEM_PARAM                 \
+                                                __global ELEM_TYPE *dst_mem, \
+                                                int64_t dst_offset,     \
+                                                __global ELEM_TYPE *src_mem, \
+                                                int64_t src_offset,     \
+                                                int32_t num_arrays,     \
+                                                int32_t x_elems,        \
+                                                int32_t y_elems,        \
+                                                int32_t mulx,           \
+                                                int32_t muly,           \
+                                                int32_t repeat_1,       \
+                                                int32_t repeat_2) {     \
+  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;            \
+  int tblock_id_0 = get_tblock_id(0);                                   \
+  int global_id_0 = get_global_id(0);                                   \
+  int tblock_id_1 = get_tblock_id(1);                                   \
+  int global_id_1 = get_global_id(1);                                   \
+  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \
+    int tblock_id_2 = get_tblock_id(2);                                 \
+    int global_id_2 = get_global_id(2);                                 \
+    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \
+      int32_t our_array_offset = tblock_id_2 * x_elems * y_elems;       \
+      int32_t odata_offset = dst_offset + our_array_offset;             \
+      int32_t idata_offset = src_offset + our_array_offset;             \
+      int32_t x_index =                                                 \
+        tblock_id_0 * TR_BLOCK_DIM * mulx +                             \
+        get_local_id(0) +                                               \
+        get_local_id(1)%mulx * TR_BLOCK_DIM;                            \
+      int32_t y_index = tblock_id_1 * TR_BLOCK_DIM + get_local_id(1)/mulx; \
+      int32_t index_in = y_index * x_elems + x_index;                   \
+      if (x_index < x_elems && y_index < y_elems) {                     \
+        block[get_local_id(1) * (TR_BLOCK_DIM+1) + get_local_id(0)] =   \
+          src_mem[idata_offset + index_in];                             \
+      }                                                                 \
+      barrier_local();                                                  \
+      x_index = tblock_id_1 * TR_BLOCK_DIM + get_local_id(0)/mulx;      \
+      y_index =                                                         \
+        tblock_id_0 * TR_BLOCK_DIM * mulx +                             \
+        get_local_id(1) +                                               \
+        (get_local_id(0)%mulx) * TR_BLOCK_DIM;                          \
+      int32_t index_out = y_index * y_elems + x_index;                  \
+      if (x_index < y_elems && y_index < x_elems) {                     \
+        dst_mem[odata_offset + index_out] =                             \
+          block[get_local_id(0) * (TR_BLOCK_DIM+1) + get_local_id(1)];  \
+      }                                                                 \
+      tblock_id_2 += get_num_tblocks(2);                                \
+      global_id_2 += get_global_size(2);                                \
+    }                                                                   \
+    tblock_id_1 += get_num_tblocks(1);                                  \
+    global_id_1 += get_global_size(1);                                  \
+  }                                                                     \
+}                                                                       \
+                                                                        \
+FUTHARK_KERNEL_SIZED(TR_BLOCK_DIM, TR_BLOCK_DIM, 1)                     \
+void map_transpose_##NAME##_low_width(SHARED_MEM_PARAM                  \
+                                      __global ELEM_TYPE *dst_mem,      \
+                                      int64_t dst_offset,               \
+                                      __global ELEM_TYPE *src_mem,      \
+                                      int64_t src_offset,               \
+                                      int32_t num_arrays,               \
+                                      int32_t x_elems,                  \
+                                      int32_t y_elems,                  \
+                                      int32_t mulx,                     \
+                                      int32_t muly,                     \
+                                      int32_t repeat_1,                 \
+                                      int32_t repeat_2) {               \
+  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;            \
+  int tblock_id_0 = get_tblock_id(0);                                   \
+  int global_id_0 = get_global_id(0);                                   \
+  int tblock_id_1 = get_tblock_id(1);                                   \
+  int global_id_1 = get_global_id(1);                                   \
+  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \
+    int tblock_id_2 = get_tblock_id(2);                                 \
+    int global_id_2 = get_global_id(2);                                 \
+    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \
+      int32_t our_array_offset = tblock_id_2 * x_elems * y_elems;       \
+      int32_t odata_offset = dst_offset + our_array_offset;             \
+      int32_t idata_offset = src_offset + our_array_offset;             \
+      int32_t x_index = tblock_id_0 * TR_BLOCK_DIM + get_local_id(0)/muly; \
+      int32_t y_index =                                                 \
+        tblock_id_1 * TR_BLOCK_DIM * muly +                             \
+        get_local_id(1) + (get_local_id(0)%muly) * TR_BLOCK_DIM;        \
+      int32_t index_in = y_index * x_elems + x_index;                   \
+      if (x_index < x_elems && y_index < y_elems) {                     \
+        block[get_local_id(1) * (TR_BLOCK_DIM+1) + get_local_id(0)] =   \
+          src_mem[idata_offset + index_in];                             \
+      }                                                                 \
+      barrier_local();                                                  \
+      x_index = tblock_id_1 * TR_BLOCK_DIM * muly +                     \
+        get_local_id(0) + (get_local_id(1)%muly) * TR_BLOCK_DIM;        \
+      y_index = tblock_id_0 * TR_BLOCK_DIM + get_local_id(1)/muly;      \
+      int32_t index_out = y_index * y_elems + x_index;                  \
+      if (x_index < y_elems && y_index < x_elems) {                     \
+        dst_mem[odata_offset + index_out] =                             \
+          block[get_local_id(0) * (TR_BLOCK_DIM+1) + get_local_id(1)];  \
+      }                                                                 \
+      tblock_id_2 += get_num_tblocks(2);                                \
+      global_id_2 += get_num_tblocks(2) * get_local_size(2);            \
+    }                                                                   \
+    tblock_id_1 += get_num_tblocks(1);                                  \
+    global_id_1 += get_num_tblocks(1) * get_local_size(1);              \
+  }                                                                     \
+}                                                                       \
+                                                                        \
+FUTHARK_KERNEL_SIZED(TR_BLOCK_DIM*TR_BLOCK_DIM, 1, 1)                   \
+void map_transpose_##NAME##_small(SHARED_MEM_PARAM                       \
+                                  __global ELEM_TYPE *dst_mem,          \
+                                  int64_t dst_offset,                   \
+                                  __global ELEM_TYPE *src_mem,          \
+                                  int64_t src_offset,                   \
+                                  int32_t num_arrays,                   \
+                                  int32_t x_elems,                      \
+                                  int32_t y_elems,                      \
+                                  int32_t mulx,                         \
+                                  int32_t muly,                         \
+                                  int32_t repeat_1,                     \
+                                  int32_t repeat_2) {                   \
+  (void)mulx; (void)muly;                                               \
+  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;            \
+  int tblock_id_0 = get_tblock_id(0);                                   \
+  int global_id_0 = get_global_id(0);                                   \
+  int tblock_id_1 = get_tblock_id(1);                                   \
+  int global_id_1 = get_global_id(1);                                   \
+  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \
+    int tblock_id_2 = get_tblock_id(2);                                 \
+    int global_id_2 = get_global_id(2);                                 \
+    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \
+      int32_t our_array_offset = global_id_0/(y_elems * x_elems) * y_elems * x_elems; \
+      int32_t x_index = (global_id_0 % (y_elems * x_elems))/y_elems;    \
+      int32_t y_index = global_id_0%y_elems;                            \
+      int32_t odata_offset = dst_offset + our_array_offset;             \
+      int32_t idata_offset = src_offset + our_array_offset;             \
+      int32_t index_in = y_index * x_elems + x_index;                   \
+      int32_t index_out = x_index * y_elems + y_index;                  \
+      if (global_id_0 < x_elems * y_elems * num_arrays) {               \
+        dst_mem[odata_offset + index_out] = src_mem[idata_offset + index_in]; \
+      }                                                                 \
+      tblock_id_2 += get_num_tblocks(2);                                \
+      global_id_2 += get_global_size(2);                                \
+    }                                                                   \
+    tblock_id_1 += get_num_tblocks(1);                                  \
+    global_id_1 += get_global_size(1);                                  \
+  }                                                                     \
+}                                                                       \
+                                                                        \
+FUTHARK_KERNEL_SIZED(TR_BLOCK_DIM*2, TR_TILE_DIM/TR_ELEMS_PER_THREAD, 1)\
+void map_transpose_##NAME##_large(SHARED_MEM_PARAM                      \
+                                  __global ELEM_TYPE *dst_mem,          \
+                                  int64_t dst_offset,                   \
+                                  __global ELEM_TYPE *src_mem,          \
+                                  int64_t src_offset,                   \
+                                  int64_t num_arrays,                   \
+                                  int64_t x_elems,                      \
+                                  int64_t y_elems,                      \
+                                  int64_t mulx,                         \
+                                  int64_t muly,                         \
+                                  int32_t repeat_1,                     \
+                                  int32_t repeat_2) {                   \
+  (void)mulx; (void)muly;                                               \
+  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;             \
+  int tblock_id_0 = get_tblock_id(0);                                   \
+  int global_id_0 = get_global_id(0);                                   \
+  int tblock_id_1 = get_tblock_id(1);                                   \
+  int global_id_1 = get_global_id(1);                                   \
+  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \
+    int tblock_id_2 = get_tblock_id(2);                                 \
+    int global_id_2 = get_global_id(2);                                 \
+    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \
+      int64_t our_array_offset = tblock_id_2 * x_elems * y_elems;       \
+      int64_t odata_offset = dst_offset + our_array_offset;             \
+      int64_t idata_offset = src_offset + our_array_offset;             \
+      int64_t x_index = global_id_0;                                    \
+      int64_t y_index = tblock_id_1 * TR_TILE_DIM + get_local_id(1);    \
+      if (x_index < x_elems) {                                          \
+        for (int64_t j = 0; j < TR_ELEMS_PER_THREAD; j++) {             \
+          int64_t index_i = (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * x_elems + x_index; \
+          if (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD) < y_elems) { \
+            block[(get_local_id(1) + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * (TR_TILE_DIM+1) + \
+                  get_local_id(0)] =                                    \
+              src_mem[idata_offset + index_i];                          \
+          }                                                             \
+        }                                                               \
+      }                                                                 \
+      barrier_local();                                                  \
+      x_index = tblock_id_1 * TR_TILE_DIM + get_local_id(0);            \
+      y_index = tblock_id_0 * TR_TILE_DIM + get_local_id(1);            \
+      if (x_index < y_elems) {                                          \
+        for (int64_t j = 0; j < TR_ELEMS_PER_THREAD; j++) {             \
+          int64_t index_out = (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * y_elems + x_index; \
+          if (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD) < x_elems) { \
+            dst_mem[(odata_offset + index_out)] =                       \
+              block[get_local_id(0) * (TR_TILE_DIM+1) +                 \
+                    get_local_id(1) + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)]; \
+          }                                                             \
+        }                                                               \
+      }                                                                 \
+      tblock_id_2 += get_num_tblocks(2);                                \
+      global_id_2 += get_global_size(2);                                \
+    }                                                                   \
+    tblock_id_1 += get_num_tblocks(1);                                  \
+    global_id_1 += get_global_size(1);                                  \
+  }                                                                     \
+}                                                                       \
 
 GEN_TRANSPOSE_KERNELS(1b, uint8_t)
 GEN_TRANSPOSE_KERNELS(2b, uint16_t)
@@ -5108,79 +5109,79 @@ GEN_TRANSPOSE_KERNELS(8b, uint64_t)
 // End of transpose.cl
 // Start of copy.cl
 
-#define GEN_COPY_KERNEL(NAME, ELEM_TYPE) \\
-FUTHARK_KERNEL void lmad_copy_##NAME(SHARED_MEM_PARAM                   \\
-                               __global ELEM_TYPE *dst_mem,             \\
-                               int64_t dst_offset,                      \\
-                               __global ELEM_TYPE *src_mem,             \\
-                               int64_t src_offset,                      \\
-                               int64_t n,                               \\
-                               int r,                                   \\
-                               int64_t shape0, int64_t dst_stride0, int64_t src_stride0, \\
-                               int64_t shape1, int64_t dst_stride1, int64_t src_stride1, \\
-                               int64_t shape2, int64_t dst_stride2, int64_t src_stride2, \\
-                               int64_t shape3, int64_t dst_stride3, int64_t src_stride3, \\
-                               int64_t shape4, int64_t dst_stride4, int64_t src_stride4, \\
-                               int64_t shape5, int64_t dst_stride5, int64_t src_stride5, \\
-                               int64_t shape6, int64_t dst_stride6, int64_t src_stride6, \\
-                               int64_t shape7, int64_t dst_stride7, int64_t src_stride7) { \\
-  int64_t gtid = get_global_id(0);                                      \\
-  int64_t remainder = gtid;                                             \\
-                                                                        \\
-  if (gtid >= n) {                                                      \\
-    return;                                                             \\
-  }                                                                     \\
-                                                                        \\
-  if (r > 0) {                                                          \\
-    int64_t i = remainder % shape0;                                     \\
-    dst_offset += i * dst_stride0;                                      \\
-    src_offset += i * src_stride0;                                      \\
-    remainder /= shape0;                                                \\
-  }                                                                     \\
-  if (r > 1) {                                                          \\
-    int64_t i = remainder % shape1;                                     \\
-    dst_offset += i * dst_stride1;                                      \\
-    src_offset += i * src_stride1;                                      \\
-    remainder /= shape1;                                                \\
-  }                                                                     \\
-  if (r > 2) {                                                          \\
-    int64_t i = remainder % shape2;                                     \\
-    dst_offset += i * dst_stride2;                                      \\
-    src_offset += i * src_stride2;                                      \\
-    remainder /= shape2;                                                \\
-  }                                                                     \\
-  if (r > 3) {                                                          \\
-    int64_t i = remainder % shape3;                                     \\
-    dst_offset += i * dst_stride3;                                      \\
-    src_offset += i * src_stride3;                                      \\
-    remainder /= shape3;                                                \\
-  }                                                                     \\
-  if (r > 4) {                                                          \\
-    int64_t i = remainder % shape4;                                     \\
-    dst_offset += i * dst_stride4;                                      \\
-    src_offset += i * src_stride4;                                      \\
-    remainder /= shape4;                                                \\
-  }                                                                     \\
-  if (r > 5) {                                                          \\
-    int64_t i = remainder % shape5;                                     \\
-    dst_offset += i * dst_stride5;                                      \\
-    src_offset += i * src_stride5;                                      \\
-    remainder /= shape5;                                                \\
-  }                                                                     \\
-  if (r > 6) {                                                          \\
-    int64_t i = remainder % shape6;                                     \\
-    dst_offset += i * dst_stride6;                                      \\
-    src_offset += i * src_stride6;                                      \\
-    remainder /= shape6;                                                \\
-  }                                                                     \\
-  if (r > 7) {                                                          \\
-    int64_t i = remainder % shape7;                                     \\
-    dst_offset += i * dst_stride7;                                      \\
-    src_offset += i * src_stride7;                                      \\
-    remainder /= shape7;                                                \\
-  }                                                                     \\
-                                                                        \\
-  dst_mem[dst_offset] = src_mem[src_offset];                            \\
+#define GEN_COPY_KERNEL(NAME, ELEM_TYPE) \
+FUTHARK_KERNEL void lmad_copy_##NAME(SHARED_MEM_PARAM                   \
+                               __global ELEM_TYPE *dst_mem,             \
+                               int64_t dst_offset,                      \
+                               __global ELEM_TYPE *src_mem,             \
+                               int64_t src_offset,                      \
+                               int64_t n,                               \
+                               int r,                                   \
+                               int64_t shape0, int64_t dst_stride0, int64_t src_stride0, \
+                               int64_t shape1, int64_t dst_stride1, int64_t src_stride1, \
+                               int64_t shape2, int64_t dst_stride2, int64_t src_stride2, \
+                               int64_t shape3, int64_t dst_stride3, int64_t src_stride3, \
+                               int64_t shape4, int64_t dst_stride4, int64_t src_stride4, \
+                               int64_t shape5, int64_t dst_stride5, int64_t src_stride5, \
+                               int64_t shape6, int64_t dst_stride6, int64_t src_stride6, \
+                               int64_t shape7, int64_t dst_stride7, int64_t src_stride7) { \
+  int64_t gtid = get_global_id(0);                                      \
+  int64_t remainder = gtid;                                             \
+                                                                        \
+  if (gtid >= n) {                                                      \
+    return;                                                             \
+  }                                                                     \
+                                                                        \
+  if (r > 0) {                                                          \
+    int64_t i = remainder % shape0;                                     \
+    dst_offset += i * dst_stride0;                                      \
+    src_offset += i * src_stride0;                                      \
+    remainder /= shape0;                                                \
+  }                                                                     \
+  if (r > 1) {                                                          \
+    int64_t i = remainder % shape1;                                     \
+    dst_offset += i * dst_stride1;                                      \
+    src_offset += i * src_stride1;                                      \
+    remainder /= shape1;                                                \
+  }                                                                     \
+  if (r > 2) {                                                          \
+    int64_t i = remainder % shape2;                                     \
+    dst_offset += i * dst_stride2;                                      \
+    src_offset += i * src_stride2;                                      \
+    remainder /= shape2;                                                \
+  }                                                                     \
+  if (r > 3) {                                                          \
+    int64_t i = remainder % shape3;                                     \
+    dst_offset += i * dst_stride3;                                      \
+    src_offset += i * src_stride3;                                      \
+    remainder /= shape3;                                                \
+  }                                                                     \
+  if (r > 4) {                                                          \
+    int64_t i = remainder % shape4;                                     \
+    dst_offset += i * dst_stride4;                                      \
+    src_offset += i * src_stride4;                                      \
+    remainder /= shape4;                                                \
+  }                                                                     \
+  if (r > 5) {                                                          \
+    int64_t i = remainder % shape5;                                     \
+    dst_offset += i * dst_stride5;                                      \
+    src_offset += i * src_stride5;                                      \
+    remainder /= shape5;                                                \
+  }                                                                     \
+  if (r > 6) {                                                          \
+    int64_t i = remainder % shape6;                                     \
+    dst_offset += i * dst_stride6;                                      \
+    src_offset += i * src_stride6;                                      \
+    remainder /= shape6;                                                \
+  }                                                                     \
+  if (r > 7) {                                                          \
+    int64_t i = remainder % shape7;                                     \
+    dst_offset += i * dst_stride7;                                      \
+    src_offset += i * src_stride7;                                      \
+    remainder /= shape7;                                                \
+  }                                                                     \
+                                                                        \
+  dst_mem[dst_offset] = src_mem[src_offset];                            \
 }
 
 GEN_COPY_KERNEL(1b, uint8_t)
@@ -5189,40 +5190,248 @@ GEN_COPY_KERNEL(4b, uint32_t)
 GEN_COPY_KERNEL(8b, uint64_t)
 
 // End of copy.cl
+using namespace cute;
+
+template<class TypeIn>
+struct convert_type {
+    using TypeOut = TypeIn;
+};
+
+template<>
+struct convert_type<f16> {
+    using TypeOut = half_t;
+};
+
+template<class ElmTypeAIn, class ElmTypeBIn, class ElmTypeCIn, class SizeM, class SizeN, class WarpsM, class WarpsN>
+struct get_mma_config {};
+
+// TODO: use FMA when Tensor Cores not available?
+
+template<class SizeM, class SizeN, class WarpsM, class WarpsN>
+struct get_mma_config<half_t, half_t, half_t, SizeM, SizeN, WarpsM, WarpsN> {
+    // TODO: should depend on architecture available
+    using MMATraits = MMA_Traits<SM80_16x8x16_F16F16F16F16_TN>;
+    using ACopyOpSharedRegisters = SM75_U32x4_LDSM_N;
+    using BCopyOpSharedRegisters = SM75_U16x8_LDSM_T;
+
+    using MMATile = Tile<Int<16 * WarpsM{}>, Int<16 * WarpsN{}>, _16>;
+    using TiledMMA = TiledMMA<
+        MMA_Atom<MMATraits>,
+        Layout<Shape<WarpsM,WarpsN,_1>>,
+        MMATile
+    >;
+};
+
+template<class SizeM, class SizeN, class WarpsM, class WarpsN>
+struct get_mma_config<half_t, half_t, float, SizeM, SizeN, WarpsM, WarpsN>{
+    // TODO: should depend on architecture available
+    using MMATraits = MMA_Traits<SM80_16x8x16_F32F16F16F32_TN>;
+    using ACopyOpSharedRegisters = SM75_U32x4_LDSM_N;
+    using BCopyOpSharedRegisters = SM75_U16x8_LDSM_T;
+
+    using MMATile = Tile<Int<16 * WarpsM{}>, Int<16 * WarpsN{}>, _16>;
+    using TiledMMA = TiledMMA<
+        MMA_Atom<MMATraits>,
+        Layout<Shape<WarpsM,WarpsN,_1>>,
+        MMATile
+    >;
+};
+
+template<class SizeY, class SizeX, class Swizzle, class Majorness, int shift_len>
+struct get_layout_config {};
+
+template<class SizeY, class SizeX, int shift_len>
+struct get_layout_config<SizeY, SizeX, _1, LayoutRight, shift_len>{
+    using SharedLayout = ComposedLayout<Swizzle<3, 3, shift_len>, _0, Layout<Shape<SizeY, SizeX>, Stride<SizeX, _1>>>;
+};
+
+template<class SizeY, class SizeX, int shift_len>
+struct get_layout_config<SizeY, SizeX, _0, LayoutRight, shift_len>{
+    using SharedLayout = Layout<Shape<SizeY, SizeX>, Stride<SizeX, _1>>;
+};
+
+template<class SizeY, class SizeX, int shift_len>
+struct get_layout_config<SizeY, SizeX, _1, LayoutLeft, shift_len>{
+    using SharedLayout = ComposedLayout<Swizzle<3, 3, shift_len>, _0, Layout<Shape<SizeY, SizeX>, Stride<_1, SizeY>>>;
+};
+
+template<class SizeY, class SizeX, int shift_len>
+struct get_layout_config<SizeY, SizeX, _0, LayoutLeft, shift_len>{
+    using SharedLayout = Layout<Shape<SizeY, SizeX>, Stride<_1, SizeY>>;
+};
+
+template<class ElmTypeIn, class SizeY, class SizeX, class WarpsM, class WarpsN>
+FUTHARK_FUN_ATTR void futrts_copyGlobalShared(unsigned char **mem_out_p, unsigned char *global_mem, unsigned char *shared_mem, int64_t offset, ElmTypeIn, SizeY, SizeX, WarpsM, WarpsN)
+{
+    *mem_out_p = shared_mem;
+
+    int flatThreadIdx = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
+
+    if (flatThreadIdx < WarpsM{} * WarpsN{} * 32) {
+      using ElmType = typename convert_type<ElmTypeIn>::TypeOut;
+
+      using CopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<uint128_t>;
+
+      constexpr int elmsPerLoad = 16 / sizeof(ElmType);
+      constexpr int threadsX = SizeX{} / elmsPerLoad;
+      constexpr int threadsY = (WarpsM{} * WarpsN{} * 32) / threadsX;
+
+      constexpr unsigned int sizeXunsigned = SizeX{};
+      constexpr unsigned int shift_len = max(bit_width(sizeXunsigned) - 4, _3{});
+
+      using LayoutConfig = get_layout_config<SizeY, SizeX, _1, LayoutRight, shift_len>;
+      typename LayoutConfig::SharedLayout s_layout;
+
+      auto g_layout = make_layout(Shape<SizeY, SizeX>{}, LayoutRight{});
+
+      TiledCopy copy_global_shared = make_tiled_copy(Copy_Atom<CopyOpGlobalShared, ElmType>{},
+          make_layout(Shape<Int<threadsY>, Int<threadsX>>{}, LayoutRight{}),
+          Layout<Shape<_1,Int<elmsPerLoad>>>{}
+      );
+
+      Tensor s = make_tensor(make_smem_ptr(reinterpret_cast<ElmType *>(shared_mem)), s_layout);
+      Tensor g = make_tensor(make_gmem_ptr(&reinterpret_cast<ElmType *>(global_mem)[offset]), g_layout);
+
+      ThrCopy thr_copy_global_shared = copy_global_shared.get_slice(flatThreadIdx);
+      Tensor tAgA = thr_copy_global_shared.partition_S(g);
+      Tensor tAsA = thr_copy_global_shared.partition_D(s);
+
+      copy(copy_global_shared, tAgA, tAsA);
+
+      cp_async_fence();
+    }
+
+//     Assuming the copied data is only used in futrts_tensorMMM, we do not need to wait for it here
+     cp_async_wait<0>();
+     __syncthreads();
+}
+
+template<class ElmTypeAIn, class ElmTypeBIn, class ElmTypeCIn, class SizeM, class SizeN, class WarpsM, class WarpsN, int numRegs>
+FUTHARK_FUN_ATTR void futrts_copyRegistersShared(unsigned char **mem_out_p, ElmTypeCIn (&registers_mem)[numRegs], unsigned char *shared_mem, ElmTypeAIn, ElmTypeBIn, SizeM, SizeN, WarpsM, WarpsN)
+{
+    *mem_out_p = shared_mem;
+
+    int flatThreadIdx = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
+
+    if (flatThreadIdx < WarpsM{} * WarpsN{} * 32) {
+        using ElmTypeA = typename convert_type<ElmTypeAIn>::TypeOut;
+        using ElmTypeB = typename convert_type<ElmTypeBIn>::TypeOut;
+        using ElmTypeC = typename convert_type<ElmTypeCIn>::TypeOut;
+
+        using MMAConfig = get_mma_config<ElmTypeA, ElmTypeB, ElmTypeC, SizeM, SizeN, WarpsM, WarpsN>;
+        typename MMAConfig::TiledMMA tiled_mma;
+
+        auto s_layout = make_layout(Shape<SizeM, SizeN>{}, LayoutRight{});
+
+        ThrMMA thr_mma = tiled_mma.get_slice(flatThreadIdx);
+
+        auto rC_layout = partition_shape_C(thr_mma, s_layout.shape());
+        Tensor tCrC = make_tensor(make_rmem_ptr(reinterpret_cast<ElmTypeC *>(registers_mem)), rC_layout);
+
+        Tensor s = make_tensor(make_gmem_ptr(reinterpret_cast<ElmTypeC *>(shared_mem)), s_layout);
+        Tensor tCsC = thr_mma.partition_C(s);
+
+        copy(AutoVectorizingCopy{}, tCrC, tCsC);
+    }
+    __syncthreads();
+}
+
+template<class ElmTypeAIn, class ElmTypeBIn, class ElmTypeCIn, class SizeM, class SizeN, class SizeK, class WarpsM, class WarpsN, class ASwizzled, class BSwizzled, int numRegs>
+FUTHARK_FUN_ATTR void futrts_tensorMMM(ElmTypeCIn (*mem_out_p)[numRegs], unsigned char *A_mem, unsigned char *B_mem, ElmTypeCIn (&C_mem)[numRegs], ElmTypeAIn, ElmTypeBIn, SizeM, SizeN, SizeK, WarpsM, WarpsN, ASwizzled, BSwizzled)
+{
+    int flatThreadIdx = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
+
+    using ElmTypeA = typename convert_type<ElmTypeAIn>::TypeOut;
+    using ElmTypeB = typename convert_type<ElmTypeBIn>::TypeOut;
+    using ElmTypeC = typename convert_type<ElmTypeCIn>::TypeOut;
+
+    using MMAConfig = get_mma_config<ElmTypeA, ElmTypeB, ElmTypeC, SizeM, SizeN, WarpsM, WarpsN>;
+    typename MMAConfig::TiledMMA tiled_mma;
+
+    constexpr unsigned int sizeKunsigned = SizeK{};
+    constexpr unsigned int shift_lenK = max(bit_width(sizeKunsigned) - 4, _3{});
+
+    constexpr unsigned int sizeNunsigned = SizeN{};
+    constexpr unsigned int shift_lenN = max(bit_width(sizeNunsigned) - 4, _3{});
+
+    using ALayoutConfig = get_layout_config<SizeM, SizeK, ASwizzled, LayoutRight, shift_lenK>;
+    using BLayoutConfig = get_layout_config<SizeN, SizeK, BSwizzled, LayoutLeft, shift_lenN>;
+    typename ALayoutConfig::SharedLayout sA_layout;
+    typename BLayoutConfig::SharedLayout sB_layout;
+
+    auto sC_layout = make_layout(Shape<SizeM, SizeN>{}, LayoutRight{});
+
+    ThrMMA thr_mma = tiled_mma.get_slice(flatThreadIdx);
+
+    auto rC_layout = partition_shape_C(thr_mma, sC_layout.shape());
+    Tensor tCrC = make_tensor(make_rmem_ptr(reinterpret_cast<ElmTypeC *>(C_mem)), rC_layout);
+
+    Tensor sA = make_tensor(make_smem_ptr(reinterpret_cast<ElmTypeA *>(A_mem)), sA_layout);
+    Tensor sB = make_tensor(make_smem_ptr(reinterpret_cast<ElmTypeB *>(B_mem)), sB_layout);
+
+    TiledCopy smem_tiled_copy_A = make_tiled_copy_A(Copy_Atom<typename MMAConfig::ACopyOpSharedRegisters, ElmTypeA>{}, tiled_mma);
+    TiledCopy smem_tiled_copy_B = make_tiled_copy_B(Copy_Atom<typename MMAConfig::BCopyOpSharedRegisters, ElmTypeB>{}, tiled_mma);
+
+    Tensor tCrA  = thr_mma.partition_fragment_A(sA);
+    Tensor tCrB  = thr_mma.partition_fragment_B(sB);
+
+    auto smem_thr_copy_A   = smem_tiled_copy_A.get_thread_slice(threadIdx.x);
+    Tensor tCsA            = smem_thr_copy_A.partition_S(sA);
+    Tensor tCrA_copy_view  = smem_thr_copy_A.retile_D(tCrA);
+
+    auto smem_thr_copy_B   = smem_tiled_copy_B.get_thread_slice(threadIdx.x);
+    Tensor tCsB            = smem_thr_copy_B.partition_S(sB);
+    Tensor tCrB_copy_view  = smem_thr_copy_B.retile_D(tCrB);
+
+    constexpr int K_BLOCK_MAX = size<2>(tCrA);
+    CUTE_UNROLL
+    for (int k_block = 0; k_block < K_BLOCK_MAX; ++k_block)
+    {
+        // Copy shared->registers
+        copy(smem_tiled_copy_A, tCsA(_,_,k_block), tCrA_copy_view(_,_,k_block));
+        copy(smem_tiled_copy_B, tCsB(_,_,k_block), tCrB_copy_view(_,_,k_block));
+
+        // GEMM on k_block in registers
+        gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);
+    }
+
+    for (int32_t i = 0; i < numRegs; i++)
+        (*mem_out_p)[i] = C_mem[i];
+}
 
 
 
 FUTHARK_KERNEL
-void builtinzhreplicate_f16zireplicate_8320(int64_t num_elems_8316, uint16_t val_8317_bits, int64_t replicate_n_8319, int64_t virt_num_tblocks_8325, int64_t num_tblocks_8326, __global unsigned char *mem_8315)
+void builtinzhreplicate_f16zireplicate_9602(int64_t num_elems_9598, uint16_t val_9599_bits, int64_t replicate_n_9601, int64_t virt_num_tblocks_9607, int64_t num_tblocks_9608, __global unsigned char *mem_9597)
 {
-    f16 val_8317 = futrts_from_bits16(val_8317_bits);
-    int32_t replicate_ltid_8321;
-    int32_t tblock_sizze_8323;
-    int32_t replicate_gid_8322;
-    int32_t replicate_gtid_8320;
-    int32_t phys_tblock_id_8327;
-    int32_t iterations_8328;
+    f16 val_9599 = futrts_from_bits16(val_9599_bits);
+    int32_t replicate_ltid_9603;
+    int32_t tblock_sizze_9605;
+    int32_t replicate_gid_9604;
+    int32_t replicate_gtid_9602;
+    int32_t phys_tblock_id_9609;
+    int32_t iterations_9610;
     
-    replicate_ltid_8321 = get_local_id(0);
-    tblock_sizze_8323 = get_local_size(0);
-    replicate_gid_8322 = get_tblock_id(0);
-    replicate_gtid_8320 = replicate_gid_8322 * tblock_sizze_8323 + replicate_ltid_8321;
-    phys_tblock_id_8327 = get_tblock_id(0);
-    iterations_8328 = sdiv_up32(sext_i64_i32(virt_num_tblocks_8325) - phys_tblock_id_8327, sext_i64_i32(num_tblocks_8326));
-    for (int32_t i_8329 = 0; i_8329 < iterations_8328; i_8329++) {
-        int32_t virt_tblock_id_8330;
-        int64_t global_tid_8331;
-        int64_t slice_8333;
-        int64_t rep_i_8332;
-        int64_t remnant_8334;
+    replicate_ltid_9603 = get_local_id(0);
+    tblock_sizze_9605 = get_local_size(0);
+    replicate_gid_9604 = get_tblock_id(0);
+    replicate_gtid_9602 = replicate_gid_9604 * tblock_sizze_9605 + replicate_ltid_9603;
+    phys_tblock_id_9609 = get_tblock_id(0);
+    iterations_9610 = sdiv_up32(sext_i64_i32(virt_num_tblocks_9607) - phys_tblock_id_9609, sext_i64_i32(num_tblocks_9608));
+    for (int32_t i_9611 = 0; i_9611 < iterations_9610; i_9611++) {
+        int32_t virt_tblock_id_9612;
+        int64_t global_tid_9613;
+        int64_t slice_9615;
+        int64_t rep_i_9614;
+        int64_t remnant_9616;
         
-        virt_tblock_id_8330 = phys_tblock_id_8327 + i_8329 * sext_i64_i32(num_tblocks_8326);
-        global_tid_8331 = sext_i32_i64(virt_tblock_id_8330) * sext_i32_i64(tblock_sizze_8323) + sext_i32_i64(replicate_ltid_8321);
-        slice_8333 = num_elems_8316;
-        rep_i_8332 = global_tid_8331;
-        remnant_8334 = global_tid_8331 - rep_i_8332;
-        if (slt64(global_tid_8331, replicate_n_8319)) {
-            ((__global uint16_t *) mem_8315)[rep_i_8332] = futrts_to_bits16(val_8317);
+        virt_tblock_id_9612 = phys_tblock_id_9609 + i_9611 * sext_i64_i32(num_tblocks_9608);
+        global_tid_9613 = sext_i32_i64(virt_tblock_id_9612) * sext_i32_i64(tblock_sizze_9605) + sext_i32_i64(replicate_ltid_9603);
+        slice_9615 = num_elems_9598;
+        rep_i_9614 = global_tid_9613;
+        remnant_9616 = global_tid_9613 - rep_i_9614;
+        if (slt64(global_tid_9613, replicate_n_9601)) {
+            ((__global uint16_t *) mem_9597)[rep_i_9614] = futrts_to_bits16(val_9599);
         }
         barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE);
     }
@@ -5230,347 +5439,647 @@ void builtinzhreplicate_f16zireplicate_8320(int64_t num_elems_8316, uint16_t val
   error_1:
     return;
 }
-FUTHARK_KERNEL_SIZED(mainzisegmap_intrablock_8244_dim1, 1, 1)
-void mainzisegmap_intrablock_8244(__global int *global_failure, int32_t num_chunks_8315, __global unsigned char *A_mem_8284, __global unsigned char *B_mem_8285, __global unsigned char *mem_8306)
+FUTHARK_KERNEL_SIZED(run_square_largezisegmap_intrablock_8748_dim1, 1, 1)
+void run_square_largezisegmap_intrablock_8748(__global int *global_failure, int failure_is_an_option, __global int64_t *global_failure_args, int32_t num_chunks_9597, __global unsigned char *A_mem_9519, __global unsigned char *B_mem_9520, __global unsigned char *mem_9574)
 {
-    volatile __local unsigned char *red_arr_mem_8355_backing_2 = &shared_mem[0];
-    const int64_t red_arr_mem_8355_backing_2_offset = 0 + (int64_t) 4194304;
-    volatile __local unsigned char *color_8312_backing_1 = &shared_mem[red_arr_mem_8355_backing_2_offset];
-    const int64_t color_8312_backing_1_offset = red_arr_mem_8355_backing_2_offset + (int64_t) 65536;
-    volatile __local unsigned char *color_8311_backing_0 = &shared_mem[color_8312_backing_1_offset];
-    const int64_t color_8311_backing_0_offset = color_8312_backing_1_offset + (int64_t) 65536;
+    volatile __local unsigned char *color_9594_backing_2 = &shared_mem[0];
+    const int64_t color_9594_backing_2_offset = 0 + (int64_t) 65536;
+    volatile __local unsigned char *color_9593_backing_1 = &shared_mem[color_9594_backing_2_offset];
+    const int64_t color_9593_backing_1_offset = color_9594_backing_2_offset + (int64_t) 16384;
+    volatile __local unsigned char *color_9592_backing_0 = &shared_mem[color_9593_backing_1_offset];
+    const int64_t color_9592_backing_0_offset = color_9593_backing_1_offset + (int64_t) 65536;
+    volatile __local int local_failure;
     
-    if (*global_failure >= 0)
-        return;
+    // Harmless for all threads to write this.
+    local_failure = 0;
     
-    int32_t local_tid_8319;
-    int32_t tblock_sizze_8322;
-    int32_t wave_sizze_8321;
-    int32_t block_id_8320;
-    int32_t global_tid_8318;
-    int64_t phys_tblock_id_8244;
-    int64_t slice_8324;
-    int64_t ltid_pre_8323;
-    int64_t remnant_8325;
-    int64_t slice_8328;
-    int64_t slice_8329;
-    int64_t ltid_pre_8326;
-    int64_t remnant_8330;
-    int64_t ltid_pre_8327;
-    int64_t remnant_8331;
-    int64_t slice_8335;
-    int64_t slice_8336;
-    int64_t slice_8337;
-    int64_t ltid_pre_8332;
-    int64_t remnant_8338;
-    int64_t ltid_pre_8333;
-    int64_t remnant_8339;
-    int64_t ltid_pre_8334;
-    int64_t remnant_8340;
-    int64_t slice_8341;
-    int64_t slice_8342;
-    int64_t gtid_8242;
-    int64_t remnant_8343;
-    int64_t gtid_8243;
-    int64_t remnant_8344;
-    __local unsigned char *color_8311;
-    __local unsigned char *color_8312;
-    int32_t num_chunks_8375;
+    int32_t local_tid_9600;
+    int32_t tblock_sizze_9603;
+    int32_t wave_sizze_9602;
+    int32_t block_id_9601;
+    int32_t global_tid_9599;
+    int64_t phys_tblock_id_8748;
+    int64_t slice_9605;
+    int64_t ltid_pre_9604;
+    int64_t remnant_9606;
+    int64_t slice_9609;
+    int64_t slice_9610;
+    int64_t ltid_pre_9607;
+    int64_t remnant_9611;
+    int64_t ltid_pre_9608;
+    int64_t remnant_9612;
+    int64_t slice_9613;
+    int64_t slice_9614;
+    int64_t gtid_8746;
+    int64_t remnant_9615;
+    int64_t gtid_8747;
+    int64_t remnant_9616;
+    __local unsigned char *color_9592;
+    __local unsigned char *color_9593;
+    __local unsigned char *color_9594;
+    int64_t binop_x_9280;
+    int64_t binop_y_9284;
+    float mem_9540[(int64_t) 128];
+    float mem_9556[(int64_t) 128];
     
-    local_tid_8319 = get_local_id(0);
-    tblock_sizze_8322 = get_local_size(0);
-    wave_sizze_8321 = LOCKSTEP_WIDTH;
-    block_id_8320 = get_tblock_id(0);
-    global_tid_8318 = block_id_8320 * tblock_sizze_8322 + local_tid_8319;
-    phys_tblock_id_8244 = sext_i32_i64(block_id_8320);
-    slice_8324 = (int64_t) 128;
-    ltid_pre_8323 = sext_i32_i64(local_tid_8319);
-    remnant_8325 = sext_i32_i64(local_tid_8319) - ltid_pre_8323;
-    slice_8328 = (int64_t) 128;
-    slice_8329 = (int64_t) 128 * slice_8328;
-    ltid_pre_8326 = squot64(sext_i32_i64(local_tid_8319), slice_8328);
-    remnant_8330 = sext_i32_i64(local_tid_8319) - ltid_pre_8326 * slice_8328;
-    ltid_pre_8327 = remnant_8330;
-    remnant_8331 = remnant_8330 - ltid_pre_8327;
-    slice_8335 = (int64_t) 64;
-    slice_8336 = (int64_t) 128 * slice_8335;
-    slice_8337 = (int64_t) 128 * slice_8336;
-    ltid_pre_8332 = squot64(sext_i32_i64(local_tid_8319), slice_8336);
-    remnant_8338 = sext_i32_i64(local_tid_8319) - ltid_pre_8332 * slice_8336;
-    ltid_pre_8333 = squot64(remnant_8338, slice_8335);
-    remnant_8339 = remnant_8338 - ltid_pre_8333 * slice_8335;
-    ltid_pre_8334 = remnant_8339;
-    remnant_8340 = remnant_8339 - ltid_pre_8334;
-    slice_8341 = (int64_t) 32;
-    slice_8342 = (int64_t) 32 * slice_8341;
-    gtid_8242 = squot64(sext_i32_i64(block_id_8320), slice_8341);
-    remnant_8343 = sext_i32_i64(block_id_8320) - gtid_8242 * slice_8341;
-    gtid_8243 = remnant_8343;
-    remnant_8344 = remnant_8343 - gtid_8243;
-    color_8311 = (__local unsigned char *) color_8311_backing_0;
-    color_8312 = (__local unsigned char *) color_8312_backing_1;
-    for (int32_t chunk_i_8348 = 0; chunk_i_8348 < num_chunks_8315; chunk_i_8348++) {
-        int32_t i_8349;
-        int64_t slice_8350;
-        int64_t slice_8351;
-        int64_t rep_i_8346;
-        int64_t remnant_8352;
-        int64_t rep_i_8347;
-        int64_t remnant_8353;
-        
-        i_8349 = chunk_i_8348 * 1048576 + local_tid_8319;
-        slice_8350 = (int64_t) 128;
-        slice_8351 = (int64_t) 128 * slice_8350;
-        rep_i_8346 = squot64(sext_i32_i64(i_8349), slice_8350);
-        remnant_8352 = sext_i32_i64(i_8349) - rep_i_8346 * slice_8350;
-        rep_i_8347 = remnant_8352;
-        remnant_8353 = remnant_8352 - rep_i_8347;
-        if ((sle64((int64_t) 0, rep_i_8346) && slt64(rep_i_8346, (int64_t) 128)) && (sle64((int64_t) 0, rep_i_8347) && slt64(rep_i_8347, (int64_t) 128))) {
-            ((__local float *) color_8312)[rep_i_8346 * (int64_t) 128 + rep_i_8347] = 0.0F;
-        }
+    local_tid_9600 = get_local_id(0);
+    tblock_sizze_9603 = get_local_size(0);
+    wave_sizze_9602 = LOCKSTEP_WIDTH;
+    block_id_9601 = get_tblock_id(0);
+    global_tid_9599 = block_id_9601 * tblock_sizze_9603 + local_tid_9600;
+    phys_tblock_id_8748 = sext_i32_i64(block_id_9601);
+    slice_9605 = (int64_t) 128;
+    ltid_pre_9604 = sext_i32_i64(local_tid_9600);
+    remnant_9606 = sext_i32_i64(local_tid_9600) - ltid_pre_9604;
+    slice_9609 = (int64_t) 128;
+    slice_9610 = (int64_t) 128 * slice_9609;
+    ltid_pre_9607 = squot64(sext_i32_i64(local_tid_9600), slice_9609);
+    remnant_9611 = sext_i32_i64(local_tid_9600) - ltid_pre_9607 * slice_9609;
+    ltid_pre_9608 = remnant_9611;
+    remnant_9612 = remnant_9611 - ltid_pre_9608;
+    slice_9613 = (int64_t) 32;
+    slice_9614 = (int64_t) 32 * slice_9613;
+    gtid_8746 = squot64(sext_i32_i64(block_id_9601), slice_9613);
+    remnant_9615 = sext_i32_i64(block_id_9601) - gtid_8746 * slice_9613;
+    gtid_8747 = remnant_9615;
+    remnant_9616 = remnant_9615 - gtid_8747;
+    color_9592 = (__local unsigned char *) color_9592_backing_0;
+    color_9593 = (__local unsigned char *) color_9593_backing_1;
+    color_9594 = (__local unsigned char *) color_9594_backing_2;
+    //for (int32_t chunk_i_9620 = 0; chunk_i_9620 < num_chunks_9597; chunk_i_9620++) {
+    //    int32_t i_9621;
+    //    int64_t slice_9622;
+    //    int64_t slice_9623;
+    //    int64_t rep_i_9618;
+    //    int64_t remnant_9624;
+    //    int64_t rep_i_9619;
+    //    int64_t remnant_9625;
+    //    
+    //    i_9621 = chunk_i_9620 * 128 + local_tid_9600;
+    //    slice_9622 = (int64_t) 128;
+    //    slice_9623 = (int64_t) 128 * slice_9622;
+    //    rep_i_9618 = squot64(sext_i32_i64(i_9621), slice_9622);
+    //    remnant_9624 = sext_i32_i64(i_9621) - rep_i_9618 * slice_9622;
+    //    rep_i_9619 = remnant_9624;
+    //    remnant_9625 = remnant_9624 - rep_i_9619;
+    //    if ((sle64((int64_t) 0, rep_i_9618) && slt64(rep_i_9618, (int64_t) 128)) && (sle64((int64_t) 0, rep_i_9619) && slt64(rep_i_9619, (int64_t) 128))) {
+    //        ((__local float *) color_9594)[rep_i_9618 * (int64_t) 128 + rep_i_9619] = 0.0F;
+    //    }
+    //}
+    barrier(CLK_LOCAL_MEM_FENCE);
+    binop_x_9280 = (int64_t) 524288 * gtid_8746;
+    binop_y_9284 = (int64_t) 8192 * gtid_8747;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    __local unsigned char* ext_mem_9560;
+    for (int64_t i_9272 = 0; i_9272 < (int64_t) 128; i_9272++) {
+        mem_9540[i_9272] = 0.0F;
     }
-    barrier(CLK_LOCAL_MEM_FENCE);
-    barrier(CLK_LOCAL_MEM_FENCE);
-    for (int64_t K_i_8251 = 0; K_i_8251 < (int64_t) 64; K_i_8251++) {
-        int64_t phys_tid_8260;
-        __local unsigned char *red_arr_mem_8355;
-        int64_t gtid_8257;
-        int64_t gtid_8258;
-        int64_t gtid_8259;
-        int64_t dims_flat_8357;
-        float eta_p_8261;
-        float eta_p_8262;
-        float eta_p_8359;
-        float eta_p_8360;
-        bool ltid_in_bounds_8362;
-        int32_t skip_threads_8363;
-        bool no_carry_in_8369;
+    for (int64_t K_i_8755 = 0; K_i_8755 < (int64_t) 64; K_i_8755++) {
+        int64_t ltid_flat_9264;
+        int64_t ltid_9263;
+        //float mem_9531[(int64_t) 128];
+        int64_t binop_y_9281;
+        int64_t offsetA_9282;
+        int64_t binop_x_9283;
+        int64_t offsetB_9285;
+        __local unsigned char *ext_mem_9545;
+        __local unsigned char *ext_mem_9548;
+        int64_t ltid_flat_9289;
+        int64_t ltid_9288;
+        float ext_mem_9549[(int64_t) 128];
+        //__local unsigned char *ext_mem_9560;
         
-        phys_tid_8260 = sext_i32_i64(local_tid_8319);
-        red_arr_mem_8355 = (__local unsigned char *) red_arr_mem_8355_backing_2;
-        gtid_8257 = sext_i32_i64(sext_i64_i32(ltid_pre_8332));
-        gtid_8258 = sext_i32_i64(sext_i64_i32(ltid_pre_8333));
-        gtid_8259 = sext_i32_i64(sext_i64_i32(ltid_pre_8334));
-        if ((slt64(gtid_8257, (int64_t) 128) && slt64(gtid_8258, (int64_t) 128)) && slt64(gtid_8259, (int64_t) 64)) {
-            f16 eta_p_8266;
-            f16 eta_p_8267;
-            f16 defunc_0_f_res_8268;
-            float f16_res_8269;
-            
-            eta_p_8266 = futrts_from_bits16(((__global uint16_t *) A_mem_8284)[gtid_8242 * (int64_t) 524288 + K_i_8251 * (int64_t) 8192 + gtid_8257 * (int64_t) 64 + gtid_8259]);
-            eta_p_8267 = futrts_from_bits16(((__global uint16_t *) B_mem_8285)[K_i_8251 * (int64_t) 262144 + gtid_8243 * (int64_t) 8192 + gtid_8259 * (int64_t) 128 + gtid_8258]);
-            defunc_0_f_res_8268 = eta_p_8266 * eta_p_8267;
-            f16_res_8269 = fpconv_f16_f32(defunc_0_f_res_8268);
-            ((__local float *) red_arr_mem_8355)[gtid_8257 * (int64_t) 8192 + gtid_8258 * (int64_t) 64 + gtid_8259] = f16_res_8269;
-        }
+        ltid_flat_9264 = sext_i32_i64(local_tid_9600);
+        ltid_9263 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        //for (int64_t i_9272 = 0; i_9272 < (int64_t) 128; i_9272++) {
+        //    mem_9531[i_9272] = 0.0F;
+        //}
+        //for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {
+        //    mem_9540[i_0] = mem_9531[i_0];
+        //}
         barrier(CLK_LOCAL_MEM_FENCE);
-        dims_flat_8357 = (int64_t) 1048576;
-        ltid_in_bounds_8362 = slt64(sext_i32_i64(local_tid_8319), (int64_t) 1048576);
-        // read input for in-block scan
-        {
-            if (ltid_in_bounds_8362) {
-                eta_p_8262 = ((volatile __local float *) red_arr_mem_8355)[sext_i32_i64(local_tid_8319)];
-                if ((local_tid_8319 - squot32(local_tid_8319, 32) * 32) == 0) {
-                    eta_p_8261 = eta_p_8262;
-                }
-            }
-        }
-        // in-block scan (hopefully no barriers needed)
-        {
-            skip_threads_8363 = 1;
-            while (slt32(skip_threads_8363, 32)) {
-                bool thread_active_8364 = sle32(skip_threads_8363, local_tid_8319 - squot32(local_tid_8319, 32) * 32) && ltid_in_bounds_8362;
-                
-                if (thread_active_8364) {
-                    // read operands
-                    {
-                        eta_p_8261 = ((volatile __local float *) red_arr_mem_8355)[sext_i32_i64(local_tid_8319) - sext_i32_i64(skip_threads_8363)];
-                    }
-                }
-                // perform operation
-                {
-                    bool inactive_8365 = slt64(srem64(sext_i32_i64(local_tid_8319), (int64_t) 64), sext_i32_i64(local_tid_8319) - sext_i32_i64(local_tid_8319 - skip_threads_8363));
-                    
-                    if (thread_active_8364 && inactive_8365) {
-                        eta_p_8261 = eta_p_8262;
-                    }
-                    if (thread_active_8364) {
-                        if (!inactive_8365) {
-                            float defunc_0_op_res_8263 = eta_p_8261 + eta_p_8262;
-                            
-                            eta_p_8261 = defunc_0_op_res_8263;
-                        }
-                    }
-                }
-                if (sle32(wave_sizze_8321, skip_threads_8363)) {
-                    barrier(CLK_LOCAL_MEM_FENCE);
-                }
-                if (thread_active_8364) {
-                    // write result
-                    {
-                        ((volatile __local float *) red_arr_mem_8355)[sext_i32_i64(local_tid_8319)] = eta_p_8261;
-                        eta_p_8262 = eta_p_8261;
-                    }
-                }
-                if (sle32(wave_sizze_8321, skip_threads_8363)) {
-                    barrier(CLK_LOCAL_MEM_FENCE);
-                }
-                skip_threads_8363 *= 2;
-            }
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-        // last thread of block 'i' writes its result to offset 'i'
-        {
-            if ((local_tid_8319 - squot32(local_tid_8319, 32) * 32) == 31 && ltid_in_bounds_8362) {
-                ((volatile __local float *) red_arr_mem_8355)[sext_i32_i64(squot32(local_tid_8319, 32))] = eta_p_8261;
-            }
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-        // scan the first block, after which offset 'i' contains carry-in for block 'i+1'
-        {
-            int32_t skip_threads_8366;
-            
-            // read input for in-block scan
-            {
-                if (squot32(local_tid_8319, 32) == 0 && ltid_in_bounds_8362) {
-                    eta_p_8360 = ((volatile __local float *) red_arr_mem_8355)[sext_i32_i64(local_tid_8319)];
-                    if ((local_tid_8319 - squot32(local_tid_8319, 32) * 32) == 0) {
-                        eta_p_8359 = eta_p_8360;
-                    }
-                }
-            }
-            // in-block scan (hopefully no barriers needed)
-            {
-                skip_threads_8366 = 1;
-                while (slt32(skip_threads_8366, 32)) {
-                    bool thread_active_8367 = sle32(skip_threads_8366, local_tid_8319 - squot32(local_tid_8319, 32) * 32) && (squot32(local_tid_8319, 32) == 0 && ltid_in_bounds_8362);
-                    
-                    if (thread_active_8367) {
-                        // read operands
-                        {
-                            eta_p_8359 = ((volatile __local float *) red_arr_mem_8355)[sext_i32_i64(local_tid_8319) - sext_i32_i64(skip_threads_8366)];
-                        }
-                    }
-                    // perform operation
-                    {
-                        bool inactive_8368 = slt64(srem64(sext_i32_i64(local_tid_8319 * 32 + 32 - 1), (int64_t) 64), sext_i32_i64(local_tid_8319 * 32 + 32 - 1) - sext_i32_i64((local_tid_8319 - skip_threads_8366) * 32 + 32 - 1));
-                        
-                        if (thread_active_8367 && inactive_8368) {
-                            eta_p_8359 = eta_p_8360;
-                        }
-                        if (thread_active_8367) {
-                            if (!inactive_8368) {
-                                float defunc_0_op_res_8361 = eta_p_8359 + eta_p_8360;
-                                
-                                eta_p_8359 = defunc_0_op_res_8361;
-                            }
-                        }
-                    }
-                    if (sle32(wave_sizze_8321, skip_threads_8366)) {
-                        barrier(CLK_LOCAL_MEM_FENCE);
-                    }
-                    if (thread_active_8367) {
-                        // write result
-                        {
-                            ((volatile __local float *) red_arr_mem_8355)[sext_i32_i64(local_tid_8319)] = eta_p_8359;
-                            eta_p_8360 = eta_p_8359;
-                        }
-                    }
-                    if (sle32(wave_sizze_8321, skip_threads_8366)) {
-                        barrier(CLK_LOCAL_MEM_FENCE);
-                    }
-                    skip_threads_8366 *= 2;
-                }
-            }
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-        no_carry_in_8369 = squot32(local_tid_8319, 32) == 0 || !ltid_in_bounds_8362;
-        // carry-in for every block except the first
-        {
-            // read operands
-            {
-                if (!no_carry_in_8369) {
-                    eta_p_8262 = eta_p_8261;
-                    eta_p_8261 = ((__local float *) red_arr_mem_8355)[sext_i32_i64(squot32(local_tid_8319, 32)) - (int64_t) 1];
-                }
-            }
-            // perform operation
-            {
-                bool inactive_8370 = slt64(srem64(sext_i32_i64(local_tid_8319), (int64_t) 64), sext_i32_i64(local_tid_8319) - sext_i32_i64(squot32(local_tid_8319, 32) * 32 - 1));
-                
-                if (!no_carry_in_8369) {
-                    if (inactive_8370) {
-                        eta_p_8261 = eta_p_8262;
-                    }
-                }
-                if (!no_carry_in_8369) {
-                    if (!inactive_8370) {
-                        float defunc_0_op_res_8263 = eta_p_8261 + eta_p_8262;
-                        
-                        eta_p_8261 = defunc_0_op_res_8263;
-                    }
-                }
-            }
-            // write final result
-            {
-                if (!no_carry_in_8369) {
-                    ((__local float *) red_arr_mem_8355)[sext_i32_i64(local_tid_8319)] = eta_p_8261;
-                }
-            }
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-        // restore correct values for first block
-        {
-            if (squot32(local_tid_8319, 32) == 0 && ltid_in_bounds_8362) {
-                ((__local float *) red_arr_mem_8355)[sext_i32_i64(local_tid_8319)] = eta_p_8262;
-            }
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-        barrier(CLK_LOCAL_MEM_FENCE);
-        // Save result of reduction.
-        {
-            int32_t num_chunks_8371 = 1;
-            
-            for (int32_t chunk_i_8372 = 0; chunk_i_8372 < num_chunks_8371; chunk_i_8372++) {
-                int32_t i_8373 = chunk_i_8372 * 1048576 + local_tid_8319;
-                
-                if (slt32(i_8373, 16384)) {
-                    ((__local float *) color_8311)[sext_i32_i64(squot32(i_8373, 128)) * (int64_t) 128 + sext_i32_i64(i_8373 - squot32(i_8373, 128) * 128)] = ((__local float *) red_arr_mem_8355)[(int64_t) 63 + sext_i32_i64(squot32(i_8373, 128)) * (int64_t) 8192 + sext_i32_i64(i_8373 - squot32(i_8373, 128) * 128) * (int64_t) 64];
-                }
-            }
+        binop_y_9281 = (int64_t) 8192 * K_i_8755;
+        offsetA_9282 = binop_x_9280 + binop_y_9281;
+        binop_x_9283 = (int64_t) 262144 * K_i_8755;
+        offsetB_9285 = binop_x_9283 + binop_y_9284;
+        futrts_copyGlobalShared(&ext_mem_9545, A_mem_9519, color_9593, offsetA_9282, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 64>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        futrts_copyGlobalShared(&ext_mem_9548, B_mem_9520, color_9592, offsetB_9285, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        ltid_flat_9289 = sext_i32_i64(local_tid_9600);
+        ltid_9288 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        futrts_tensorMMM(&ext_mem_9549, ext_mem_9545, ext_mem_9548, mem_9540, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 64>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});
+        //for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {
+        //    mem_9556[i_0] = ext_mem_9549[i_0];
+        //}
+        //barrier(CLK_LOCAL_MEM_FENCE);
+        //futrts_copyRegistersShared(&ext_mem_9560, mem_9556, color_9592, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        //barrier(CLK_LOCAL_MEM_FENCE);
+        //for (int64_t i_8775 = 0; i_8775 < (int64_t) 128; i_8775++) {
+        //    int64_t phys_tid_8782;
+        //    int64_t gtid_8781;
+        //    float eta_p_8783;
+        //    float eta_p_8784;
+        //    float defunc_0_f_res_8785;
+        //    
+        //    phys_tid_8782 = sext_i32_i64(local_tid_9600);
+        //    gtid_8781 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        //    eta_p_8783 = ((__local float *) ext_mem_9560)[i_8775 * (int64_t) 128 + gtid_8781];
+        //    eta_p_8784 = ((__local float *) color_9594)[i_8775 * (int64_t) 128 + gtid_8781];
+        //    defunc_0_f_res_8785 = eta_p_8783 + eta_p_8784;
+        //    ((__local float *) color_9594)[i_8775 * (int64_t) 128 + gtid_8781] = defunc_0_f_res_8785;
             barrier(CLK_LOCAL_MEM_FENCE);
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-        barrier(CLK_LOCAL_MEM_FENCE);
-        for (int64_t i_8271 = 0; i_8271 < (int64_t) 128; i_8271++) {
-            int64_t phys_tid_8278;
-            int64_t gtid_8277;
-            
-            phys_tid_8278 = sext_i32_i64(local_tid_8319);
-            gtid_8277 = sext_i32_i64(sext_i64_i32(ltid_pre_8323));
-            if (slt64(gtid_8277, (int64_t) 128)) {
-                float eta_p_8279;
-                float eta_p_8280;
-                float defunc_0_f_res_8281;
-                
-                eta_p_8279 = ((__local float *) color_8311)[i_8271 * (int64_t) 128 + gtid_8277];
-                eta_p_8280 = ((__local float *) color_8312)[i_8271 * (int64_t) 128 + gtid_8277];
-                defunc_0_f_res_8281 = eta_p_8279 + eta_p_8280;
-                ((__local float *) color_8312)[i_8271 * (int64_t) 128 + gtid_8277] = defunc_0_f_res_8281;
-            }
-            barrier(CLK_LOCAL_MEM_FENCE);
-        }
+        //}
     }
-    num_chunks_8375 = 1;
-    for (int32_t chunk_i_8376 = 0; chunk_i_8376 < num_chunks_8375; chunk_i_8376++) {
-        int32_t i_8377 = chunk_i_8376 * 1048576 + local_tid_8319;
-        
-        if (slt32(i_8377, 16384)) {
-            ((__global float *) mem_8306)[gtid_8242 * (int64_t) 524288 + gtid_8243 * (int64_t) 16384 + sext_i32_i64(squot32(i_8377, 128)) * (int64_t) 128 + sext_i32_i64(i_8377 - squot32(i_8377, 128) * 128)] = ((__local float *) color_8312)[sext_i32_i64(squot32(i_8377, 128)) * (int64_t) 128 + sext_i32_i64(i_8377 - squot32(i_8377, 128) * 128)];
-        }
+    futrts_copyRegistersShared(&ext_mem_9560, mem_9540, color_9594, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for (int32_t nest_i_9629 = 0; nest_i_9629 < 128; nest_i_9629++) {
+        ((__global float *) mem_9574)[gtid_8746 * (int64_t) 524288 + gtid_8747 * (int64_t) 16384 + sext_i32_i64(nest_i_9629) * (int64_t) 128 + sext_i32_i64(local_tid_9600)] = ((__local float *) color_9594)[sext_i32_i64(nest_i_9629) * (int64_t) 128 + sext_i32_i64(local_tid_9600)];
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     
-  error_6:
+  error_5:
+    return;
+}
+FUTHARK_KERNEL_SIZED(run_square_mediumzisegmap_intrablock_9183_dim1, 1, 1)
+void run_square_mediumzisegmap_intrablock_9183(__global int *global_failure, int failure_is_an_option, __global int64_t *global_failure_args, int32_t num_chunks_9597, __global unsigned char *A_mem_9519, __global unsigned char *B_mem_9520, __global unsigned char *mem_9574)
+{
+    volatile __local unsigned char *color_9594_backing_2 = &shared_mem[0];
+    const int64_t color_9594_backing_2_offset = 0 + (int64_t) 65536;
+    volatile __local unsigned char *color_9593_backing_1 = &shared_mem[color_9594_backing_2_offset];
+    const int64_t color_9593_backing_1_offset = color_9594_backing_2_offset + (int64_t) 16384;
+    volatile __local unsigned char *color_9592_backing_0 = &shared_mem[color_9593_backing_1_offset];
+    const int64_t color_9592_backing_0_offset = color_9593_backing_1_offset + (int64_t) 65536;
+    volatile __local int local_failure;
+    
+    // Harmless for all threads to write this.
+    local_failure = 0;
+    
+    int32_t local_tid_9600;
+    int32_t tblock_sizze_9603;
+    int32_t wave_sizze_9602;
+    int32_t block_id_9601;
+    int32_t global_tid_9599;
+    int64_t phys_tblock_id_9183;
+    int64_t slice_9605;
+    int64_t ltid_pre_9604;
+    int64_t remnant_9606;
+    int64_t slice_9609;
+    int64_t slice_9610;
+    int64_t ltid_pre_9607;
+    int64_t remnant_9611;
+    int64_t ltid_pre_9608;
+    int64_t remnant_9612;
+    int64_t slice_9613;
+    int64_t slice_9614;
+    int64_t gtid_9181;
+    int64_t remnant_9615;
+    int64_t gtid_9182;
+    int64_t remnant_9616;
+    __local unsigned char *color_9592;
+    __local unsigned char *color_9593;
+    __local unsigned char *color_9594;
+    int64_t binop_x_9502;
+    int64_t binop_y_9506;
+    float mem_9540[(int64_t) 128];
+    float mem_9556[(int64_t) 128];
+    
+    local_tid_9600 = get_local_id(0);
+    tblock_sizze_9603 = get_local_size(0);
+    wave_sizze_9602 = LOCKSTEP_WIDTH;
+    block_id_9601 = get_tblock_id(0);
+    global_tid_9599 = block_id_9601 * tblock_sizze_9603 + local_tid_9600;
+    phys_tblock_id_9183 = sext_i32_i64(block_id_9601);
+    slice_9605 = (int64_t) 128;
+    ltid_pre_9604 = sext_i32_i64(local_tid_9600);
+    remnant_9606 = sext_i32_i64(local_tid_9600) - ltid_pre_9604;
+    slice_9609 = (int64_t) 128;
+    slice_9610 = (int64_t) 128 * slice_9609;
+    ltid_pre_9607 = squot64(sext_i32_i64(local_tid_9600), slice_9609);
+    remnant_9611 = sext_i32_i64(local_tid_9600) - ltid_pre_9607 * slice_9609;
+    ltid_pre_9608 = remnant_9611;
+    remnant_9612 = remnant_9611 - ltid_pre_9608;
+    slice_9613 = (int64_t) 16;
+    slice_9614 = (int64_t) 16 * slice_9613;
+    gtid_9181 = squot64(sext_i32_i64(block_id_9601), slice_9613);
+    remnant_9615 = sext_i32_i64(block_id_9601) - gtid_9181 * slice_9613;
+    gtid_9182 = remnant_9615;
+    remnant_9616 = remnant_9615 - gtid_9182;
+    color_9592 = (__local unsigned char *) color_9592_backing_0;
+    color_9593 = (__local unsigned char *) color_9593_backing_1;
+    color_9594 = (__local unsigned char *) color_9594_backing_2;
+    //for (int32_t chunk_i_9620 = 0; chunk_i_9620 < num_chunks_9597; chunk_i_9620++) {
+    //    int32_t i_9621;
+    //    int64_t slice_9622;
+    //    int64_t slice_9623;
+    //    int64_t rep_i_9618;
+    //    int64_t remnant_9624;
+    //    int64_t rep_i_9619;
+    //    int64_t remnant_9625;
+    //    
+    //    i_9621 = chunk_i_9620 * 128 + local_tid_9600;
+    //    slice_9622 = (int64_t) 128;
+    //    slice_9623 = (int64_t) 128 * slice_9622;
+    //    rep_i_9618 = squot64(sext_i32_i64(i_9621), slice_9622);
+    //    remnant_9624 = sext_i32_i64(i_9621) - rep_i_9618 * slice_9622;
+    //    rep_i_9619 = remnant_9624;
+    //    remnant_9625 = remnant_9624 - rep_i_9619;
+    //    if ((sle64((int64_t) 0, rep_i_9618) && slt64(rep_i_9618, (int64_t) 128)) && (sle64((int64_t) 0, rep_i_9619) && slt64(rep_i_9619, (int64_t) 128))) {
+    //        ((__local float *) color_9594)[rep_i_9618 * (int64_t) 128 + rep_i_9619] = 0.0F;
+    //    }
+    //}
+    barrier(CLK_LOCAL_MEM_FENCE);
+    binop_x_9502 = (int64_t) 262144 * gtid_9181;
+    binop_y_9506 = (int64_t) 8192 * gtid_9182;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    __local unsigned char* ext_mem_9560;
+    for (int64_t i_9494 = 0; i_9494 < (int64_t) 128; i_9494++) {
+        mem_9540[i_9494] = 0.0F;
+    }
+    for (int64_t K_i_9190 = 0; K_i_9190 < (int64_t) 32; K_i_9190++) {
+        int64_t ltid_flat_9486;
+        int64_t ltid_9485;
+        //float mem_9531[(int64_t) 128];
+        int64_t binop_y_9503;
+        int64_t offsetA_9504;
+        int64_t binop_x_9505;
+        int64_t offsetB_9507;
+        __local unsigned char *ext_mem_9545;
+        __local unsigned char *ext_mem_9548;
+        int64_t ltid_flat_9511;
+        int64_t ltid_9510;
+        float ext_mem_9549[(int64_t) 128];
+        //__local unsigned char *ext_mem_9560;
+        
+        ltid_flat_9486 = sext_i32_i64(local_tid_9600);
+        ltid_9485 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        //for (int64_t i_9494 = 0; i_9494 < (int64_t) 128; i_9494++) {
+        //    mem_9531[i_9494] = 0.0F;
+        //}
+        //for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {
+        //    mem_9540[i_0] = mem_9531[i_0];
+        //}
+        barrier(CLK_LOCAL_MEM_FENCE);
+        binop_y_9503 = (int64_t) 8192 * K_i_9190;
+        offsetA_9504 = binop_x_9502 + binop_y_9503;
+        binop_x_9505 = (int64_t) 131072 * K_i_9190;
+        offsetB_9507 = binop_x_9505 + binop_y_9506;
+        futrts_copyGlobalShared(&ext_mem_9545, A_mem_9519, color_9593, offsetA_9504, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 64>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        futrts_copyGlobalShared(&ext_mem_9548, B_mem_9520, color_9592, offsetB_9507, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        ltid_flat_9511 = sext_i32_i64(local_tid_9600);
+        ltid_9510 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        futrts_tensorMMM(&ext_mem_9549, ext_mem_9545, ext_mem_9548, mem_9540, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 64>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});
+        //for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {
+        //    mem_9556[i_0] = ext_mem_9549[i_0];
+        //}
+        //barrier(CLK_LOCAL_MEM_FENCE);
+        //futrts_copyRegistersShared(&ext_mem_9560, mem_9556, color_9592, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        //barrier(CLK_LOCAL_MEM_FENCE);
+        //for (int64_t i_9210 = 0; i_9210 < (int64_t) 128; i_9210++) {
+        //    int64_t phys_tid_9217;
+        //    int64_t gtid_9216;
+        //    float eta_p_9218;
+        //    float eta_p_9219;
+        //    float defunc_0_f_res_9220;
+        //    
+        //    phys_tid_9217 = sext_i32_i64(local_tid_9600);
+        //    gtid_9216 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        //    eta_p_9218 = ((__local float *) ext_mem_9560)[i_9210 * (int64_t) 128 + gtid_9216];
+        //    eta_p_9219 = ((__local float *) color_9594)[i_9210 * (int64_t) 128 + gtid_9216];
+        //    defunc_0_f_res_9220 = eta_p_9218 + eta_p_9219;
+        //    ((__local float *) color_9594)[i_9210 * (int64_t) 128 + gtid_9216] = defunc_0_f_res_9220;
+            barrier(CLK_LOCAL_MEM_FENCE);
+        //}
+    }
+    futrts_copyRegistersShared(&ext_mem_9560, mem_9540, color_9594, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for (int32_t nest_i_9629 = 0; nest_i_9629 < 128; nest_i_9629++) {
+        ((__global float *) mem_9574)[gtid_9181 * (int64_t) 262144 + gtid_9182 * (int64_t) 16384 + sext_i32_i64(nest_i_9629) * (int64_t) 128 + sext_i32_i64(local_tid_9600)] = ((__local float *) color_9594)[sext_i32_i64(nest_i_9629) * (int64_t) 128 + sext_i32_i64(local_tid_9600)];
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+  error_5:
+    return;
+}
+FUTHARK_KERNEL_SIZED(run_square_smallzisegmap_intrablock_9038_dim1, 1, 1)
+void run_square_smallzisegmap_intrablock_9038(__global int *global_failure, int failure_is_an_option, __global int64_t *global_failure_args, int32_t num_chunks_9597, __global unsigned char *A_mem_9519, __global unsigned char *B_mem_9520, __global unsigned char *mem_9574)
+{
+    volatile __local unsigned char *color_9594_backing_2 = &shared_mem[0];
+    const int64_t color_9594_backing_2_offset = 0 + (int64_t) 65536;
+    volatile __local unsigned char *color_9593_backing_1 = &shared_mem[color_9594_backing_2_offset];
+    const int64_t color_9593_backing_1_offset = color_9594_backing_2_offset + (int64_t) 16384;
+    volatile __local unsigned char *color_9592_backing_0 = &shared_mem[color_9593_backing_1_offset];
+    const int64_t color_9592_backing_0_offset = color_9593_backing_1_offset + (int64_t) 65536;
+    volatile __local int local_failure;
+    
+    // Harmless for all threads to write this.
+    local_failure = 0;
+    
+    int32_t local_tid_9600;
+    int32_t tblock_sizze_9603;
+    int32_t wave_sizze_9602;
+    int32_t block_id_9601;
+    int32_t global_tid_9599;
+    int64_t phys_tblock_id_9038;
+    int64_t slice_9605;
+    int64_t ltid_pre_9604;
+    int64_t remnant_9606;
+    int64_t slice_9609;
+    int64_t slice_9610;
+    int64_t ltid_pre_9607;
+    int64_t remnant_9611;
+    int64_t ltid_pre_9608;
+    int64_t remnant_9612;
+    int64_t slice_9613;
+    int64_t slice_9614;
+    int64_t gtid_9036;
+    int64_t remnant_9615;
+    int64_t gtid_9037;
+    int64_t remnant_9616;
+    __local unsigned char *color_9592;
+    __local unsigned char *color_9593;
+    __local unsigned char *color_9594;
+    int64_t binop_x_9428;
+    int64_t binop_y_9432;
+    float mem_9540[(int64_t) 128];
+    float mem_9556[(int64_t) 128];
+    
+    local_tid_9600 = get_local_id(0);
+    tblock_sizze_9603 = get_local_size(0);
+    wave_sizze_9602 = LOCKSTEP_WIDTH;
+    block_id_9601 = get_tblock_id(0);
+    global_tid_9599 = block_id_9601 * tblock_sizze_9603 + local_tid_9600;
+    phys_tblock_id_9038 = sext_i32_i64(block_id_9601);
+    slice_9605 = (int64_t) 128;
+    ltid_pre_9604 = sext_i32_i64(local_tid_9600);
+    remnant_9606 = sext_i32_i64(local_tid_9600) - ltid_pre_9604;
+    slice_9609 = (int64_t) 128;
+    slice_9610 = (int64_t) 128 * slice_9609;
+    ltid_pre_9607 = squot64(sext_i32_i64(local_tid_9600), slice_9609);
+    remnant_9611 = sext_i32_i64(local_tid_9600) - ltid_pre_9607 * slice_9609;
+    ltid_pre_9608 = remnant_9611;
+    remnant_9612 = remnant_9611 - ltid_pre_9608;
+    slice_9613 = (int64_t) 8;
+    slice_9614 = (int64_t) 8 * slice_9613;
+    gtid_9036 = squot64(sext_i32_i64(block_id_9601), slice_9613);
+    remnant_9615 = sext_i32_i64(block_id_9601) - gtid_9036 * slice_9613;
+    gtid_9037 = remnant_9615;
+    remnant_9616 = remnant_9615 - gtid_9037;
+    color_9592 = (__local unsigned char *) color_9592_backing_0;
+    color_9593 = (__local unsigned char *) color_9593_backing_1;
+    color_9594 = (__local unsigned char *) color_9594_backing_2;
+    //for (int32_t chunk_i_9620 = 0; chunk_i_9620 < num_chunks_9597; chunk_i_9620++) {
+    //    int32_t i_9621;
+    //    int64_t slice_9622;
+    //    int64_t slice_9623;
+    //    int64_t rep_i_9618;
+    //    int64_t remnant_9624;
+    //    int64_t rep_i_9619;
+    //    int64_t remnant_9625;
+    //    
+    //    i_9621 = chunk_i_9620 * 128 + local_tid_9600;
+    //    slice_9622 = (int64_t) 128;
+    //    slice_9623 = (int64_t) 128 * slice_9622;
+    //    rep_i_9618 = squot64(sext_i32_i64(i_9621), slice_9622);
+    //    remnant_9624 = sext_i32_i64(i_9621) - rep_i_9618 * slice_9622;
+    //    rep_i_9619 = remnant_9624;
+    //    remnant_9625 = remnant_9624 - rep_i_9619;
+    //    if ((sle64((int64_t) 0, rep_i_9618) && slt64(rep_i_9618, (int64_t) 128)) && (sle64((int64_t) 0, rep_i_9619) && slt64(rep_i_9619, (int64_t) 128))) {
+    //        ((__local float *) color_9594)[rep_i_9618 * (int64_t) 128 + rep_i_9619] = 0.0F;
+    //    }
+    //}
+    barrier(CLK_LOCAL_MEM_FENCE);
+    binop_x_9428 = (int64_t) 131072 * gtid_9036;
+    binop_y_9432 = (int64_t) 8192 * gtid_9037;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    __local unsigned char* ext_mem_9560;
+    for (int64_t i_9420 = 0; i_9420 < (int64_t) 128; i_9420++) {
+      mem_9540[i_9420] = 0.0F;
+    }
+    for (int64_t K_i_9045 = 0; K_i_9045 < (int64_t) 16; K_i_9045++) {
+        int64_t ltid_flat_9412;
+        int64_t ltid_9411;
+        //float mem_9531[(int64_t) 128];
+        int64_t binop_y_9429;
+        int64_t offsetA_9430;
+        int64_t binop_x_9431;
+        int64_t offsetB_9433;
+        __local unsigned char *ext_mem_9545;
+        __local unsigned char *ext_mem_9548;
+        int64_t ltid_flat_9437;
+        int64_t ltid_9436;
+        float ext_mem_9549[(int64_t) 128];
+        //__local unsigned char *ext_mem_9560;
+        
+        ltid_flat_9412 = sext_i32_i64(local_tid_9600);
+        ltid_9411 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        //for (int64_t i_9420 = 0; i_9420 < (int64_t) 128; i_9420++) {
+        //    mem_9531[i_9420] = 0.0F;
+        //}
+        //for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {
+        //    mem_9540[i_0] = mem_9531[i_0];
+        //}
+        barrier(CLK_LOCAL_MEM_FENCE);
+        binop_y_9429 = (int64_t) 8192 * K_i_9045;
+        offsetA_9430 = binop_x_9428 + binop_y_9429;
+        binop_x_9431 = (int64_t) 65536 * K_i_9045;
+        offsetB_9433 = binop_x_9431 + binop_y_9432;
+        futrts_copyGlobalShared(&ext_mem_9545, A_mem_9519, color_9593, offsetA_9430, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 64>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        futrts_copyGlobalShared(&ext_mem_9548, B_mem_9520, color_9592, offsetB_9433, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        ltid_flat_9437 = sext_i32_i64(local_tid_9600);
+        ltid_9436 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        futrts_tensorMMM(&ext_mem_9549, ext_mem_9545, ext_mem_9548, mem_9540, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 64>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});
+        //for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {
+        //    mem_9556[i_0] = ext_mem_9549[i_0];
+        //}
+        //barrier(CLK_LOCAL_MEM_FENCE);
+        //futrts_copyRegistersShared(&ext_mem_9560, mem_9556, color_9592, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        //barrier(CLK_LOCAL_MEM_FENCE);
+        //for (int64_t i_9065 = 0; i_9065 < (int64_t) 128; i_9065++) {
+        //    int64_t phys_tid_9072;
+        //    int64_t gtid_9071;
+        //    float eta_p_9073;
+        //    float eta_p_9074;
+        //    float defunc_0_f_res_9075;
+        //    
+        //    phys_tid_9072 = sext_i32_i64(local_tid_9600);
+        //    gtid_9071 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        //    eta_p_9073 = ((__local float *) ext_mem_9560)[i_9065 * (int64_t) 128 + gtid_9071];
+        //    eta_p_9074 = ((__local float *) color_9594)[i_9065 * (int64_t) 128 + gtid_9071];
+        //    defunc_0_f_res_9075 = eta_p_9073 + eta_p_9074;
+        //    ((__local float *) color_9594)[i_9065 * (int64_t) 128 + gtid_9071] = defunc_0_f_res_9075;
+            barrier(CLK_LOCAL_MEM_FENCE);
+        //}
+    }
+    futrts_copyRegistersShared(&ext_mem_9560, mem_9540, color_9594, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for (int32_t nest_i_9629 = 0; nest_i_9629 < 128; nest_i_9629++) {
+        ((__global float *) mem_9574)[gtid_9036 * (int64_t) 131072 + gtid_9037 * (int64_t) 16384 + sext_i32_i64(nest_i_9629) * (int64_t) 128 + sext_i32_i64(local_tid_9600)] = ((__local float *) color_9594)[sext_i32_i64(nest_i_9629) * (int64_t) 128 + sext_i32_i64(local_tid_9600)];
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+  error_5:
+    return;
+}
+FUTHARK_KERNEL_SIZED(run_square_xlzisegmap_intrablock_8893_dim1, 1, 1)
+void run_square_xlzisegmap_intrablock_8893(__global int *global_failure, int failure_is_an_option, __global int64_t *global_failure_args, int32_t num_chunks_9597, __global unsigned char *A_mem_9519, __global unsigned char *B_mem_9520, __global unsigned char *mem_9574)
+{
+    volatile __local unsigned char *color_9594_backing_2 = &shared_mem[0];
+    const int64_t color_9594_backing_2_offset = 0 + (int64_t) 65536;
+    volatile __local unsigned char *color_9593_backing_1 = &shared_mem[color_9594_backing_2_offset];
+    const int64_t color_9593_backing_1_offset = color_9594_backing_2_offset + (int64_t) 16384;
+    volatile __local unsigned char *color_9592_backing_0 = &shared_mem[color_9593_backing_1_offset];
+    const int64_t color_9592_backing_0_offset = color_9593_backing_1_offset + (int64_t) 65536;
+    volatile __local int local_failure;
+    
+    // Harmless for all threads to write this.
+    local_failure = 0;
+    
+    int32_t local_tid_9600;
+    int32_t tblock_sizze_9603;
+    int32_t wave_sizze_9602;
+    int32_t block_id_9601;
+    int32_t global_tid_9599;
+    int64_t phys_tblock_id_8893;
+    int64_t slice_9605;
+    int64_t ltid_pre_9604;
+    int64_t remnant_9606;
+    int64_t slice_9609;
+    int64_t slice_9610;
+    int64_t ltid_pre_9607;
+    int64_t remnant_9611;
+    int64_t ltid_pre_9608;
+    int64_t remnant_9612;
+    int64_t slice_9613;
+    int64_t slice_9614;
+    int64_t gtid_8891;
+    int64_t remnant_9615;
+    int64_t gtid_8892;
+    int64_t remnant_9616;
+    __local unsigned char *color_9592;
+    __local unsigned char *color_9593;
+    __local unsigned char *color_9594;
+    int64_t binop_x_9354;
+    int64_t binop_y_9358;
+    float mem_9540[(int64_t) 128];
+    float mem_9556[(int64_t) 128];
+    
+    local_tid_9600 = get_local_id(0);
+    tblock_sizze_9603 = get_local_size(0);
+    wave_sizze_9602 = LOCKSTEP_WIDTH;
+    block_id_9601 = get_tblock_id(0);
+    global_tid_9599 = block_id_9601 * tblock_sizze_9603 + local_tid_9600;
+    phys_tblock_id_8893 = sext_i32_i64(block_id_9601);
+    slice_9605 = (int64_t) 128;
+    ltid_pre_9604 = sext_i32_i64(local_tid_9600);
+    remnant_9606 = sext_i32_i64(local_tid_9600) - ltid_pre_9604;
+    slice_9609 = (int64_t) 128;
+    slice_9610 = (int64_t) 128 * slice_9609;
+    ltid_pre_9607 = squot64(sext_i32_i64(local_tid_9600), slice_9609);
+    remnant_9611 = sext_i32_i64(local_tid_9600) - ltid_pre_9607 * slice_9609;
+    ltid_pre_9608 = remnant_9611;
+    remnant_9612 = remnant_9611 - ltid_pre_9608;
+    slice_9613 = (int64_t) 64;
+    slice_9614 = (int64_t) 64 * slice_9613;
+    gtid_8891 = squot64(sext_i32_i64(block_id_9601), slice_9613);
+    remnant_9615 = sext_i32_i64(block_id_9601) - gtid_8891 * slice_9613;
+    gtid_8892 = remnant_9615;
+    remnant_9616 = remnant_9615 - gtid_8892;
+    color_9592 = (__local unsigned char *) color_9592_backing_0;
+    color_9593 = (__local unsigned char *) color_9593_backing_1;
+    color_9594 = (__local unsigned char *) color_9594_backing_2;
+    //for (int32_t chunk_i_9620 = 0; chunk_i_9620 < num_chunks_9597; chunk_i_9620++) {
+    //    int32_t i_9621;
+    //    int64_t slice_9622;
+    //    int64_t slice_9623;
+    //    int64_t rep_i_9618;
+    //    int64_t remnant_9624;
+    //    int64_t rep_i_9619;
+    //    int64_t remnant_9625;
+    //    
+    //    i_9621 = chunk_i_9620 * 128 + local_tid_9600;
+    //    slice_9622 = (int64_t) 128;
+    //    slice_9623 = (int64_t) 128 * slice_9622;
+    //    rep_i_9618 = squot64(sext_i32_i64(i_9621), slice_9622);
+    //    remnant_9624 = sext_i32_i64(i_9621) - rep_i_9618 * slice_9622;
+    //    rep_i_9619 = remnant_9624;
+    //    remnant_9625 = remnant_9624 - rep_i_9619;
+    //    if ((sle64((int64_t) 0, rep_i_9618) && slt64(rep_i_9618, (int64_t) 128)) && (sle64((int64_t) 0, rep_i_9619) && slt64(rep_i_9619, (int64_t) 128))) {
+    //        ((__local float *) color_9594)[rep_i_9618 * (int64_t) 128 + rep_i_9619] = 0.0F;
+    //    }
+    //}
+    barrier(CLK_LOCAL_MEM_FENCE);
+    binop_x_9354 = (int64_t) 1048576 * gtid_8891;
+    binop_y_9358 = (int64_t) 8192 * gtid_8892;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    __local unsigned char* ext_mem_9560;
+    for (int64_t i_9346 = 0; i_9346 < (int64_t) 128; i_9346++) {
+        mem_9540[i_9346] = 0.0F;
+    }
+    for (int64_t K_i_8900 = 0; K_i_8900 < (int64_t) 128; K_i_8900++) {
+        int64_t ltid_flat_9338;
+        int64_t ltid_9337;
+        //float mem_9531[(int64_t) 128];
+        int64_t binop_y_9355;
+        int64_t offsetA_9356;
+        int64_t binop_x_9357;
+        int64_t offsetB_9359;
+        __local unsigned char *ext_mem_9545;
+        __local unsigned char *ext_mem_9548;
+        int64_t ltid_flat_9363;
+        int64_t ltid_9362;
+        float ext_mem_9549[(int64_t) 128];
+        //__local unsigned char *ext_mem_9560;
+        
+        ltid_flat_9338 = sext_i32_i64(local_tid_9600);
+        ltid_9337 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        //for (int64_t i_9346 = 0; i_9346 < (int64_t) 128; i_9346++) {
+        //    mem_9531[i_9346] = 0.0F;
+        //}
+        //for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {
+        //    mem_9540[i_0] = mem_9531[i_0];
+        //}
+        barrier(CLK_LOCAL_MEM_FENCE);
+        binop_y_9355 = (int64_t) 8192 * K_i_8900;
+        offsetA_9356 = binop_x_9354 + binop_y_9355;
+        binop_x_9357 = (int64_t) 524288 * K_i_8900;
+        offsetB_9359 = binop_x_9357 + binop_y_9358;
+        futrts_copyGlobalShared(&ext_mem_9545, A_mem_9519, color_9593, offsetA_9356, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 64>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        futrts_copyGlobalShared(&ext_mem_9548, B_mem_9520, color_9592, offsetB_9359, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        ltid_flat_9363 = sext_i32_i64(local_tid_9600);
+        ltid_9362 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        futrts_tensorMMM(&ext_mem_9549, ext_mem_9545, ext_mem_9548, mem_9540, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 64>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});
+        //for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {
+        //    mem_9556[i_0] = ext_mem_9549[i_0];
+        //}
+        //barrier(CLK_LOCAL_MEM_FENCE);
+        //futrts_copyRegistersShared(&ext_mem_9560, mem_9556, color_9592, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+        //barrier(CLK_LOCAL_MEM_FENCE);
+        //for (int64_t i_8920 = 0; i_8920 < (int64_t) 128; i_8920++) {
+        //    int64_t phys_tid_8927;
+        //    int64_t gtid_8926;
+        //    float eta_p_8928;
+        //    float eta_p_8929;
+        //    float defunc_0_f_res_8930;
+        //    
+        //    phys_tid_8927 = sext_i32_i64(local_tid_9600);
+        //    gtid_8926 = sext_i32_i64(sext_i64_i32(ltid_pre_9604));
+        //    eta_p_8928 = ((__local float *) ext_mem_9560)[i_8920 * (int64_t) 128 + gtid_8926];
+        //    eta_p_8929 = ((__local float *) color_9594)[i_8920 * (int64_t) 128 + gtid_8926];
+        //    defunc_0_f_res_8930 = eta_p_8928 + eta_p_8929;
+        //    ((__local float *) color_9594)[i_8920 * (int64_t) 128 + gtid_8926] = defunc_0_f_res_8930;
+            barrier(CLK_LOCAL_MEM_FENCE);
+        //}
+    }
+    futrts_copyRegistersShared(&ext_mem_9560, mem_9540, color_9594, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for (int32_t nest_i_9629 = 0; nest_i_9629 < 128; nest_i_9629++) {
+        ((__global float *) mem_9574)[gtid_8891 * (int64_t) 1048576 + gtid_8892 * (int64_t) 16384 + sext_i32_i64(nest_i_9629) * (int64_t) 128 + sext_i32_i64(local_tid_9600)] = ((__local float *) color_9594)[sext_i32_i64(nest_i_9629) * (int64_t) 128 + sext_i32_i64(local_tid_9600)];
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+  error_5:
     return;
 }
