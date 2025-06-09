@@ -1,9 +1,0 @@
-FlashAttentionBatched_5826.suff_intra_par_1=128
-FlashAttentionBatched_5826.suff_outer_par_2=16
-FlashAttention_5856.suff_intra_par_1=256
-FlashAttention_5856.suff_intra_par_1=64
-FlashAttention_5856.suff_intra_par_1=64
-FlashAttention_5856.suff_intra_par_1=64
-FlashAttentionBatched_5826.Ry_13467=4
-FlashAttentionBatched_5826.Tk_13465=32
-FlashAttentionBatched_5826.Ty_13466=16
