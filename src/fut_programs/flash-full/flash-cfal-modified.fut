@@ -1,3 +1,6 @@
+
+import "flash-helpers"
+
 type real = f32
 def real_exp = f16.exp
 def real_i64 = f16.i64
@@ -39,11 +42,6 @@ def softmaxChunkML (q: i64) (xs_glb: [q*chunk]f16) : (f16,f16) = #[unsafe]
     let eli = li_old * (f16.exp (mi_old - mi_new))
     let li_new = eli + sumi * eij
     in  (mi_new, li_new)
-    -- this saves one f16.exp operation:
---    let exp_term = real_exp (mi_old - maxi)
---    in  if mi_old < maxi
---        then ( maxi,   li_old * exp_term + sumi )
---        else ( mi_old, li_old + sumi / exp_term )  
 
 def softmaxOnline [m][n] (xss: [m][n]f16) : [m][n]f16 = #[unsafe]
   let q = assert (n % chunk == 0) (n / chunk)
@@ -70,25 +68,6 @@ def matmul_intra [m][n][k] (a: [m][k]f16) (b: [k][n]f16) : [m][n]f16 =
   #[incremental_flattening(only_intra)]matmulT a (transpose b)
   --matmulT a (transpose b)
 
-def unflatten_to 't [k] (n: i64) (m: i64) (A: [k]t) : [n][m]t =
-  unflatten (A :> [n * m]t)
-
-def combine [d] (m:i64) (A:[m][d][d]f16): [d][m*d]f16 =
-    transpose (flatten A)
-
-def add_rows [n][m] (pn:i64) (a:[n][m]f16): [n+pn][m]f16=
-    let extra_rows = replicate pn (replicate m 0f16) --[pn][m]f16
-    in (concat a extra_rows)
-
-def add_cols [n][m] (pm:i64) (a:[n][m]f16): [n][m+pm]f16=
-    let padded_rows = #[incremental_flattening(only_intra)]map (\row -> concat row (replicate pm 0f16)) a --[n][m+pm]f16
-    in (padded_rows)
-
-def add_both [n][m] (pn:i64) (pm:i64) (a:[n][m]f16): [n+pn][m+pm]f16=
-    let padded_rows = add_cols pm a --[n][m+pm]f16
-    let padded_cols = add_rows pn padded_rows--[n+pn][m+pm]f16
-    in (padded_cols)
-
 
 -- IS THIS NEEDED?
 def matmulf32 [m][n][k] (A: [m][k]f16) (B: [k][n]f16) : [m][n]f16 =
@@ -99,28 +78,15 @@ def matmulf32 [m][n][k] (A: [m][k]f16) (B: [k][n]f16) : [m][n]f16 =
              ) (transpose B)
       ) A
 
-def matmul_tile_rows [d] (m: i64) (Qi:[d][d]f16) (K:[m*d][d]f16): [d][m*d]f16 =
-  let split_k = unflatten_to m d K --: [m][d][d]f16
-  let replicated_Qi = replicate m Qi --: [m][d][d]f16
-  --let partials = #[incremental_flattening(only_intra)](map (matmulf32 (Qi)) split_k) --: [m][d][d]f16
-  let partials = #[incremental_flattening(only_intra)]map2 matmulf32 replicated_Qi split_k --: [m][d][d]f16
+def matmul_tile_rows_small [d] (m: i64) (Qi:[d][d]f16) (K:[m*d][d]f16): [d][m*d]f16 =
+  let split_k = unflatten_to m d K |> opaque --: [m][d][d]f16
+  let partials = #[incremental_flattening(only_intra)]map (matmulf32 Qi) split_k --: [m][d][d]f16
   in (combine m partials) --[d][m*d]f16
-  -- BOTH BELOW WORK
-  --combine m (map (matmulT (Qi)) (unflatten_to m d K)) --[d][m*d]f16
-  --combine m (#[incremental_flattening(only_intra)]map (matmulT (Qi)) (unflatten_to m d K)) --[d][m*d]f16
 
-def tile 't [m][n] (M:i64) (N:i64) (a: [m][n]t): [M][N][m/M][n/N]t=
-    map (\i ->
-        map (\j ->
-            map (\k ->
-                map (\l -> a[i * (m/M) + k][j * (n/N) + l]) (iota (n/N))
-            ) (iota (m/M))
-        ) (iota (N))
-  ) (iota (M))
-
-def untile 't [M][N][m][n] (a:i64) (b:i64) (A: [M][N][m][n]t): [a][b]t =
-    tabulate_2d (a) (b) (\i j ->
-        A[i / m][0][j / n][j % n])
+def matmul_tile_rows [d] (m: i64) (Qi:[d][d]f16) (K:[m*d][d]f16): [d][m*d]f16 =
+  let split_k = unflatten_to m d K --|> opaque --: [m][d][d]f16
+  let partials = #[incremental_flattening(only_intra)]map (matmulf32 Qi) split_k --: [m][d][d]f16
+  in (combine m partials) --[d][m*d]f16
 
 def matmul_tile_k [md][d] (A: [d][md]f16) (B: [md][d]f16) : [d][d]f16 =
     let m = md /d
@@ -183,58 +149,9 @@ def matmul_tile_mkn [md][d] (A: [d][md]f16) (B: [md][d]f16) : [d][d]f16 =
     --in result
     in untile d d (run (tile M K A) (tile K N B))
 
-def oneIter [d] (m: i64) (K: [m*d][d]f16) (V: [m*d][d]f16) (Qi: [d][d]f16) : [d][d]f16 =
-  -- If operating on too small a d dimension, pad it up to 64
-  let P_block = if d<64i64 then (
-    let n = 128i64-d
-
-    -- Pad K
-    let paddedK_bad = add_both (n*m) (n) K -- : [m*d+n*m][d+n]f16
-    let paddedK_flat = flatten paddedK_bad -- : [(m*d+n*m)*(d+n)]f16
-    let paddedK_good = unflatten_to (m*(d+n)) (d+n) paddedK_flat -- : [m*(d+n)][d+n]f16
-
-    -- Pad Q
-    let paddedQi = add_both (n) (n) Qi -- : [d+n][d+n]f16
-
-    -- Get initial P_block
-    --let padded_P_block = #[incremental_flattening(only_intra)]matmul_tile_rows m paddedQi paddedK_good |> opaque -- : [d][m*d]f16
-    let padded_P_block = matmul_tile_rows m paddedQi paddedK_good |> opaque -- : [d][m*d]f16
-
-    -- Unpad
-    in (map (\r -> map (\l -> padded_P_block[r][l]) (iota (m*d))) (iota (d))) -- : [d][m*d]f16
-  )
-  -- If we don't need pading we can jump straight to the first matmul
-  else (
-    matmul_tile_rows m Qi K |> opaque -- : [d][m*d]f16
-  )
-  -- Always do the same softmax calculation
-  let P_block = softmaxOnline P_block  -- : [d][m*d]f16
-  
-  in if d<64i64 -- small matrix, skip tensor cores
-    then (matmulT P_block (transpose V)) -- : [d][d]f16
-  else if (d>128) -- large matrix
-    then (matmul_tile_mkn P_block V) -- : [d][d]f16
-  else 
-    (matmul_tile_k P_block V) -- : [d][d]f16
-
 def oneIterSmall [d] (m: i64) (K: [m*d][d]f16) (V: [m*d][d]f16) (Qi: [d][d]f16) : [d][d]f16 =
-  -- If operating on too small a d dimension, pad it up to 64
-  let n = 128i64-d
-
-  -- Pad K
-  let paddedK_bad = add_both (n*m) (n) K -- : [m*d+n*m][d+n]f16
-  let paddedK_flat = flatten paddedK_bad -- : [(m*d+n*m)*(d+n)]f16
-  let paddedK_good = unflatten_to (m*(d+n)) (d+n) paddedK_flat -- : [m*(d+n)][d+n]f16
-
-  -- Pad Q
-  let paddedQi = add_both (n) (n) Qi -- : [d+n][d+n]f16
-
-  -- Get initial P_block
-  --let padded_P_block = #[incremental_flattening(only_intra)]matmul_tile_rows m paddedQi paddedK_good |> opaque -- : [d][m*d]f16
-  let padded_P_block = matmul_tile_rows m paddedQi paddedK_good |> opaque -- : [d][m*d]f16
-
   -- Unpad
-  let P_block = (map (\r -> map (\l -> padded_P_block[r][l]) (iota (m*d))) (iota (d))) -- : [d][m*d]f16
+  let P_block = matmul_tile_rows_small m Qi K |> opaque -- : [d][m*d]f16
 
   -- Always do the same softmax calculation
   let P_block = softmaxOnline P_block  -- : [d][m*d]f16
@@ -246,7 +163,7 @@ def oneIterMid [d] (m: i64) (K: [m*d][d]f16) (V: [m*d][d]f16) (Qi: [d][d]f16) : 
   let P_block = matmul_tile_rows m Qi K |> opaque -- : [d][m*d]f16
 
   -- Always do the same softmax calculation
-  let P_block = softmaxOnline P_block  -- : [d][m*d]f16
+  let P_block = softmaxOnline P_block -- : [d][m*d]f16
   
   in (matmul_tile_k P_block V) -- : [d][d]f16
 
@@ -264,35 +181,8 @@ def oneIterLarge [d] (m: i64) (K: [m*d][d]f16) (V: [m*d][d]f16) (Qi: [d][d]f16) 
   -- Always do the same softmax calculation
   let P_block = softmaxOnline P_block  -- : [d][m*d]f16
   
+  -- TODO this part is using too much memory
   in (matmul_tile_mkn P_block V) -- : [d][d]f16
-
-def FlashAttentionSmall [d][m] 
-        (Q: [m][d][d]f16) 
-        (K: [m*d][d]f16) 
-        (V: [m*d][d]f16) 
-      : [m][d][d]f16 =
-  map (oneIterSmall m K V) Q
-
-def FlashAttentionMid [d][m] 
-        (Q: [m][d][d]f16) 
-        (K: [m*d][d]f16) 
-        (V: [m*d][d]f16) 
-      : [m][d][d]f16 =
-  map (oneIterMid m K V) Q
-
-def FlashAttentionMid_PRETILED [d][m] 
-        (Q: [m][m][d][d]f16) 
-        (K: [m][d][d]f16) 
-        (V: [m][d][d]f16) 
-      : [m][m][d][d]f16 =
-  map (oneIterMid_PRETILED m K V) Q
-
-def FlashAttentionLarge [d][m] 
-        (Q: [m][d][d]f16) 
-        (K: [m*d][d]f16) 
-        (V: [m*d][d]f16) 
-      : [m][d][d]f16 =
-  map (oneIterLarge m K V) Q
 
 entry mk_input (m:i64) (d:i64): ([m][d][d]f16, [m*d][d]f16, [m*d][d]f16) =
   let Q = replicate d 1.0 |> replicate d |> replicate m
@@ -311,55 +201,44 @@ entry mk_input_PRETILED (m:i64) (d:i64): ([m][m][d][d]f16, [m][d][d]f16, [m][d][
 -- entry: thesislike16
 -- "Class 128-16 " script input { (mk_input 128i64 16i64) }
 
-entry thesislike16 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
-  --FlashAttentionSmall Q K V
-  FlashAttentionMid Q K V
-
---
--- ==
--- entry: thesislike16_PRETILED
--- "Class 128-16 " script input { (mk_input_PRETILED 128i64 16i64) }
-
-entry thesislike16_PRETILED [m][d] (Q: [m][m][d][d]f16) (K: [m][d][d]f16) (V: [m][d][d]f16) =
-  --FlashAttentionSmall Q K V
-  FlashAttentionMid_PRETILED Q K V
+entry thesislike16 (Q: [128][16][16]f16) (K: [128*16][16]f16) (V: [128*16][16]f16) =
+  map (oneIterSmall 128 K V) Q
 
 --
 -- ==
 -- entry: thesislike32
 -- "Class 128-32 " script input { (mk_input 128i64 32i64) }
 
-entry thesislike32 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
-  FlashAttentionSmall Q K V
+entry thesislike32 (Q: [128][32][32]f16) (K: [128*32][32]f16) (V: [128*32][32]f16) =
+  map (oneIterSmall 128 K V) Q
 
 --
 -- ==
 -- entry: thesislike64
 -- "Class 128-64 " script input { (mk_input 128i64 64i64) }
 
-entry thesislike64 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
-  FlashAttentionMid Q K V
+entry thesislike64 (Q: [128][64][64]f16) (K: [128*64][64]f16) (V: [128*64][64]f16) =
+  map (oneIterMid 128 K V) Q
 
 --
 -- ==
 -- entry: thesislike128
 -- "Class 128-128" script input { (mk_input 128i64 128i64) }
 
-entry thesislike128 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
-  FlashAttentionMid Q K V
-
+entry thesislike128 (Q: [128][128][128]f16) (K: [128*128][128]f16) (V: [128*128][128]f16) =
+  map (oneIterMid 128 K V) Q
 --
 -- ==
 -- entry: thesislike256
 -- "Class 128-256" script input { (mk_input 128i64 256i64) }
 
-entry thesislike256 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
-  FlashAttentionMid Q K V
+entry thesislike256 (Q: [128][256][256]f16) (K: [128*256][256]f16) (V: [128*256][256]f16) =
+  map (oneIterMid 128 K V) Q
 
---
+-- IGNORE ME FOR NOW
 -- ==
 -- entry: thesislike512
 -- "Class 128-512" script input { (mk_input 128i64 512i64) }
 
-entry thesislike512 [m][d] (Q: [m][d][d]f16) (K: [m*d][d]f16) (V: [m*d][d]f16) =
-  FlashAttentionLarge Q K V
+entry thesislike512 (Q: [128][512][512]f16) (K: [128*512][512]f16) (V: [128*512][512]f16) =
+  map (oneIterLarge 128 K V) Q

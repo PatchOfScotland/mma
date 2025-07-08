@@ -1,0 +1,15 @@
+Peak memory usage in bytes
+default space: 0
+space 'device': 4345593936
+
+
+                          Cost centre           count             sum             avg             min             max
+---------------------------------------------------------------------------------------------------------------------
+builtin#replicate_f16.replicate_28478               1         16.38μs         16.38μs         16.38μs         16.38μs
+builtin#replicate_i32.replicate_28953               3        666.62μs        222.21μs        160.77μs        336.90μs
+copy_dev_to_dev                                     1         19.46μs         19.46μs         19.46μs         19.46μs
+thesislike256.segmap_26448                          1      16460.80μs      16460.80μs      16460.80μs      16460.80μs
+thesislike256.segmap_26641                          1       1600.51μs       1600.51μs       1600.51μs       1600.51μs
+thesislike256.segmap_intrablock_26374               1      11264.00μs      11264.00μs      11264.00μs      11264.00μs
+---------------------------------------------------------------------------------------------------------------------
+8 events with a total runtime of 30027.78μs

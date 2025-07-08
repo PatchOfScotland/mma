@@ -98,6 +98,7 @@ const int64_t *futhark_shape_f32_3d(struct futhark_context *ctx, struct futhark_
 int futhark_entry_mk_input(struct futhark_context *ctx, struct futhark_f16_3d **out0, struct futhark_f16_3d **out1, const int64_t in0, const int64_t in1, const int64_t in2, const int64_t in3);
 int futhark_entry_mmm_intra128(struct futhark_context *ctx, struct futhark_f32_3d **out0, const struct futhark_f16_3d *in0, const struct futhark_f16_3d *in1);
 int futhark_entry_mmm_intra16(struct futhark_context *ctx, struct futhark_f32_3d **out0, const struct futhark_f16_3d *in0, const struct futhark_f16_3d *in1);
+int futhark_entry_mmm_intra256(struct futhark_context *ctx, struct futhark_f32_3d **out0, const struct futhark_f16_3d *in0, const struct futhark_f16_3d *in1);
 int futhark_entry_mmm_intra32(struct futhark_context *ctx, struct futhark_f32_3d **out0, const struct futhark_f16_3d *in0, const struct futhark_f16_3d *in1);
 int futhark_entry_mmm_intra64(struct futhark_context *ctx, struct futhark_f32_3d **out0, const struct futhark_f16_3d *in0, const struct futhark_f16_3d *in1);
 
@@ -2973,7 +2974,7 @@ const struct type *mk_input_out_types[] = {&type_ZMZNZMZNZMZNf16, &type_ZMZNZMZN
 bool mk_input_out_unique[] = {true, true};
 const struct type *mk_input_in_types[] = {&type_i64, &type_i64, &type_i64, &type_i64, NULL};
 bool mk_input_in_unique[] = {false, false, false, false};
-const char *mk_input_tuning_params[] = {"builtin#replicate_f16.tblock_size_7675", NULL};
+const char *mk_input_tuning_params[] = {"builtin#replicate_f16.tblock_size_7746", NULL};
 int call_mk_input(struct futhark_context *ctx, void **outs, void **ins)
 {
     struct futhark_f16_3d * *out0 = outs[0];
@@ -3011,6 +3012,19 @@ int call_mmm_intra16(struct futhark_context *ctx, void **outs, void **ins)
     
     return futhark_entry_mmm_intra16(ctx, out0, in0, in1);
 }
+const struct type *mmm_intra256_out_types[] = {&type_ZMZNZMZNZMZNf32, NULL};
+bool mmm_intra256_out_unique[] = {false};
+const struct type *mmm_intra256_in_types[] = {&type_ZMZNZMZNZMZNf16, &type_ZMZNZMZNZMZNf16, NULL};
+bool mmm_intra256_in_unique[] = {false, false};
+const char *mmm_intra256_tuning_params[] = {NULL};
+int call_mmm_intra256(struct futhark_context *ctx, void **outs, void **ins)
+{
+    struct futhark_f32_3d * *out0 = outs[0];
+    struct futhark_f16_3d * in0 = *(struct futhark_f16_3d * *) ins[0];
+    struct futhark_f16_3d * in1 = *(struct futhark_f16_3d * *) ins[1];
+    
+    return futhark_entry_mmm_intra256(ctx, out0, in0, in1);
+}
 const struct type *mmm_intra32_out_types[] = {&type_ZMZNZMZNZMZNf32, NULL};
 bool mmm_intra32_out_unique[] = {false};
 const struct type *mmm_intra32_in_types[] = {&type_ZMZNZMZNZMZNf16, &type_ZMZNZMZNZMZNf16, NULL};
@@ -3038,7 +3052,7 @@ int call_mmm_intra64(struct futhark_context *ctx, void **outs, void **ins)
     return futhark_entry_mmm_intra64(ctx, out0, in0, in1);
 }
 const struct type *types[] = {&type_i8, &type_i16, &type_i32, &type_i64, &type_u8, &type_u16, &type_u32, &type_u64, &type_f16, &type_f32, &type_f64, &type_bool, &type_ZMZNZMZNZMZNf16, &type_ZMZNZMZNZMZNf32, NULL};
-struct entry_point entry_points[] = {{.name ="mk_input", .f =call_mk_input, .tuning_params =mk_input_tuning_params, .in_types =mk_input_in_types, .out_types =mk_input_out_types, .in_unique =mk_input_in_unique, .out_unique =mk_input_out_unique}, {.name ="mmm_intra128", .f =call_mmm_intra128, .tuning_params =mmm_intra128_tuning_params, .in_types =mmm_intra128_in_types, .out_types =mmm_intra128_out_types, .in_unique =mmm_intra128_in_unique, .out_unique =mmm_intra128_out_unique}, {.name ="mmm_intra16", .f =call_mmm_intra16, .tuning_params =mmm_intra16_tuning_params, .in_types =mmm_intra16_in_types, .out_types =mmm_intra16_out_types, .in_unique =mmm_intra16_in_unique, .out_unique =mmm_intra16_out_unique}, {.name ="mmm_intra32", .f =call_mmm_intra32, .tuning_params =mmm_intra32_tuning_params, .in_types =mmm_intra32_in_types, .out_types =mmm_intra32_out_types, .in_unique =mmm_intra32_in_unique, .out_unique =mmm_intra32_out_unique}, {.name ="mmm_intra64", .f =call_mmm_intra64, .tuning_params =mmm_intra64_tuning_params, .in_types =mmm_intra64_in_types, .out_types =mmm_intra64_out_types, .in_unique =mmm_intra64_in_unique, .out_unique =mmm_intra64_out_unique}, {.name =NULL}};
+struct entry_point entry_points[] = {{.name ="mk_input", .f =call_mk_input, .tuning_params =mk_input_tuning_params, .in_types =mk_input_in_types, .out_types =mk_input_out_types, .in_unique =mk_input_in_unique, .out_unique =mk_input_out_unique}, {.name ="mmm_intra128", .f =call_mmm_intra128, .tuning_params =mmm_intra128_tuning_params, .in_types =mmm_intra128_in_types, .out_types =mmm_intra128_out_types, .in_unique =mmm_intra128_in_unique, .out_unique =mmm_intra128_out_unique}, {.name ="mmm_intra16", .f =call_mmm_intra16, .tuning_params =mmm_intra16_tuning_params, .in_types =mmm_intra16_in_types, .out_types =mmm_intra16_out_types, .in_unique =mmm_intra16_in_unique, .out_unique =mmm_intra16_out_unique}, {.name ="mmm_intra256", .f =call_mmm_intra256, .tuning_params =mmm_intra256_tuning_params, .in_types =mmm_intra256_in_types, .out_types =mmm_intra256_out_types, .in_unique =mmm_intra256_in_unique, .out_unique =mmm_intra256_out_unique}, {.name ="mmm_intra32", .f =call_mmm_intra32, .tuning_params =mmm_intra32_tuning_params, .in_types =mmm_intra32_in_types, .out_types =mmm_intra32_out_types, .in_unique =mmm_intra32_in_unique, .out_unique =mmm_intra32_out_unique}, {.name ="mmm_intra64", .f =call_mmm_intra64, .tuning_params =mmm_intra64_tuning_params, .in_types =mmm_intra64_in_types, .out_types =mmm_intra64_out_types, .in_unique =mmm_intra64_in_unique, .out_unique =mmm_intra64_out_unique}, {.name =NULL}};
 struct futhark_prog prog = {.types =types, .entry_points =entry_points};
 int parse_options(struct futhark_context_config *cfg, int argc, char *const argv[])
 {
@@ -7247,11 +7261,11 @@ struct constants {
 };
 struct tuning_params {
     int dummy;
-    int64_t *builtinzhreplicate_f16zitblock_sizze_7675;
+    int64_t *builtinzhreplicate_f16zitblock_sizze_7746;
 };
 static const int num_tuning_params = 1;
-static const char *tuning_param_names[] = {"builtin#replicate_f16.tblock_size_7675", NULL};
-static const char *tuning_param_vars[] = {"builtinzhreplicate_f16zitblock_sizze_7675", NULL};
+static const char *tuning_param_names[] = {"builtin#replicate_f16.tblock_size_7746", NULL};
+static const char *tuning_param_vars[] = {"builtinzhreplicate_f16zitblock_sizze_7746", NULL};
 static const char *tuning_param_classes[] = {"thread_block_size", NULL};
 static int64_t tuning_param_defaults[] = {0, 0};
 static const int max_failure_args = 0;
@@ -7284,10 +7298,12 @@ static const char *gpu_program[] = {"#define FUTHARK_CUDA\n#define FUTHARK_CUDAT
                                     "                        int32_t num_arrays,                   \\\n                                  int32_t x_elems,                      \\\n                                  int32_t y_elems,                      \\\n                                  int32_t mulx,                         \\\n                                  int32_t muly,                         \\\n                                  int32_t repeat_1,                     \\\n                                  int32_t repeat_2) {                   \\\n  (void)mulx; (void)muly;                                               \\\n  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;            \\\n  int tblock_id_0 = get_tblock_id(0);                                   \\\n  int global_id_0 = get_global_id(0);                                   \\\n  int tblock_id_1 = get_tblock_id(1);                                   \\\n  int global_id_1 = get_global_id(1);                                   \\\n  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \\\n    int tblock_id_2 = get_tblock_id(2);                                 \\\n    int global_id_2 = get_global_id(2);                                 \\\n    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \\\n      int32_t our_array_offset = global_id_0/(y_elems * x_elems) * y_elems * x_elems; \\\n      int32_t x_index = (global_id_0 % (y_elems * x_elems))/y_elems;    \\\n      int32_t y_index = global_id_0%y_elems;                            \\\n      int32_t odata_offset = dst_offset + our_array_offset;             \\\n      int32_t idata_offset = src_offset + our_array_offset;             \\\n      int32_t index_in = y_index * x_elems + x_index;                   \\\n      int32_t index_out = x_index * y_elems + y_index;                  \\\n      if (global_id_0 < x_elems * y_elems * num_arrays) {               \\\n        dst_mem[odata_offset + index_out] = src_mem[idata_offset + index_in]; \\\n      }                                                           ", "      \\\n      tblock_id_2 += get_num_tblocks(2);                                \\\n      global_id_2 += get_global_size(2);                                \\\n    }                                                                   \\\n    tblock_id_1 += get_num_tblocks(1);                                  \\\n    global_id_1 += get_global_size(1);                                  \\\n  }                                                                     \\\n}                                                                       \\\n                                                                        \\\nFUTHARK_KERNEL_SIZED(TR_BLOCK_DIM*2, TR_TILE_DIM/TR_ELEMS_PER_THREAD, 1)\\\nvoid map_transpose_##NAME##_large(SHARED_MEM_PARAM                      \\\n                                  __global ELEM_TYPE *dst_mem,          \\\n                                  int64_t dst_offset,                   \\\n                                  __global ELEM_TYPE *src_mem,          \\\n                                  int64_t src_offset,                   \\\n                                  int64_t num_arrays,                   \\\n                                  int64_t x_elems,                      \\\n                                  int64_t y_elems,                      \\\n                                  int64_t mulx,                         \\\n                                  int64_t muly,                         \\\n                                  int32_t repeat_1,                     \\\n                                  int32_t repeat_2) {                   \\\n  (void)mulx; (void)muly;                                               \\\n  __local ELEM_TYPE* block = (__local ELEM_TYPE*)shared_mem;             \\\n  int tblock_id_0 = get_tblock_id(0);                                   \\\n  int global_id_0 = get_global_id(0);                                   \\\n  int tblock_id_1 = get_tblock_id(1);                                   \\\n  int global_id_1 = get_global_id(1);                              ", "     \\\n  for (int i1 = 0; i1 <= repeat_1; i1++) {                              \\\n    int tblock_id_2 = get_tblock_id(2);                                 \\\n    int global_id_2 = get_global_id(2);                                 \\\n    for (int i2 = 0; i2 <= repeat_2; i2++) {                            \\\n      int64_t our_array_offset = tblock_id_2 * x_elems * y_elems;       \\\n      int64_t odata_offset = dst_offset + our_array_offset;             \\\n      int64_t idata_offset = src_offset + our_array_offset;             \\\n      int64_t x_index = global_id_0;                                    \\\n      int64_t y_index = tblock_id_1 * TR_TILE_DIM + get_local_id(1);    \\\n      if (x_index < x_elems) {                                          \\\n        for (int64_t j = 0; j < TR_ELEMS_PER_THREAD; j++) {             \\\n          int64_t index_i = (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * x_elems + x_index; \\\n          if (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD) < y_elems) { \\\n            block[(get_local_id(1) + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * (TR_TILE_DIM+1) + \\\n                  get_local_id(0)] =                                    \\\n              src_mem[idata_offset + index_i];                          \\\n          }                                                             \\\n        }                                                               \\\n      }                                                                 \\\n      barrier_local();                                                  \\\n      x_index = tblock_id_1 * TR_TILE_DIM + get_local_id(0);            \\\n      y_index = tblock_id_0 * TR_TILE_DIM + get_local_id(1);            \\\n      if (x_index < y_elems) {                                          \\\n        for (int64_t j = 0; j < TR_ELEMS_PER_THREAD; j++) {             \\\n          int64_t index_out = (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)) * y_elems + x_index; \\\n          if (y_index + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD",
                                     ") < x_elems) { \\\n            dst_mem[(odata_offset + index_out)] =                       \\\n              block[get_local_id(0) * (TR_TILE_DIM+1) +                 \\\n                    get_local_id(1) + j * (TR_TILE_DIM/TR_ELEMS_PER_THREAD)]; \\\n          }                                                             \\\n        }                                                               \\\n      }                                                                 \\\n      tblock_id_2 += get_num_tblocks(2);                                \\\n      global_id_2 += get_global_size(2);                                \\\n    }                                                                   \\\n    tblock_id_1 += get_num_tblocks(1);                                  \\\n    global_id_1 += get_global_size(1);                                  \\\n  }                                                                     \\\n}                                                                       \\\n\nGEN_TRANSPOSE_KERNELS(1b, uint8_t)\nGEN_TRANSPOSE_KERNELS(2b, uint16_t)\nGEN_TRANSPOSE_KERNELS(4b, uint32_t)\nGEN_TRANSPOSE_KERNELS(8b, uint64_t)\n\n// End of transpose.cl\n// Start of copy.cl\n\n#define GEN_COPY_KERNEL(NAME, ELEM_TYPE) \\\nFUTHARK_KERNEL void lmad_copy_##NAME(SHARED_MEM_PARAM                   \\\n                               __global ELEM_TYPE *dst_mem,             \\\n                               int64_t dst_offset,                      \\\n                               __global ELEM_TYPE *src_mem,             \\\n                               int64_t src_offset,                      \\\n                               int64_t n,                               \\\n                               int r,                                   \\\n                               int64_t shape0, int64_t dst_stride0, int64_t src_stride0, \\\n                               int64_t shape1, int64_t dst_stride1, int64_t src_stride1, \\\n                               int64_t shape2, int64_t dst_stride2, int64_t src_str", "ide2, \\\n                               int64_t shape3, int64_t dst_stride3, int64_t src_stride3, \\\n                               int64_t shape4, int64_t dst_stride4, int64_t src_stride4, \\\n                               int64_t shape5, int64_t dst_stride5, int64_t src_stride5, \\\n                               int64_t shape6, int64_t dst_stride6, int64_t src_stride6, \\\n                               int64_t shape7, int64_t dst_stride7, int64_t src_stride7) { \\\n  int64_t gtid = get_global_id(0);                                      \\\n  int64_t remainder = gtid;                                             \\\n                                                                        \\\n  if (gtid >= n) {                                                      \\\n    return;                                                             \\\n  }                                                                     \\\n                                                                        \\\n  if (r > 0) {                                                          \\\n    int64_t i = remainder % shape0;                                     \\\n    dst_offset += i * dst_stride0;                                      \\\n    src_offset += i * src_stride0;                                      \\\n    remainder /= shape0;                                                \\\n  }                                                                     \\\n  if (r > 1) {                                                          \\\n    int64_t i = remainder % shape1;                                     \\\n    dst_offset += i * dst_stride1;                                      \\\n    src_offset += i * src_stride1;                                      \\\n    remainder /= shape1;                                                \\\n  }                                                                     \\\n  if (r > 2) {                                                          \\\n    int64_t i = remainder % shape2;                    ", "                 \\\n    dst_offset += i * dst_stride2;                                      \\\n    src_offset += i * src_stride2;                                      \\\n    remainder /= shape2;                                                \\\n  }                                                                     \\\n  if (r > 3) {                                                          \\\n    int64_t i = remainder % shape3;                                     \\\n    dst_offset += i * dst_stride3;                                      \\\n    src_offset += i * src_stride3;                                      \\\n    remainder /= shape3;                                                \\\n  }                                                                     \\\n  if (r > 4) {                                                          \\\n    int64_t i = remainder % shape4;                                     \\\n    dst_offset += i * dst_stride4;                                      \\\n    src_offset += i * src_stride4;                                      \\\n    remainder /= shape4;                                                \\\n  }                                                                     \\\n  if (r > 5) {                                                          \\\n    int64_t i = remainder % shape5;                                     \\\n    dst_offset += i * dst_stride5;                                      \\\n    src_offset += i * src_stride5;                                      \\\n    remainder /= shape5;                                                \\\n  }                                                                     \\\n  if (r > 6) {                                                          \\\n    int64_t i = remainder % shape6;                                     \\\n    dst_offset += i * dst_stride6;                                      \\\n    src_offset += i * src_stride6;                                      \\\n    remainder /= shape6;                                 ",
                                     "               \\\n  }                                                                     \\\n  if (r > 7) {                                                          \\\n    int64_t i = remainder % shape7;                                     \\\n    dst_offset += i * dst_stride7;                                      \\\n    src_offset += i * src_stride7;                                      \\\n    remainder /= shape7;                                                \\\n  }                                                                     \\\n                                                                        \\\n  dst_mem[dst_offset] = src_mem[src_offset];                            \\\n}\n\nGEN_COPY_KERNEL(1b, uint8_t)\nGEN_COPY_KERNEL(2b, uint16_t)\nGEN_COPY_KERNEL(4b, uint32_t)\nGEN_COPY_KERNEL(8b, uint64_t)\n\n// End of copy.cl\nusing namespace cute;\n\ntemplate<class TypeIn>\nstruct convert_type {\n    using TypeOut = TypeIn;\n};\n\ntemplate<>\nstruct convert_type<f16> {\n    using TypeOut = half_t;\n};\n\ntemplate<class ElmTypeAIn, class ElmTypeBIn, class ElmTypeCIn, class SizeM, class SizeN, class WarpsM, class WarpsN>\nstruct get_mma_config {};\n\n// TODO: use FMA when Tensor Cores not available?\n\ntemplate<class SizeM, class SizeN, class WarpsM, class WarpsN>\nstruct get_mma_config<half_t, half_t, half_t, SizeM, SizeN, WarpsM, WarpsN> {\n    // TODO: should depend on architecture available\n    using MMATraits = MMA_Traits<SM80_16x8x16_F16F16F16F16_TN>;\n    using ACopyOpSharedRegisters = SM75_U32x4_LDSM_N;\n    using BCopyOpSharedRegisters = SM75_U16x8_LDSM_T;\n\n    using MMATile = Tile<Int<16 * WarpsM{}>, Int<16 * WarpsN{}>, _16>;\n    using TiledMMA = TiledMMA<\n        MMA_Atom<MMATraits>,\n        Layout<Shape<WarpsM,WarpsN,_1>>,\n        MMATile\n    >;\n};\n\ntemplate<class SizeM, class SizeN, class WarpsM, class WarpsN>\nstruct get_mma_config<half_t, half_t, float, SizeM, SizeN, WarpsM, WarpsN>{\n    // TODO: should depend on architecture available\n    using MMATraits = MMA_Traits<SM80_16x8x16_F32F16F", "16F32_TN>;\n    using ACopyOpSharedRegisters = SM75_U32x4_LDSM_N;\n    using BCopyOpSharedRegisters = SM75_U16x8_LDSM_T;\n\n    using MMATile = Tile<Int<16 * WarpsM{}>, Int<16 * WarpsN{}>, _16>;\n    using TiledMMA = TiledMMA<\n        MMA_Atom<MMATraits>,\n        Layout<Shape<WarpsM,WarpsN,_1>>,\n        MMATile\n    >;\n};\n\ntemplate<class SizeY, class SizeX, class Swizzle, class Majorness, int shift_len>\nstruct get_layout_config {};\n\ntemplate<class SizeY, class SizeX, int shift_len>\nstruct get_layout_config<SizeY, SizeX, _1, LayoutRight, shift_len>{\n    using SharedLayout = ComposedLayout<Swizzle<3, 3, shift_len>, _0, Layout<Shape<SizeY, SizeX>, Stride<SizeX, _1>>>;\n};\n\ntemplate<class SizeY, class SizeX, int shift_len>\nstruct get_layout_config<SizeY, SizeX, _0, LayoutRight, shift_len>{\n    using SharedLayout = Layout<Shape<SizeY, SizeX>, Stride<SizeX, _1>>;\n};\n\ntemplate<class SizeY, class SizeX, int shift_len>\nstruct get_layout_config<SizeY, SizeX, _1, LayoutLeft, shift_len>{\n    using SharedLayout = ComposedLayout<Swizzle<3, 3, shift_len>, _0, Layout<Shape<SizeY, SizeX>, Stride<_1, SizeY>>>;\n};\n\ntemplate<class SizeY, class SizeX, int shift_len>\nstruct get_layout_config<SizeY, SizeX, _0, LayoutLeft, shift_len>{\n    using SharedLayout = Layout<Shape<SizeY, SizeX>, Stride<_1, SizeY>>;\n};\n\ntemplate<class ElmTypeIn, class SizeY, class SizeX, class WarpsM, class WarpsN>\nFUTHARK_FUN_ATTR void futrts_copyGlobalShared(unsigned char **mem_out_p, unsigned char *global_mem, unsigned char *shared_mem, int64_t offset, ElmTypeIn, SizeY, SizeX, WarpsM, WarpsN)\n{\n    *mem_out_p = shared_mem;\n\n    int flatThreadIdx = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;\n\n    if (flatThreadIdx < WarpsM{} * WarpsN{} * 32) {\n      using ElmType = typename convert_type<ElmTypeIn>::TypeOut;\n\n      using CopyOpGlobalShared = SM80_CP_ASYNC_CACHEGLOBAL<uint128_t>;\n\n      constexpr int elmsPerLoad = 16 / sizeof(ElmType);\n      constexpr int threadsX = SizeX{} / elmsPerLoad", ";\n      constexpr int threadsY = (WarpsM{} * WarpsN{} * 32) / threadsX;\n\n      constexpr unsigned int sizeXunsigned = SizeX{};\n      constexpr unsigned int shift_len = max(bit_width(sizeXunsigned) - 4, _3{});\n\n      using LayoutConfig = get_layout_config<SizeY, SizeX, _1, LayoutRight, shift_len>;\n      typename LayoutConfig::SharedLayout s_layout;\n\n      auto g_layout = make_layout(Shape<SizeY, SizeX>{}, LayoutRight{});\n\n      TiledCopy copy_global_shared = make_tiled_copy(Copy_Atom<CopyOpGlobalShared, ElmType>{},\n          make_layout(Shape<Int<threadsY>, Int<threadsX>>{}, LayoutRight{}),\n          Layout<Shape<_1,Int<elmsPerLoad>>>{}\n      );\n\n      Tensor s = make_tensor(make_smem_ptr(reinterpret_cast<ElmType *>(shared_mem)), s_layout);\n      Tensor g = make_tensor(make_gmem_ptr(&reinterpret_cast<ElmType *>(global_mem)[offset]), g_layout);\n\n      ThrCopy thr_copy_global_shared = copy_global_shared.get_slice(flatThreadIdx);\n      Tensor tAgA = thr_copy_global_shared.partition_S(g);\n      Tensor tAsA = thr_copy_global_shared.partition_D(s);\n\n      copy(copy_global_shared, tAgA, tAsA);\n\n      cp_async_fence();\n    }\n\n//     Assuming the copied data is only used in futrts_tensorMMM, we do not need to wait for it here\n//     cp_async_wait<0>();\n//     __syncthreads();\n}\n\ntemplate<class ElmTypeAIn, class ElmTypeBIn, class ElmTypeCIn, class SizeM, class SizeN, class WarpsM, class WarpsN, int numRegs>\nFUTHARK_FUN_ATTR void futrts_copyRegistersShared(unsigned char **mem_out_p, ElmTypeCIn (&registers_mem)[numRegs], unsigned char *shared_mem, ElmTypeAIn, ElmTypeBIn, SizeM, SizeN, WarpsM, WarpsN)\n{\n    *mem_out_p = shared_mem;\n\n    int flatThreadIdx = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;\n\n    if (flatThreadIdx < WarpsM{} * WarpsN{} * 32) {\n        using ElmTypeA = typename convert_type<ElmTypeAIn>::TypeOut;\n        using ElmTypeB = typename convert_type<ElmTypeBIn>::TypeOut;\n        using ElmTypeC = typename convert_type<ElmTypeCIn>",
-                                    "::TypeOut;\n\n        using MMAConfig = get_mma_config<ElmTypeA, ElmTypeB, ElmTypeC, SizeM, SizeN, WarpsM, WarpsN>;\n        typename MMAConfig::TiledMMA tiled_mma;\n\n        auto s_layout = make_layout(Shape<SizeM, SizeN>{}, LayoutRight{});\n\n        ThrMMA thr_mma = tiled_mma.get_slice(flatThreadIdx);\n\n        auto r_layout = partition_shape_C(thr_mma, s_layout.shape());\n        Tensor tCrC = make_tensor(make_rmem_ptr(reinterpret_cast<ElmTypeC *>(registers_mem)), r_layout);\n\n        Tensor s = make_tensor(make_smem_ptr(reinterpret_cast<ElmTypeC *>(shared_mem)), s_layout);\n        Tensor tCsC = thr_mma.partition_C(s);\n\n        copy(AutoVectorizingCopy{}, tCrC, tCsC);\n    }\n    __syncthreads();\n}\n\ntemplate<class ElmTypeAIn, class ElmTypeBIn, class ElmTypeCIn, class SizeM, class SizeN, class SizeK, class WarpsM, class WarpsN, class ASwizzled, class BSwizzled, int numRegs>\nFUTHARK_FUN_ATTR void futrts_tensorMMM(ElmTypeCIn (*mem_out_p)[numRegs], unsigned char *A_mem, unsigned char *B_mem, ElmTypeCIn (&C_mem)[numRegs], ElmTypeAIn, ElmTypeBIn, SizeM, SizeN, SizeK, WarpsM, WarpsN, ASwizzled, BSwizzled)\n{\n    int flatThreadIdx = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;\n\n    using ElmTypeA = typename convert_type<ElmTypeAIn>::TypeOut;\n    using ElmTypeB = typename convert_type<ElmTypeBIn>::TypeOut;\n    using ElmTypeC = typename convert_type<ElmTypeCIn>::TypeOut;\n\n    using MMAConfig = get_mma_config<ElmTypeA, ElmTypeB, ElmTypeC, SizeM, SizeN, WarpsM, WarpsN>;\n    typename MMAConfig::TiledMMA tiled_mma;\n\n    constexpr unsigned int sizeKunsigned = SizeK{};\n    constexpr unsigned int shift_lenK = max(bit_width(sizeKunsigned) - 4, _3{});\n\n    constexpr unsigned int sizeNunsigned = SizeN{};\n    constexpr unsigned int shift_lenN = max(bit_width(sizeNunsigned) - 4, _3{});\n\n    using ALayoutConfig = get_layout_config<SizeM, SizeK, ASwizzled, LayoutRight, shift_lenK>;\n    using BLayoutConfig = get_layout_config<SizeN, SizeK, BSwizzled, LayoutLeft, s", "hift_lenN>;\n    typename ALayoutConfig::SharedLayout sA_layout;\n    typename BLayoutConfig::SharedLayout sB_layout;\n\n    auto sC_layout = make_layout(Shape<SizeM, SizeN>{}, LayoutRight{});\n\n    ThrMMA thr_mma = tiled_mma.get_slice(flatThreadIdx);\n\n    auto rC_layout = partition_shape_C(thr_mma, sC_layout.shape());\n    Tensor tCrC = make_tensor(make_rmem_ptr(reinterpret_cast<ElmTypeC *>(C_mem)), rC_layout);\n\n    Tensor sA = make_tensor(make_smem_ptr(reinterpret_cast<ElmTypeA *>(A_mem)), sA_layout);\n    Tensor sB = make_tensor(make_smem_ptr(reinterpret_cast<ElmTypeB *>(B_mem)), sB_layout);\n\n    TiledCopy copyA_shared_registers = make_tiled_copy_A(Copy_Atom<typename MMAConfig::ACopyOpSharedRegisters, ElmTypeA>{}, tiled_mma);\n    TiledCopy copyB_shared_registers = make_tiled_copy_B(Copy_Atom<typename MMAConfig::BCopyOpSharedRegisters, ElmTypeB>{}, tiled_mma);\n\n    Tensor tCrA  = thr_mma.partition_fragment_A(sA);\n    Tensor tCrB  = thr_mma.partition_fragment_B(sB);\n\n    auto smem_thr_copy_A   = copyA_shared_registers.get_thread_slice(threadIdx.x);\n    Tensor tCsA            = smem_thr_copy_A.partition_S(sA);\n    Tensor tCrA_copy_view  = smem_thr_copy_A.retile_D(tCrA);\n\n    auto smem_thr_copy_B   = copyB_shared_registers.get_thread_slice(threadIdx.x);\n    Tensor tCsB            = smem_thr_copy_B.partition_S(sB);\n    Tensor tCrB_copy_view  = smem_thr_copy_B.retile_D(tCrB);\n\n    // Wait for data copied asynchronously by futrts_copyGlobalShared\n    cp_async_wait<0>();\n    __syncthreads();\n\n    constexpr int K_BLOCK_MAX = size<2>(tCrA);\n    CUTE_UNROLL\n    for (int k_block = 0; k_block < K_BLOCK_MAX; ++k_block)\n    {\n        // Copy shared->registers\n        copy(copyA_shared_registers, tCsA(_,_,k_block), tCrA_copy_view(_,_,k_block));\n        copy(copyB_shared_registers, tCsB(_,_,k_block), tCrB_copy_view(_,_,k_block));\n\n        // Perform mma on k_block in registers\n        gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);\n    }\n\n    for (int32_t i = 0; i < numRegs", "; i++)\n        (*mem_out_p)[i] = C_mem[i];\n}\n\n\n\nFUTHARK_KERNEL\nvoid builtinzhreplicate_f16zireplicate_7671(int64_t num_elems_7667, uint16_t val_7668_bits, int64_t replicate_n_7670, int64_t virt_num_tblocks_7676, int64_t num_tblocks_7677, __global unsigned char *mem_7666)\n{\n    f16 val_7668 = futrts_from_bits16(val_7668_bits);\n    int32_t replicate_ltid_7672;\n    int32_t tblock_sizze_7674;\n    int32_t replicate_gid_7673;\n    int32_t replicate_gtid_7671;\n    int32_t phys_tblock_id_7678;\n    int32_t iterations_7679;\n    \n    replicate_ltid_7672 = get_local_id(0);\n    tblock_sizze_7674 = get_local_size(0);\n    replicate_gid_7673 = get_tblock_id(0);\n    replicate_gtid_7671 = replicate_gid_7673 * tblock_sizze_7674 + replicate_ltid_7672;\n    phys_tblock_id_7678 = get_tblock_id(0);\n    iterations_7679 = sdiv_up32(sext_i64_i32(virt_num_tblocks_7676) - phys_tblock_id_7678, sext_i64_i32(num_tblocks_7677));\n    for (int32_t i_7680 = 0; i_7680 < iterations_7679; i_7680++) {\n        int32_t virt_tblock_id_7681;\n        int64_t global_tid_7682;\n        int64_t slice_7684;\n        int64_t rep_i_7683;\n        int64_t remnant_7685;\n        \n        virt_tblock_id_7681 = phys_tblock_id_7678 + i_7680 * sext_i64_i32(num_tblocks_7677);\n        global_tid_7682 = sext_i32_i64(virt_tblock_id_7681) * sext_i32_i64(tblock_sizze_7674) + sext_i32_i64(replicate_ltid_7672);\n        slice_7684 = num_elems_7667;\n        rep_i_7683 = global_tid_7682;\n        remnant_7685 = global_tid_7682 - rep_i_7683;\n        if (slt64(global_tid_7682, replicate_n_7670)) {\n            ((__global uint16_t *) mem_7666)[rep_i_7683] = futrts_to_bits16(val_7668);\n        }\n        barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE);\n    }\n    \n  error_1:\n    return;\n}\nFUTHARK_KERNEL_SIZED(mmm_intra128zisegmap_intrablock_7320_dim1, 1, 1)\nvoid mmm_intra128zisegmap_intrablock_7320(__global int *global_failure, int failure_is_an_option, __global int64_t *global_failure_args, int64_t q_6573, __global unsigned char *A_mem_7619",
-                                    ", __global unsigned char *B_mem_7620, __global unsigned char *mem_7659)\n{\n    volatile __local unsigned char *color_7662_backing_1 = &shared_mem[0];\n    const int64_t color_7662_backing_1_offset = 0 + (int64_t) 32768;\n    volatile __local unsigned char *color_7661_backing_0 = &shared_mem[color_7662_backing_1_offset];\n    const int64_t color_7661_backing_0_offset = color_7662_backing_1_offset + (int64_t) 65536;\n    volatile __local int local_failure;\n    \n    // Harmless for all threads to write this.\n    local_failure = 0;\n    \n    int32_t local_tid_7667;\n    int32_t tblock_sizze_7670;\n    int32_t wave_sizze_7669;\n    int32_t block_id_7668;\n    int32_t global_tid_7666;\n    int64_t phys_tblock_id_7320;\n    int64_t slice_7672;\n    int64_t ltid_pre_7671;\n    int64_t remnant_7673;\n    int64_t slice_7674;\n    int64_t gtid_7319;\n    int64_t remnant_7675;\n    __local unsigned char *color_7661;\n    __local unsigned char *color_7662;\n    float mem_7635[(int64_t) 128];\n    int64_t ltid_flat_7590;\n    int64_t ltid_7589;\n    float mem_7626[(int64_t) 128];\n    int64_t offsetA_7606;\n    __local unsigned char *ext_mem_7640;\n    __local unsigned char *ext_mem_7643;\n    float mem_7651[(int64_t) 128];\n    int64_t ltid_flat_7611;\n    int64_t ltid_7610;\n    float ext_mem_7644[(int64_t) 128];\n    __local unsigned char *ext_mem_7655;\n    \n    local_tid_7667 = get_local_id(0);\n    tblock_sizze_7670 = get_local_size(0);\n    wave_sizze_7669 = LOCKSTEP_WIDTH;\n    block_id_7668 = get_tblock_id(0);\n    global_tid_7666 = block_id_7668 * tblock_sizze_7670 + local_tid_7667;\n    phys_tblock_id_7320 = sext_i32_i64(block_id_7668);\n    slice_7672 = (int64_t) 128;\n    ltid_pre_7671 = sext_i32_i64(local_tid_7667);\n    remnant_7673 = sext_i32_i64(local_tid_7667) - ltid_pre_7671;\n    slice_7674 = q_6573;\n    gtid_7319 = sext_i32_i64(block_id_7668);\n    remnant_7675 = sext_i32_i64(block_id_7668) - gtid_7319;\n    color_7661 = (__local unsigned char *) color_7661_backing_0;\n    color_7662 = (__local unsigne", "d char *) color_7662_backing_1;\n    ltid_flat_7590 = sext_i32_i64(local_tid_7667);\n    ltid_7589 = sext_i32_i64(sext_i64_i32(ltid_pre_7671));\n    for (int64_t i_7598 = 0; i_7598 < (int64_t) 128; i_7598++) {\n        mem_7626[i_7598] = 0.0F;\n    }\n    for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {\n        mem_7635[i_0] = mem_7626[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    offsetA_7606 = (int64_t) 16384 * gtid_7319;\n    futrts_copyGlobalShared(&ext_mem_7640, A_mem_7619, color_7662, offsetA_7606, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});\n    futrts_copyGlobalShared(&ext_mem_7643, B_mem_7620, color_7661, offsetA_7606, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});\n    ltid_flat_7611 = sext_i32_i64(local_tid_7667);\n    ltid_7610 = sext_i32_i64(sext_i64_i32(ltid_pre_7671));\n    futrts_tensorMMM(&ext_mem_7644, ext_mem_7640, ext_mem_7643, mem_7635, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {\n        mem_7651[i_0] = ext_mem_7644[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    futrts_copyRegistersShared(&ext_mem_7655, mem_7651, color_7661, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});\n    for (int32_t nest_i_7677 = 0; nest_i_7677 < 128; nest_i_7677++) {\n        ((__global float *) mem_7659)[gtid_7319 * (int64_t) 16384 + sext_i32_i64(nest_i_7677) * (int64_t) 128 + sext_i32_i64(local_tid_7667)] = ((__local float *) ext_mem_7655)[sext_i32_i64(nest_i_7677) * (int64_t) 128 + sext_i32_i64(local_tid_7667)];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    \n  error_2:\n    return;\n}\nFUTHARK_KERNEL_SIZED(mmm_intra16zisegmap_intrablock_7176_dim1, 1, 1)\nvoid mmm_intra16zisegmap_intrablock_7176(__global int *global_failure, int failure_", "is_an_option, __global int64_t *global_failure_args, int64_t q_6549, __global unsigned char *A_mem_7619, __global unsigned char *B_mem_7620, __global unsigned char *mem_7659)\n{\n    volatile __local unsigned char *color_7662_backing_1 = &shared_mem[0];\n    const int64_t color_7662_backing_1_offset = 0 + (int64_t) 512;\n    volatile __local unsigned char *color_7661_backing_0 = &shared_mem[color_7662_backing_1_offset];\n    const int64_t color_7661_backing_0_offset = color_7662_backing_1_offset + (int64_t) 1024;\n    volatile __local int local_failure;\n    \n    // Harmless for all threads to write this.\n    local_failure = 0;\n    \n    int32_t local_tid_7667;\n    int32_t tblock_sizze_7670;\n    int32_t wave_sizze_7669;\n    int32_t block_id_7668;\n    int32_t global_tid_7666;\n    int64_t phys_tblock_id_7176;\n    int64_t slice_7672;\n    int64_t ltid_pre_7671;\n    int64_t remnant_7673;\n    int64_t slice_7674;\n    int64_t gtid_7175;\n    int64_t remnant_7675;\n    __local unsigned char *color_7661;\n    __local unsigned char *color_7662;\n    float mem_7635[(int64_t) 8];\n    int64_t ltid_flat_7380;\n    int64_t ltid_7379;\n    float mem_7626[(int64_t) 8];\n    int64_t offsetA_7396;\n    __local unsigned char *ext_mem_7640;\n    __local unsigned char *ext_mem_7643;\n    float mem_7651[(int64_t) 8];\n    int64_t ltid_flat_7401;\n    int64_t ltid_7400;\n    float ext_mem_7644[(int64_t) 8];\n    __local unsigned char *ext_mem_7655;\n    int32_t num_chunks_7677;\n    \n    local_tid_7667 = get_local_id(0);\n    tblock_sizze_7670 = get_local_size(0);\n    wave_sizze_7669 = LOCKSTEP_WIDTH;\n    block_id_7668 = get_tblock_id(0);\n    global_tid_7666 = block_id_7668 * tblock_sizze_7670 + local_tid_7667;\n    phys_tblock_id_7176 = sext_i32_i64(block_id_7668);\n    slice_7672 = (int64_t) 32;\n    ltid_pre_7671 = sext_i32_i64(local_tid_7667);\n    remnant_7673 = sext_i32_i64(local_tid_7667) - ltid_pre_7671;\n    slice_7674 = q_6549;\n    gtid_7175 = sext_i32_i64(block_id_7668);\n    remnant_7675 = sext_i32_i64(block_",
-                                    "id_7668) - gtid_7175;\n    color_7661 = (__local unsigned char *) color_7661_backing_0;\n    color_7662 = (__local unsigned char *) color_7662_backing_1;\n    ltid_flat_7380 = sext_i32_i64(local_tid_7667);\n    ltid_7379 = sext_i32_i64(sext_i64_i32(ltid_pre_7671));\n    for (int64_t i_7388 = 0; i_7388 < (int64_t) 8; i_7388++) {\n        mem_7626[i_7388] = 0.0F;\n    }\n    for (int64_t i_0 = 0; i_0 < (int64_t) 8; i_0++) {\n        mem_7635[i_0] = mem_7626[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    offsetA_7396 = (int64_t) 256 * gtid_7175;\n    futrts_copyGlobalShared(&ext_mem_7640, A_mem_7619, color_7662, offsetA_7396, (f16) 0.0F, Int<(int64_t) 16>{}, Int<(int64_t) 16>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    futrts_copyGlobalShared(&ext_mem_7643, B_mem_7620, color_7661, offsetA_7396, (f16) 0.0F, Int<(int64_t) 16>{}, Int<(int64_t) 16>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    ltid_flat_7401 = sext_i32_i64(local_tid_7667);\n    ltid_7400 = sext_i32_i64(sext_i64_i32(ltid_pre_7671));\n    futrts_tensorMMM(&ext_mem_7644, ext_mem_7640, ext_mem_7643, mem_7635, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 16>{}, Int<(int64_t) 16>{}, Int<(int64_t) 16>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    for (int64_t i_0 = 0; i_0 < (int64_t) 8; i_0++) {\n        mem_7651[i_0] = ext_mem_7644[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    futrts_copyRegistersShared(&ext_mem_7655, mem_7651, color_7661, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 16>{}, Int<(int64_t) 16>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    num_chunks_7677 = 8;\n    for (int32_t chunk_i_7678 = 0; chunk_i_7678 < num_chunks_7677; chunk_i_7678++) {\n        int32_t i_7679 = chunk_i_7678 * 32 + local_tid_7667;\n        \n        if (slt32(i_7679, 256)) {\n            ((__global float *) mem_7659)[gtid_7175 * (int64_t) 256 + sext_i32_i64(squot32(i_7679, 16)) * (int64_t) 16 + sext_i32_i64(i_7679 - squot32(i_7679, 16) * 16)] = ((__local float *) ext_mem_7655)[sext_i32_i64(squot32(i", "_7679, 16)) * (int64_t) 16 + sext_i32_i64(i_7679 - squot32(i_7679, 16) * 16)];\n        }\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    \n  error_2:\n    return;\n}\nFUTHARK_KERNEL_SIZED(mmm_intra32zisegmap_intrablock_7224_dim1, 1, 1)\nvoid mmm_intra32zisegmap_intrablock_7224(__global int *global_failure, int failure_is_an_option, __global int64_t *global_failure_args, int64_t q_6557, __global unsigned char *A_mem_7619, __global unsigned char *B_mem_7620, __global unsigned char *mem_7659)\n{\n    volatile __local unsigned char *color_7662_backing_1 = &shared_mem[0];\n    const int64_t color_7662_backing_1_offset = 0 + (int64_t) 2048;\n    volatile __local unsigned char *color_7661_backing_0 = &shared_mem[color_7662_backing_1_offset];\n    const int64_t color_7661_backing_0_offset = color_7662_backing_1_offset + (int64_t) 4096;\n    volatile __local int local_failure;\n    \n    // Harmless for all threads to write this.\n    local_failure = 0;\n    \n    int32_t local_tid_7667;\n    int32_t tblock_sizze_7670;\n    int32_t wave_sizze_7669;\n    int32_t block_id_7668;\n    int32_t global_tid_7666;\n    int64_t phys_tblock_id_7224;\n    int64_t slice_7672;\n    int64_t ltid_pre_7671;\n    int64_t remnant_7673;\n    int64_t slice_7674;\n    int64_t gtid_7223;\n    int64_t remnant_7675;\n    __local unsigned char *color_7661;\n    __local unsigned char *color_7662;\n    float mem_7635[(int64_t) 32];\n    int64_t ltid_flat_7450;\n    int64_t ltid_7449;\n    float mem_7626[(int64_t) 32];\n    int64_t offsetA_7466;\n    __local unsigned char *ext_mem_7640;\n    __local unsigned char *ext_mem_7643;\n    float mem_7651[(int64_t) 32];\n    int64_t ltid_flat_7471;\n    int64_t ltid_7470;\n    float ext_mem_7644[(int64_t) 32];\n    __local unsigned char *ext_mem_7655;\n    \n    local_tid_7667 = get_local_id(0);\n    tblock_sizze_7670 = get_local_size(0);\n    wave_sizze_7669 = LOCKSTEP_WIDTH;\n    block_id_7668 = get_tblock_id(0);\n    global_tid_7666 = block_id_7668 * tblock_sizze_7670 + local_tid_7667;\n    phys_tblock_id_722", "4 = sext_i32_i64(block_id_7668);\n    slice_7672 = (int64_t) 32;\n    ltid_pre_7671 = sext_i32_i64(local_tid_7667);\n    remnant_7673 = sext_i32_i64(local_tid_7667) - ltid_pre_7671;\n    slice_7674 = q_6557;\n    gtid_7223 = sext_i32_i64(block_id_7668);\n    remnant_7675 = sext_i32_i64(block_id_7668) - gtid_7223;\n    color_7661 = (__local unsigned char *) color_7661_backing_0;\n    color_7662 = (__local unsigned char *) color_7662_backing_1;\n    ltid_flat_7450 = sext_i32_i64(local_tid_7667);\n    ltid_7449 = sext_i32_i64(sext_i64_i32(ltid_pre_7671));\n    for (int64_t i_7458 = 0; i_7458 < (int64_t) 32; i_7458++) {\n        mem_7626[i_7458] = 0.0F;\n    }\n    for (int64_t i_0 = 0; i_0 < (int64_t) 32; i_0++) {\n        mem_7635[i_0] = mem_7626[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    offsetA_7466 = (int64_t) 1024 * gtid_7223;\n    futrts_copyGlobalShared(&ext_mem_7640, A_mem_7619, color_7662, offsetA_7466, (f16) 0.0F, Int<(int64_t) 32>{}, Int<(int64_t) 32>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    futrts_copyGlobalShared(&ext_mem_7643, B_mem_7620, color_7661, offsetA_7466, (f16) 0.0F, Int<(int64_t) 32>{}, Int<(int64_t) 32>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    ltid_flat_7471 = sext_i32_i64(local_tid_7667);\n    ltid_7470 = sext_i32_i64(sext_i64_i32(ltid_pre_7671));\n    futrts_tensorMMM(&ext_mem_7644, ext_mem_7640, ext_mem_7643, mem_7635, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 32>{}, Int<(int64_t) 32>{}, Int<(int64_t) 32>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    for (int64_t i_0 = 0; i_0 < (int64_t) 32; i_0++) {\n        mem_7651[i_0] = ext_mem_7644[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    futrts_copyRegistersShared(&ext_mem_7655, mem_7651, color_7661, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 32>{}, Int<(int64_t) 32>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    for (int32_t nest_i_7677 = 0; nest_i_7677 < 32; nest_i_7677++) {\n        ((__global float *) mem_7659)[gtid_7223 * (int64_t) 1024 + sext_i32_i64(n",
-                                    "est_i_7677) * (int64_t) 32 + sext_i32_i64(local_tid_7667)] = ((__local float *) ext_mem_7655)[sext_i32_i64(nest_i_7677) * (int64_t) 32 + sext_i32_i64(local_tid_7667)];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    \n  error_2:\n    return;\n}\nFUTHARK_KERNEL_SIZED(mmm_intra64zisegmap_intrablock_7272_dim1, 1, 1)\nvoid mmm_intra64zisegmap_intrablock_7272(__global int *global_failure, int failure_is_an_option, __global int64_t *global_failure_args, int64_t q_6565, __global unsigned char *A_mem_7619, __global unsigned char *B_mem_7620, __global unsigned char *mem_7659)\n{\n    volatile __local unsigned char *color_7662_backing_1 = &shared_mem[0];\n    const int64_t color_7662_backing_1_offset = 0 + (int64_t) 8192;\n    volatile __local unsigned char *color_7661_backing_0 = &shared_mem[color_7662_backing_1_offset];\n    const int64_t color_7661_backing_0_offset = color_7662_backing_1_offset + (int64_t) 16384;\n    volatile __local int local_failure;\n    \n    // Harmless for all threads to write this.\n    local_failure = 0;\n    \n    int32_t local_tid_7667;\n    int32_t tblock_sizze_7670;\n    int32_t wave_sizze_7669;\n    int32_t block_id_7668;\n    int32_t global_tid_7666;\n    int64_t phys_tblock_id_7272;\n    int64_t slice_7672;\n    int64_t ltid_pre_7671;\n    int64_t remnant_7673;\n    int64_t slice_7674;\n    int64_t gtid_7271;\n    int64_t remnant_7675;\n    __local unsigned char *color_7661;\n    __local unsigned char *color_7662;\n    float mem_7635[(int64_t) 128];\n    int64_t ltid_flat_7520;\n    int64_t ltid_7519;\n    float mem_7626[(int64_t) 128];\n    int64_t offsetA_7536;\n    __local unsigned char *ext_mem_7640;\n    __local unsigned char *ext_mem_7643;\n    float mem_7651[(int64_t) 128];\n    int64_t ltid_flat_7541;\n    int64_t ltid_7540;\n    float ext_mem_7644[(int64_t) 128];\n    __local unsigned char *ext_mem_7655;\n    int32_t num_chunks_7677;\n    \n    local_tid_7667 = get_local_id(0);\n    tblock_sizze_7670 = get_local_size(0);\n    wave_sizze_7669 = LOCKSTEP_WIDTH;\n    block_id_7668 = g", "et_tblock_id(0);\n    global_tid_7666 = block_id_7668 * tblock_sizze_7670 + local_tid_7667;\n    phys_tblock_id_7272 = sext_i32_i64(block_id_7668);\n    slice_7672 = (int64_t) 32;\n    ltid_pre_7671 = sext_i32_i64(local_tid_7667);\n    remnant_7673 = sext_i32_i64(local_tid_7667) - ltid_pre_7671;\n    slice_7674 = q_6565;\n    gtid_7271 = sext_i32_i64(block_id_7668);\n    remnant_7675 = sext_i32_i64(block_id_7668) - gtid_7271;\n    color_7661 = (__local unsigned char *) color_7661_backing_0;\n    color_7662 = (__local unsigned char *) color_7662_backing_1;\n    ltid_flat_7520 = sext_i32_i64(local_tid_7667);\n    ltid_7519 = sext_i32_i64(sext_i64_i32(ltid_pre_7671));\n    for (int64_t i_7528 = 0; i_7528 < (int64_t) 128; i_7528++) {\n        mem_7626[i_7528] = 0.0F;\n    }\n    for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {\n        mem_7635[i_0] = mem_7626[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    offsetA_7536 = (int64_t) 4096 * gtid_7271;\n    futrts_copyGlobalShared(&ext_mem_7640, A_mem_7619, color_7662, offsetA_7536, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 64>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    futrts_copyGlobalShared(&ext_mem_7643, B_mem_7620, color_7661, offsetA_7536, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 64>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    ltid_flat_7541 = sext_i32_i64(local_tid_7667);\n    ltid_7540 = sext_i32_i64(sext_i64_i32(ltid_pre_7671));\n    futrts_tensorMMM(&ext_mem_7644, ext_mem_7640, ext_mem_7643, mem_7635, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 64>{}, Int<(int64_t) 64>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {\n        mem_7651[i_0] = ext_mem_7644[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    futrts_copyRegistersShared(&ext_mem_7655, mem_7651, color_7661, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 64>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    num_chunks_7677 = 128;\n    for", " (int32_t chunk_i_7678 = 0; chunk_i_7678 < num_chunks_7677; chunk_i_7678++) {\n        int32_t i_7679 = chunk_i_7678 * 32 + local_tid_7667;\n        \n        if (slt32(i_7679, 4096)) {\n            ((__global float *) mem_7659)[gtid_7271 * (int64_t) 4096 + sext_i32_i64(squot32(i_7679, 64)) * (int64_t) 64 + sext_i32_i64(i_7679 - squot32(i_7679, 64) * 64)] = ((__local float *) ext_mem_7655)[sext_i32_i64(squot32(i_7679, 64)) * (int64_t) 64 + sext_i32_i64(i_7679 - squot32(i_7679, 64) * 64)];\n        }\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    \n  error_2:\n    return;\n}\n", NULL};
+                                    "::TypeOut;\n\n        using MMAConfig = get_mma_config<ElmTypeA, ElmTypeB, ElmTypeC, SizeM, SizeN, WarpsM, WarpsN>;\n        typename MMAConfig::TiledMMA tiled_mma;\n\n        auto s_layout = make_layout(Shape<SizeM, SizeN>{}, LayoutRight{});\n\n        ThrMMA thr_mma = tiled_mma.get_slice(flatThreadIdx);\n\n        auto r_layout = partition_shape_C(thr_mma, s_layout.shape());\n        Tensor tCrC = make_tensor(make_rmem_ptr(reinterpret_cast<ElmTypeC *>(registers_mem)), r_layout);\n\n        Tensor s = make_tensor(make_smem_ptr(reinterpret_cast<ElmTypeC *>(shared_mem)), s_layout);\n        Tensor tCsC = thr_mma.partition_C(s);\n\n        copy(AutoVectorizingCopy{}, tCrC, tCsC);\n    }\n    __syncthreads();\n}\n\ntemplate<class ElmTypeAIn, class ElmTypeBIn, class ElmTypeCIn, class SizeM, class SizeN, class SizeK, class WarpsM, class WarpsN, class ASwizzled, class BSwizzled, int numRegs>\nFUTHARK_FUN_ATTR void futrts_tensorMMM(ElmTypeCIn (*mem_out_p)[numRegs], unsigned char *A_mem, unsigned char *B_mem, ElmTypeCIn (&C_mem)[numRegs], ElmTypeAIn, ElmTypeBIn, SizeM, SizeN, SizeK, WarpsM, WarpsN, ASwizzled, BSwizzled)\n{\n    int flatThreadIdx = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;\n\n    using ElmTypeA = typename convert_type<ElmTypeAIn>::TypeOut;\n    using ElmTypeB = typename convert_type<ElmTypeBIn>::TypeOut;\n    using ElmTypeC = typename convert_type<ElmTypeCIn>::TypeOut;\n\n    using MMAConfig = get_mma_config<ElmTypeA, ElmTypeB, ElmTypeC, SizeM, SizeN, WarpsM, WarpsN>;\n    typename MMAConfig::TiledMMA tiled_mma;\n\n    constexpr unsigned int sizeKunsigned = SizeK{};\n    constexpr unsigned int shift_lenK = max(bit_width(sizeKunsigned) - 4, _3{});\n\n    constexpr unsigned int sizeNunsigned = SizeN{};\n    constexpr unsigned int shift_lenN = max(bit_width(sizeNunsigned) - 4, _3{});\n\n    using ALayoutConfig = get_layout_config<SizeM, SizeK, ASwizzled, LayoutRight, shift_lenK>;\n    using BLayoutConfig = get_layout_config<SizeN, SizeK, BSwizzled, LayoutLeft, s", "hift_lenN>;\n    typename ALayoutConfig::SharedLayout sA_layout;\n    typename BLayoutConfig::SharedLayout sB_layout;\n\n    auto sC_layout = make_layout(Shape<SizeM, SizeN>{}, LayoutRight{});\n\n    ThrMMA thr_mma = tiled_mma.get_slice(flatThreadIdx);\n\n    auto rC_layout = partition_shape_C(thr_mma, sC_layout.shape());\n    Tensor tCrC = make_tensor(make_rmem_ptr(reinterpret_cast<ElmTypeC *>(C_mem)), rC_layout);\n\n    Tensor sA = make_tensor(make_smem_ptr(reinterpret_cast<ElmTypeA *>(A_mem)), sA_layout);\n    Tensor sB = make_tensor(make_smem_ptr(reinterpret_cast<ElmTypeB *>(B_mem)), sB_layout);\n\n    TiledCopy copyA_shared_registers = make_tiled_copy_A(Copy_Atom<typename MMAConfig::ACopyOpSharedRegisters, ElmTypeA>{}, tiled_mma);\n    TiledCopy copyB_shared_registers = make_tiled_copy_B(Copy_Atom<typename MMAConfig::BCopyOpSharedRegisters, ElmTypeB>{}, tiled_mma);\n\n    Tensor tCrA  = thr_mma.partition_fragment_A(sA);\n    Tensor tCrB  = thr_mma.partition_fragment_B(sB);\n\n    auto smem_thr_copy_A   = copyA_shared_registers.get_thread_slice(threadIdx.x);\n    Tensor tCsA            = smem_thr_copy_A.partition_S(sA);\n    Tensor tCrA_copy_view  = smem_thr_copy_A.retile_D(tCrA);\n\n    auto smem_thr_copy_B   = copyB_shared_registers.get_thread_slice(threadIdx.x);\n    Tensor tCsB            = smem_thr_copy_B.partition_S(sB);\n    Tensor tCrB_copy_view  = smem_thr_copy_B.retile_D(tCrB);\n\n    // Wait for data copied asynchronously by futrts_copyGlobalShared\n    cp_async_wait<0>();\n    __syncthreads();\n\n    constexpr int K_BLOCK_MAX = size<2>(tCrA);\n    CUTE_UNROLL\n    for (int k_block = 0; k_block < K_BLOCK_MAX; ++k_block)\n    {\n        // Copy shared->registers\n        copy(copyA_shared_registers, tCsA(_,_,k_block), tCrA_copy_view(_,_,k_block));\n        copy(copyB_shared_registers, tCsB(_,_,k_block), tCrB_copy_view(_,_,k_block));\n\n        // Perform mma on k_block in registers\n        gemm(tiled_mma, tCrA(_,_,k_block), tCrB(_,_,k_block), tCrC);\n    }\n\n    for (int32_t i = 0; i < numRegs", "; i++)\n        (*mem_out_p)[i] = C_mem[i];\n}\n\n\n\nFUTHARK_KERNEL\nvoid builtinzhreplicate_f16zireplicate_7742(int64_t num_elems_7738, uint16_t val_7739_bits, int64_t replicate_n_7741, int64_t virt_num_tblocks_7747, int64_t num_tblocks_7748, __global unsigned char *mem_7737)\n{\n    f16 val_7739 = futrts_from_bits16(val_7739_bits);\n    int32_t replicate_ltid_7743;\n    int32_t tblock_sizze_7745;\n    int32_t replicate_gid_7744;\n    int32_t replicate_gtid_7742;\n    int32_t phys_tblock_id_7749;\n    int32_t iterations_7750;\n    \n    replicate_ltid_7743 = get_local_id(0);\n    tblock_sizze_7745 = get_local_size(0);\n    replicate_gid_7744 = get_tblock_id(0);\n    replicate_gtid_7742 = replicate_gid_7744 * tblock_sizze_7745 + replicate_ltid_7743;\n    phys_tblock_id_7749 = get_tblock_id(0);\n    iterations_7750 = sdiv_up32(sext_i64_i32(virt_num_tblocks_7747) - phys_tblock_id_7749, sext_i64_i32(num_tblocks_7748));\n    for (int32_t i_7751 = 0; i_7751 < iterations_7750; i_7751++) {\n        int32_t virt_tblock_id_7752;\n        int64_t global_tid_7753;\n        int64_t slice_7755;\n        int64_t rep_i_7754;\n        int64_t remnant_7756;\n        \n        virt_tblock_id_7752 = phys_tblock_id_7749 + i_7751 * sext_i64_i32(num_tblocks_7748);\n        global_tid_7753 = sext_i32_i64(virt_tblock_id_7752) * sext_i32_i64(tblock_sizze_7745) + sext_i32_i64(replicate_ltid_7743);\n        slice_7755 = num_elems_7738;\n        rep_i_7754 = global_tid_7753;\n        remnant_7756 = global_tid_7753 - rep_i_7754;\n        if (slt64(global_tid_7753, replicate_n_7741)) {\n            ((__global uint16_t *) mem_7737)[rep_i_7754] = futrts_to_bits16(val_7739);\n        }\n        barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE);\n    }\n    \n  error_1:\n    return;\n}\nFUTHARK_KERNEL_SIZED(mmm_intra128zisegmap_intrablock_7343_dim1, 1, 1)\nvoid mmm_intra128zisegmap_intrablock_7343(__global int *global_failure, int failure_is_an_option, __global int64_t *global_failure_args, int64_t q_6588, __global unsigned char *A_mem_7690",
+                                    ", __global unsigned char *B_mem_7691, __global unsigned char *mem_7730)\n{\n    volatile __local unsigned char *color_7733_backing_1 = &shared_mem[0];\n    const int64_t color_7733_backing_1_offset = 0 + (int64_t) 32768;\n    volatile __local unsigned char *color_7732_backing_0 = &shared_mem[color_7733_backing_1_offset];\n    const int64_t color_7732_backing_0_offset = color_7733_backing_1_offset + (int64_t) 65536;\n    volatile __local int local_failure;\n    \n    // Harmless for all threads to write this.\n    local_failure = 0;\n    \n    int32_t local_tid_7738;\n    int32_t tblock_sizze_7741;\n    int32_t wave_sizze_7740;\n    int32_t block_id_7739;\n    int32_t global_tid_7737;\n    int64_t phys_tblock_id_7343;\n    int64_t slice_7743;\n    int64_t ltid_pre_7742;\n    int64_t remnant_7744;\n    int64_t slice_7745;\n    int64_t gtid_7342;\n    int64_t remnant_7746;\n    __local unsigned char *color_7732;\n    __local unsigned char *color_7733;\n    float mem_7706[(int64_t) 128];\n    int64_t ltid_flat_7661;\n    int64_t ltid_7660;\n    float mem_7697[(int64_t) 128];\n    int64_t offsetA_7677;\n    __local unsigned char *ext_mem_7711;\n    __local unsigned char *ext_mem_7714;\n    float mem_7722[(int64_t) 128];\n    int64_t ltid_flat_7682;\n    int64_t ltid_7681;\n    float ext_mem_7715[(int64_t) 128];\n    __local unsigned char *ext_mem_7726;\n    \n    local_tid_7738 = get_local_id(0);\n    tblock_sizze_7741 = get_local_size(0);\n    wave_sizze_7740 = LOCKSTEP_WIDTH;\n    block_id_7739 = get_tblock_id(0);\n    global_tid_7737 = block_id_7739 * tblock_sizze_7741 + local_tid_7738;\n    phys_tblock_id_7343 = sext_i32_i64(block_id_7739);\n    slice_7743 = (int64_t) 128;\n    ltid_pre_7742 = sext_i32_i64(local_tid_7738);\n    remnant_7744 = sext_i32_i64(local_tid_7738) - ltid_pre_7742;\n    slice_7745 = q_6588;\n    gtid_7342 = sext_i32_i64(block_id_7739);\n    remnant_7746 = sext_i32_i64(block_id_7739) - gtid_7342;\n    color_7732 = (__local unsigned char *) color_7732_backing_0;\n    color_7733 = (__local unsigne", "d char *) color_7733_backing_1;\n    ltid_flat_7661 = sext_i32_i64(local_tid_7738);\n    ltid_7660 = sext_i32_i64(sext_i64_i32(ltid_pre_7742));\n    for (int64_t i_7669 = 0; i_7669 < (int64_t) 128; i_7669++) {\n        mem_7697[i_7669] = 0.0F;\n    }\n    for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {\n        mem_7706[i_0] = mem_7697[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    offsetA_7677 = (int64_t) 16384 * gtid_7342;\n    futrts_copyGlobalShared(&ext_mem_7711, A_mem_7690, color_7733, offsetA_7677, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});\n    futrts_copyGlobalShared(&ext_mem_7714, B_mem_7691, color_7732, offsetA_7677, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});\n    ltid_flat_7682 = sext_i32_i64(local_tid_7738);\n    ltid_7681 = sext_i32_i64(sext_i64_i32(ltid_pre_7742));\n    futrts_tensorMMM(&ext_mem_7715, ext_mem_7711, ext_mem_7714, mem_7706, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {\n        mem_7722[i_0] = ext_mem_7715[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    futrts_copyRegistersShared(&ext_mem_7726, mem_7722, color_7732, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 128>{}, Int<(int64_t) 128>{}, Int<(int64_t) 2>{}, Int<(int64_t) 2>{});\n    for (int32_t nest_i_7748 = 0; nest_i_7748 < 128; nest_i_7748++) {\n        ((__global float *) mem_7730)[gtid_7342 * (int64_t) 16384 + sext_i32_i64(nest_i_7748) * (int64_t) 128 + sext_i32_i64(local_tid_7738)] = ((__local float *) ext_mem_7726)[sext_i32_i64(nest_i_7748) * (int64_t) 128 + sext_i32_i64(local_tid_7738)];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    \n  error_2:\n    return;\n}\nFUTHARK_KERNEL_SIZED(mmm_intra16zisegmap_intrablock_7199_dim1, 1, 1)\nvoid mmm_intra16zisegmap_intrablock_7199(__global int *global_failure, int failure_", "is_an_option, __global int64_t *global_failure_args, int64_t q_6564, __global unsigned char *A_mem_7690, __global unsigned char *B_mem_7691, __global unsigned char *mem_7730)\n{\n    volatile __local unsigned char *color_7733_backing_1 = &shared_mem[0];\n    const int64_t color_7733_backing_1_offset = 0 + (int64_t) 512;\n    volatile __local unsigned char *color_7732_backing_0 = &shared_mem[color_7733_backing_1_offset];\n    const int64_t color_7732_backing_0_offset = color_7733_backing_1_offset + (int64_t) 1024;\n    volatile __local int local_failure;\n    \n    // Harmless for all threads to write this.\n    local_failure = 0;\n    \n    int32_t local_tid_7738;\n    int32_t tblock_sizze_7741;\n    int32_t wave_sizze_7740;\n    int32_t block_id_7739;\n    int32_t global_tid_7737;\n    int64_t phys_tblock_id_7199;\n    int64_t slice_7743;\n    int64_t ltid_pre_7742;\n    int64_t remnant_7744;\n    int64_t slice_7745;\n    int64_t gtid_7198;\n    int64_t remnant_7746;\n    __local unsigned char *color_7732;\n    __local unsigned char *color_7733;\n    float mem_7706[(int64_t) 8];\n    int64_t ltid_flat_7451;\n    int64_t ltid_7450;\n    float mem_7697[(int64_t) 8];\n    int64_t offsetA_7467;\n    __local unsigned char *ext_mem_7711;\n    __local unsigned char *ext_mem_7714;\n    float mem_7722[(int64_t) 8];\n    int64_t ltid_flat_7472;\n    int64_t ltid_7471;\n    float ext_mem_7715[(int64_t) 8];\n    __local unsigned char *ext_mem_7726;\n    int32_t num_chunks_7748;\n    \n    local_tid_7738 = get_local_id(0);\n    tblock_sizze_7741 = get_local_size(0);\n    wave_sizze_7740 = LOCKSTEP_WIDTH;\n    block_id_7739 = get_tblock_id(0);\n    global_tid_7737 = block_id_7739 * tblock_sizze_7741 + local_tid_7738;\n    phys_tblock_id_7199 = sext_i32_i64(block_id_7739);\n    slice_7743 = (int64_t) 32;\n    ltid_pre_7742 = sext_i32_i64(local_tid_7738);\n    remnant_7744 = sext_i32_i64(local_tid_7738) - ltid_pre_7742;\n    slice_7745 = q_6564;\n    gtid_7198 = sext_i32_i64(block_id_7739);\n    remnant_7746 = sext_i32_i64(block_",
+                                    "id_7739) - gtid_7198;\n    color_7732 = (__local unsigned char *) color_7732_backing_0;\n    color_7733 = (__local unsigned char *) color_7733_backing_1;\n    ltid_flat_7451 = sext_i32_i64(local_tid_7738);\n    ltid_7450 = sext_i32_i64(sext_i64_i32(ltid_pre_7742));\n    for (int64_t i_7459 = 0; i_7459 < (int64_t) 8; i_7459++) {\n        mem_7697[i_7459] = 0.0F;\n    }\n    for (int64_t i_0 = 0; i_0 < (int64_t) 8; i_0++) {\n        mem_7706[i_0] = mem_7697[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    offsetA_7467 = (int64_t) 256 * gtid_7198;\n    futrts_copyGlobalShared(&ext_mem_7711, A_mem_7690, color_7733, offsetA_7467, (f16) 0.0F, Int<(int64_t) 16>{}, Int<(int64_t) 16>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    futrts_copyGlobalShared(&ext_mem_7714, B_mem_7691, color_7732, offsetA_7467, (f16) 0.0F, Int<(int64_t) 16>{}, Int<(int64_t) 16>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    ltid_flat_7472 = sext_i32_i64(local_tid_7738);\n    ltid_7471 = sext_i32_i64(sext_i64_i32(ltid_pre_7742));\n    futrts_tensorMMM(&ext_mem_7715, ext_mem_7711, ext_mem_7714, mem_7706, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 16>{}, Int<(int64_t) 16>{}, Int<(int64_t) 16>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    for (int64_t i_0 = 0; i_0 < (int64_t) 8; i_0++) {\n        mem_7722[i_0] = ext_mem_7715[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    futrts_copyRegistersShared(&ext_mem_7726, mem_7722, color_7732, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 16>{}, Int<(int64_t) 16>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    num_chunks_7748 = 8;\n    for (int32_t chunk_i_7749 = 0; chunk_i_7749 < num_chunks_7748; chunk_i_7749++) {\n        int32_t i_7750 = chunk_i_7749 * 32 + local_tid_7738;\n        \n        if (slt32(i_7750, 256)) {\n            ((__global float *) mem_7730)[gtid_7198 * (int64_t) 256 + sext_i32_i64(squot32(i_7750, 16)) * (int64_t) 16 + sext_i32_i64(i_7750 - squot32(i_7750, 16) * 16)] = ((__local float *) ext_mem_7726)[sext_i32_i64(squot32(i", "_7750, 16)) * (int64_t) 16 + sext_i32_i64(i_7750 - squot32(i_7750, 16) * 16)];\n        }\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    \n  error_2:\n    return;\n}\nFUTHARK_KERNEL_SIZED(mmm_intra256zisegmap_intrablock_7391_dim1, 1, 1)\nvoid mmm_intra256zisegmap_intrablock_7391(__global int *global_failure, int64_t q_6596, __global unsigned char *A_mem_7690, __global unsigned char *B_mem_7691, __global unsigned char *mem_7697)\n{\n    volatile __local unsigned char *red_arr_mem_7753_backing_1 = &shared_mem[0];\n    const int64_t red_arr_mem_7753_backing_1_offset = 0 + (int64_t) 67108864;\n    volatile __local unsigned char *color_7731_backing_0 = &shared_mem[red_arr_mem_7753_backing_1_offset];\n    const int64_t color_7731_backing_0_offset = red_arr_mem_7753_backing_1_offset + (int64_t) 262144;\n    \n    if (*global_failure >= 0)\n        return;\n    \n    int32_t local_tid_7738;\n    int32_t tblock_sizze_7741;\n    int32_t wave_sizze_7740;\n    int32_t block_id_7739;\n    int32_t global_tid_7737;\n    int64_t phys_tblock_id_7391;\n    int64_t slice_7745;\n    int64_t slice_7746;\n    int64_t slice_7747;\n    int64_t ltid_pre_7742;\n    int64_t remnant_7748;\n    int64_t ltid_pre_7743;\n    int64_t remnant_7749;\n    int64_t ltid_pre_7744;\n    int64_t remnant_7750;\n    int64_t slice_7751;\n    int64_t gtid_7390;\n    int64_t remnant_7752;\n    __local unsigned char *color_7731;\n    int64_t phys_tid_7400;\n    __local unsigned char *red_arr_mem_7753;\n    int64_t gtid_7397;\n    int64_t gtid_7398;\n    int64_t gtid_7399;\n    int64_t dims_flat_7755;\n    float eta_p_7401;\n    float eta_p_7402;\n    float eta_p_7757;\n    float eta_p_7758;\n    bool ltid_in_bounds_7760;\n    int32_t skip_threads_7761;\n    bool no_carry_in_7767;\n    int32_t num_chunks_7772;\n    \n    local_tid_7738 = get_local_id(0);\n    tblock_sizze_7741 = get_local_size(0);\n    wave_sizze_7740 = LOCKSTEP_WIDTH;\n    block_id_7739 = get_tblock_id(0);\n    global_tid_7737 = block_id_7739 * tblock_sizze_7741 + local_tid_7738;\n    phys_tblock_id_73", "91 = sext_i32_i64(block_id_7739);\n    slice_7745 = (int64_t) 256;\n    slice_7746 = (int64_t) 256 * slice_7745;\n    slice_7747 = (int64_t) 256 * slice_7746;\n    ltid_pre_7742 = squot64(sext_i32_i64(local_tid_7738), slice_7746);\n    remnant_7748 = sext_i32_i64(local_tid_7738) - ltid_pre_7742 * slice_7746;\n    ltid_pre_7743 = squot64(remnant_7748, slice_7745);\n    remnant_7749 = remnant_7748 - ltid_pre_7743 * slice_7745;\n    ltid_pre_7744 = remnant_7749;\n    remnant_7750 = remnant_7749 - ltid_pre_7744;\n    slice_7751 = q_6596;\n    gtid_7390 = sext_i32_i64(block_id_7739);\n    remnant_7752 = sext_i32_i64(block_id_7739) - gtid_7390;\n    color_7731 = (__local unsigned char *) color_7731_backing_0;\n    phys_tid_7400 = sext_i32_i64(local_tid_7738);\n    red_arr_mem_7753 = (__local unsigned char *) red_arr_mem_7753_backing_1;\n    gtid_7397 = sext_i32_i64(sext_i64_i32(ltid_pre_7742));\n    gtid_7398 = sext_i32_i64(sext_i64_i32(ltid_pre_7743));\n    gtid_7399 = sext_i32_i64(sext_i64_i32(ltid_pre_7744));\n    if ((slt64(gtid_7397, (int64_t) 256) && slt64(gtid_7398, (int64_t) 256)) && slt64(gtid_7399, (int64_t) 256)) {\n        f16 eta_p_7406;\n        f16 eta_p_7407;\n        f16 defunc_0_f_res_7408;\n        float f16_res_7409;\n        \n        eta_p_7406 = futrts_from_bits16(((__global uint16_t *) A_mem_7690)[gtid_7390 * (int64_t) 65536 + gtid_7397 * (int64_t) 256 + gtid_7399]);\n        eta_p_7407 = futrts_from_bits16(((__global uint16_t *) B_mem_7691)[gtid_7390 * (int64_t) 65536 + gtid_7399 * (int64_t) 256 + gtid_7398]);\n        defunc_0_f_res_7408 = eta_p_7406 * eta_p_7407;\n        f16_res_7409 = fpconv_f16_f32(defunc_0_f_res_7408);\n        ((__local float *) red_arr_mem_7753)[gtid_7397 * (int64_t) 65536 + gtid_7398 * (int64_t) 256 + gtid_7399] = f16_res_7409;\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    dims_flat_7755 = (int64_t) 16777216;\n    ltid_in_bounds_7760 = slt64(sext_i32_i64(local_tid_7738), (int64_t) 16777216);\n    // read input for in-block scan\n    {\n        if (ltid_in_",
+                                    "bounds_7760) {\n            eta_p_7402 = ((volatile __local float *) red_arr_mem_7753)[sext_i32_i64(local_tid_7738)];\n            if ((local_tid_7738 - squot32(local_tid_7738, 32) * 32) == 0) {\n                eta_p_7401 = eta_p_7402;\n            }\n        }\n    }\n    // in-block scan (hopefully no barriers needed)\n    {\n        skip_threads_7761 = 1;\n        while (slt32(skip_threads_7761, 32)) {\n            bool thread_active_7762 = sle32(skip_threads_7761, local_tid_7738 - squot32(local_tid_7738, 32) * 32) && ltid_in_bounds_7760;\n            \n            if (thread_active_7762) {\n                // read operands\n                {\n                    eta_p_7401 = ((volatile __local float *) red_arr_mem_7753)[sext_i32_i64(local_tid_7738) - sext_i32_i64(skip_threads_7761)];\n                }\n            }\n            // perform operation\n            {\n                bool inactive_7763 = slt64(srem64(sext_i32_i64(local_tid_7738), (int64_t) 256), sext_i32_i64(local_tid_7738) - sext_i32_i64(local_tid_7738 - skip_threads_7761));\n                \n                if (thread_active_7762 && inactive_7763) {\n                    eta_p_7401 = eta_p_7402;\n                }\n                if (thread_active_7762) {\n                    if (!inactive_7763) {\n                        float defunc_0_op_res_7403 = eta_p_7401 + eta_p_7402;\n                        \n                        eta_p_7401 = defunc_0_op_res_7403;\n                    }\n                }\n            }\n            if (sle32(wave_sizze_7740, skip_threads_7761)) {\n                barrier(CLK_LOCAL_MEM_FENCE);\n            }\n            if (thread_active_7762) {\n                // write result\n                {\n                    ((volatile __local float *) red_arr_mem_7753)[sext_i32_i64(local_tid_7738)] = eta_p_7401;\n                    eta_p_7402 = eta_p_7401;\n                }\n            }\n            if (sle32(wave_sizze_7740, skip_threads_7761)) {\n                barrier(CLK_LOCAL_MEM_FENCE);\n            }\n   ", "         skip_threads_7761 *= 2;\n        }\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    // last thread of block 'i' writes its result to offset 'i'\n    {\n        if ((local_tid_7738 - squot32(local_tid_7738, 32) * 32) == 31 && ltid_in_bounds_7760) {\n            ((volatile __local float *) red_arr_mem_7753)[sext_i32_i64(squot32(local_tid_7738, 32))] = eta_p_7401;\n        }\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    // scan the first block, after which offset 'i' contains carry-in for block 'i+1'\n    {\n        int32_t skip_threads_7764;\n        \n        // read input for in-block scan\n        {\n            if (squot32(local_tid_7738, 32) == 0 && ltid_in_bounds_7760) {\n                eta_p_7758 = ((volatile __local float *) red_arr_mem_7753)[sext_i32_i64(local_tid_7738)];\n                if ((local_tid_7738 - squot32(local_tid_7738, 32) * 32) == 0) {\n                    eta_p_7757 = eta_p_7758;\n                }\n            }\n        }\n        // in-block scan (hopefully no barriers needed)\n        {\n            skip_threads_7764 = 1;\n            while (slt32(skip_threads_7764, 32)) {\n                bool thread_active_7765 = sle32(skip_threads_7764, local_tid_7738 - squot32(local_tid_7738, 32) * 32) && (squot32(local_tid_7738, 32) == 0 && ltid_in_bounds_7760);\n                \n                if (thread_active_7765) {\n                    // read operands\n                    {\n                        eta_p_7757 = ((volatile __local float *) red_arr_mem_7753)[sext_i32_i64(local_tid_7738) - sext_i32_i64(skip_threads_7764)];\n                    }\n                }\n                // perform operation\n                {\n                    bool inactive_7766 = slt64(srem64(sext_i32_i64(local_tid_7738 * 32 + 32 - 1), (int64_t) 256), sext_i32_i64(local_tid_7738 * 32 + 32 - 1) - sext_i32_i64((local_tid_7738 - skip_threads_7764) * 32 + 32 - 1));\n                    \n                    if (thread_active_7765 && inactive_7766) {\n                        eta_p_7757 = eta_p_7758;\n", "                    }\n                    if (thread_active_7765) {\n                        if (!inactive_7766) {\n                            float defunc_0_op_res_7759 = eta_p_7757 + eta_p_7758;\n                            \n                            eta_p_7757 = defunc_0_op_res_7759;\n                        }\n                    }\n                }\n                if (sle32(wave_sizze_7740, skip_threads_7764)) {\n                    barrier(CLK_LOCAL_MEM_FENCE);\n                }\n                if (thread_active_7765) {\n                    // write result\n                    {\n                        ((volatile __local float *) red_arr_mem_7753)[sext_i32_i64(local_tid_7738)] = eta_p_7757;\n                        eta_p_7758 = eta_p_7757;\n                    }\n                }\n                if (sle32(wave_sizze_7740, skip_threads_7764)) {\n                    barrier(CLK_LOCAL_MEM_FENCE);\n                }\n                skip_threads_7764 *= 2;\n            }\n        }\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    no_carry_in_7767 = squot32(local_tid_7738, 32) == 0 || !ltid_in_bounds_7760;\n    // carry-in for every block except the first\n    {\n        // read operands\n        {\n            if (!no_carry_in_7767) {\n                eta_p_7402 = eta_p_7401;\n                eta_p_7401 = ((__local float *) red_arr_mem_7753)[sext_i32_i64(squot32(local_tid_7738, 32)) - (int64_t) 1];\n            }\n        }\n        // perform operation\n        {\n            bool inactive_7768 = slt64(srem64(sext_i32_i64(local_tid_7738), (int64_t) 256), sext_i32_i64(local_tid_7738) - sext_i32_i64(squot32(local_tid_7738, 32) * 32 - 1));\n            \n            if (!no_carry_in_7767) {\n                if (inactive_7768) {\n                    eta_p_7401 = eta_p_7402;\n                }\n            }\n            if (!no_carry_in_7767) {\n                if (!inactive_7768) {\n                    float defunc_0_op_res_7403 = eta_p_7401 + eta_p_7402;\n                    \n                    eta_p_7",
+                                    "401 = defunc_0_op_res_7403;\n                }\n            }\n        }\n        // write final result\n        {\n            if (!no_carry_in_7767) {\n                ((__local float *) red_arr_mem_7753)[sext_i32_i64(local_tid_7738)] = eta_p_7401;\n            }\n        }\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    // restore correct values for first block\n    {\n        if (squot32(local_tid_7738, 32) == 0 && ltid_in_bounds_7760) {\n            ((__local float *) red_arr_mem_7753)[sext_i32_i64(local_tid_7738)] = eta_p_7402;\n        }\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    barrier(CLK_LOCAL_MEM_FENCE);\n    // Save result of reduction.\n    {\n        int32_t num_chunks_7769 = 1;\n        \n        for (int32_t chunk_i_7770 = 0; chunk_i_7770 < num_chunks_7769; chunk_i_7770++) {\n            int32_t i_7771 = chunk_i_7770 * 16777216 + local_tid_7738;\n            \n            if (slt32(i_7771, 65536)) {\n                ((__local float *) color_7731)[sext_i32_i64(squot32(i_7771, 256)) * (int64_t) 256 + sext_i32_i64(i_7771 - squot32(i_7771, 256) * 256)] = ((__local float *) red_arr_mem_7753)[(int64_t) 255 + sext_i32_i64(squot32(i_7771, 256)) * (int64_t) 65536 + sext_i32_i64(i_7771 - squot32(i_7771, 256) * 256) * (int64_t) 256];\n            }\n        }\n        barrier(CLK_LOCAL_MEM_FENCE);\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    num_chunks_7772 = 1;\n    for (int32_t chunk_i_7773 = 0; chunk_i_7773 < num_chunks_7772; chunk_i_7773++) {\n        int32_t i_7774 = chunk_i_7773 * 16777216 + local_tid_7738;\n        \n        if (slt32(i_7774, 65536)) {\n            ((__global float *) mem_7697)[gtid_7390 * (int64_t) 65536 + sext_i32_i64(squot32(i_7774, 256)) * (int64_t) 256 + sext_i32_i64(i_7774 - squot32(i_7774, 256) * 256)] = ((__local float *) color_7731)[sext_i32_i64(squot32(i_7774, 256)) * (int64_t) 256 + sext_i32_i64(i_7774 - squot32(i_7774, 256) * 256)];\n        }\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    \n  error_3:\n    return;\n}\nFUTHARK_KERNEL_SIZED(mmm_intra32zisegmap_intrab", "lock_7247_dim1, 1, 1)\nvoid mmm_intra32zisegmap_intrablock_7247(__global int *global_failure, int failure_is_an_option, __global int64_t *global_failure_args, int64_t q_6572, __global unsigned char *A_mem_7690, __global unsigned char *B_mem_7691, __global unsigned char *mem_7730)\n{\n    volatile __local unsigned char *color_7733_backing_1 = &shared_mem[0];\n    const int64_t color_7733_backing_1_offset = 0 + (int64_t) 2048;\n    volatile __local unsigned char *color_7732_backing_0 = &shared_mem[color_7733_backing_1_offset];\n    const int64_t color_7732_backing_0_offset = color_7733_backing_1_offset + (int64_t) 4096;\n    volatile __local int local_failure;\n    \n    // Harmless for all threads to write this.\n    local_failure = 0;\n    \n    int32_t local_tid_7738;\n    int32_t tblock_sizze_7741;\n    int32_t wave_sizze_7740;\n    int32_t block_id_7739;\n    int32_t global_tid_7737;\n    int64_t phys_tblock_id_7247;\n    int64_t slice_7743;\n    int64_t ltid_pre_7742;\n    int64_t remnant_7744;\n    int64_t slice_7745;\n    int64_t gtid_7246;\n    int64_t remnant_7746;\n    __local unsigned char *color_7732;\n    __local unsigned char *color_7733;\n    float mem_7706[(int64_t) 32];\n    int64_t ltid_flat_7521;\n    int64_t ltid_7520;\n    float mem_7697[(int64_t) 32];\n    int64_t offsetA_7537;\n    __local unsigned char *ext_mem_7711;\n    __local unsigned char *ext_mem_7714;\n    float mem_7722[(int64_t) 32];\n    int64_t ltid_flat_7542;\n    int64_t ltid_7541;\n    float ext_mem_7715[(int64_t) 32];\n    __local unsigned char *ext_mem_7726;\n    \n    local_tid_7738 = get_local_id(0);\n    tblock_sizze_7741 = get_local_size(0);\n    wave_sizze_7740 = LOCKSTEP_WIDTH;\n    block_id_7739 = get_tblock_id(0);\n    global_tid_7737 = block_id_7739 * tblock_sizze_7741 + local_tid_7738;\n    phys_tblock_id_7247 = sext_i32_i64(block_id_7739);\n    slice_7743 = (int64_t) 32;\n    ltid_pre_7742 = sext_i32_i64(local_tid_7738);\n    remnant_7744 = sext_i32_i64(local_tid_7738) - ltid_pre_7742;\n    slice_7745 = q_6572;\n  ", "  gtid_7246 = sext_i32_i64(block_id_7739);\n    remnant_7746 = sext_i32_i64(block_id_7739) - gtid_7246;\n    color_7732 = (__local unsigned char *) color_7732_backing_0;\n    color_7733 = (__local unsigned char *) color_7733_backing_1;\n    ltid_flat_7521 = sext_i32_i64(local_tid_7738);\n    ltid_7520 = sext_i32_i64(sext_i64_i32(ltid_pre_7742));\n    for (int64_t i_7529 = 0; i_7529 < (int64_t) 32; i_7529++) {\n        mem_7697[i_7529] = 0.0F;\n    }\n    for (int64_t i_0 = 0; i_0 < (int64_t) 32; i_0++) {\n        mem_7706[i_0] = mem_7697[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    offsetA_7537 = (int64_t) 1024 * gtid_7246;\n    futrts_copyGlobalShared(&ext_mem_7711, A_mem_7690, color_7733, offsetA_7537, (f16) 0.0F, Int<(int64_t) 32>{}, Int<(int64_t) 32>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    futrts_copyGlobalShared(&ext_mem_7714, B_mem_7691, color_7732, offsetA_7537, (f16) 0.0F, Int<(int64_t) 32>{}, Int<(int64_t) 32>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    ltid_flat_7542 = sext_i32_i64(local_tid_7738);\n    ltid_7541 = sext_i32_i64(sext_i64_i32(ltid_pre_7742));\n    futrts_tensorMMM(&ext_mem_7715, ext_mem_7711, ext_mem_7714, mem_7706, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 32>{}, Int<(int64_t) 32>{}, Int<(int64_t) 32>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    for (int64_t i_0 = 0; i_0 < (int64_t) 32; i_0++) {\n        mem_7722[i_0] = ext_mem_7715[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    futrts_copyRegistersShared(&ext_mem_7726, mem_7722, color_7732, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 32>{}, Int<(int64_t) 32>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    for (int32_t nest_i_7748 = 0; nest_i_7748 < 32; nest_i_7748++) {\n        ((__global float *) mem_7730)[gtid_7246 * (int64_t) 1024 + sext_i32_i64(nest_i_7748) * (int64_t) 32 + sext_i32_i64(local_tid_7738)] = ((__local float *) ext_mem_7726)[sext_i32_i64(nest_i_7748) * (int64_t) 32 + sext_i32_i64(local_tid_7738)];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE)",
+                                    ";\n    \n  error_2:\n    return;\n}\nFUTHARK_KERNEL_SIZED(mmm_intra64zisegmap_intrablock_7295_dim1, 1, 1)\nvoid mmm_intra64zisegmap_intrablock_7295(__global int *global_failure, int failure_is_an_option, __global int64_t *global_failure_args, int64_t q_6580, __global unsigned char *A_mem_7690, __global unsigned char *B_mem_7691, __global unsigned char *mem_7730)\n{\n    volatile __local unsigned char *color_7733_backing_1 = &shared_mem[0];\n    const int64_t color_7733_backing_1_offset = 0 + (int64_t) 8192;\n    volatile __local unsigned char *color_7732_backing_0 = &shared_mem[color_7733_backing_1_offset];\n    const int64_t color_7732_backing_0_offset = color_7733_backing_1_offset + (int64_t) 16384;\n    volatile __local int local_failure;\n    \n    // Harmless for all threads to write this.\n    local_failure = 0;\n    \n    int32_t local_tid_7738;\n    int32_t tblock_sizze_7741;\n    int32_t wave_sizze_7740;\n    int32_t block_id_7739;\n    int32_t global_tid_7737;\n    int64_t phys_tblock_id_7295;\n    int64_t slice_7743;\n    int64_t ltid_pre_7742;\n    int64_t remnant_7744;\n    int64_t slice_7745;\n    int64_t gtid_7294;\n    int64_t remnant_7746;\n    __local unsigned char *color_7732;\n    __local unsigned char *color_7733;\n    float mem_7706[(int64_t) 128];\n    int64_t ltid_flat_7591;\n    int64_t ltid_7590;\n    float mem_7697[(int64_t) 128];\n    int64_t offsetA_7607;\n    __local unsigned char *ext_mem_7711;\n    __local unsigned char *ext_mem_7714;\n    float mem_7722[(int64_t) 128];\n    int64_t ltid_flat_7612;\n    int64_t ltid_7611;\n    float ext_mem_7715[(int64_t) 128];\n    __local unsigned char *ext_mem_7726;\n    int32_t num_chunks_7748;\n    \n    local_tid_7738 = get_local_id(0);\n    tblock_sizze_7741 = get_local_size(0);\n    wave_sizze_7740 = LOCKSTEP_WIDTH;\n    block_id_7739 = get_tblock_id(0);\n    global_tid_7737 = block_id_7739 * tblock_sizze_7741 + local_tid_7738;\n    phys_tblock_id_7295 = sext_i32_i64(block_id_7739);\n    slice_7743 = (int64_t) 32;\n    ltid_pre_7742 = sext_i32_", "i64(local_tid_7738);\n    remnant_7744 = sext_i32_i64(local_tid_7738) - ltid_pre_7742;\n    slice_7745 = q_6580;\n    gtid_7294 = sext_i32_i64(block_id_7739);\n    remnant_7746 = sext_i32_i64(block_id_7739) - gtid_7294;\n    color_7732 = (__local unsigned char *) color_7732_backing_0;\n    color_7733 = (__local unsigned char *) color_7733_backing_1;\n    ltid_flat_7591 = sext_i32_i64(local_tid_7738);\n    ltid_7590 = sext_i32_i64(sext_i64_i32(ltid_pre_7742));\n    for (int64_t i_7599 = 0; i_7599 < (int64_t) 128; i_7599++) {\n        mem_7697[i_7599] = 0.0F;\n    }\n    for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {\n        mem_7706[i_0] = mem_7697[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    offsetA_7607 = (int64_t) 4096 * gtid_7294;\n    futrts_copyGlobalShared(&ext_mem_7711, A_mem_7690, color_7733, offsetA_7607, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 64>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    futrts_copyGlobalShared(&ext_mem_7714, B_mem_7691, color_7732, offsetA_7607, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 64>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    ltid_flat_7612 = sext_i32_i64(local_tid_7738);\n    ltid_7611 = sext_i32_i64(sext_i64_i32(ltid_pre_7742));\n    futrts_tensorMMM(&ext_mem_7715, ext_mem_7711, ext_mem_7714, mem_7706, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 64>{}, Int<(int64_t) 64>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    for (int64_t i_0 = 0; i_0 < (int64_t) 128; i_0++) {\n        mem_7722[i_0] = ext_mem_7715[i_0];\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    futrts_copyRegistersShared(&ext_mem_7726, mem_7722, color_7732, (f16) 0.0F, (f16) 0.0F, Int<(int64_t) 64>{}, Int<(int64_t) 64>{}, Int<(int64_t) 1>{}, Int<(int64_t) 1>{});\n    num_chunks_7748 = 128;\n    for (int32_t chunk_i_7749 = 0; chunk_i_7749 < num_chunks_7748; chunk_i_7749++) {\n        int32_t i_7750 = chunk_i_7749 * 32 + local_tid_7738;\n        \n        if (slt32(i_7750, 4096)) {\n            ((__global ", "float *) mem_7730)[gtid_7294 * (int64_t) 4096 + sext_i32_i64(squot32(i_7750, 64)) * (int64_t) 64 + sext_i32_i64(i_7750 - squot32(i_7750, 64) * 64)] = ((__local float *) ext_mem_7726)[sext_i32_i64(squot32(i_7750, 64)) * (int64_t) 64 + sext_i32_i64(i_7750 - squot32(i_7750, 64) * 64)];\n        }\n    }\n    barrier(CLK_LOCAL_MEM_FENCE);\n    \n  error_2:\n    return;\n}\n", NULL};
 // Start of gpu_prototypes.h
 
 // Dummy definitions for Tensor Core functions in C code
@@ -9117,25 +9133,29 @@ GEN_LMAD_COPY_GPU2GPU(8b, uint64_t)
 
 static int gpu_macros(struct futhark_context *ctx, char ***names_out, int64_t **values_out)
 {
-    int num_macros = 4;
+    int num_macros = 5;
     char **names = malloc(num_macros * sizeof(char *));
     int64_t *values = malloc(num_macros * sizeof(int64_t));
     
     {
-        names[0] = "mmm_intra64zisegmap_intrablock_7272_dim1";
+        names[0] = "mmm_intra64zisegmap_intrablock_7295_dim1";
         values[0] = (int64_t) 32;
     }
     {
-        names[1] = "mmm_intra32zisegmap_intrablock_7224_dim1";
+        names[1] = "mmm_intra32zisegmap_intrablock_7247_dim1";
         values[1] = (int64_t) 32;
     }
     {
-        names[2] = "mmm_intra16zisegmap_intrablock_7176_dim1";
-        values[2] = (int64_t) 32;
+        names[2] = "mmm_intra256zisegmap_intrablock_7391_dim1";
+        values[2] = (int64_t) 16777216;
     }
     {
-        names[3] = "mmm_intra128zisegmap_intrablock_7320_dim1";
-        values[3] = (int64_t) 128;
+        names[3] = "mmm_intra16zisegmap_intrablock_7199_dim1";
+        values[3] = (int64_t) 32;
+    }
+    {
+        names[4] = "mmm_intra128zisegmap_intrablock_7343_dim1";
+        values[4] = (int64_t) 128;
     }
     *names_out = names;
     *values_out = values;
@@ -9149,11 +9169,12 @@ static char *get_failure_msg(int failure_idx, int64_t args[])
 }
 struct program {
     int dummy;
-    gpu_kernel builtinzhreplicate_f16zireplicate_7671;
-    gpu_kernel mmm_intra128zisegmap_intrablock_7320;
-    gpu_kernel mmm_intra16zisegmap_intrablock_7176;
-    gpu_kernel mmm_intra32zisegmap_intrablock_7224;
-    gpu_kernel mmm_intra64zisegmap_intrablock_7272;
+    gpu_kernel builtinzhreplicate_f16zireplicate_7742;
+    gpu_kernel mmm_intra128zisegmap_intrablock_7343;
+    gpu_kernel mmm_intra16zisegmap_intrablock_7199;
+    gpu_kernel mmm_intra256zisegmap_intrablock_7391;
+    gpu_kernel mmm_intra32zisegmap_intrablock_7247;
+    gpu_kernel mmm_intra64zisegmap_intrablock_7295;
 };
 static void setup_program(struct futhark_context *ctx)
 {
@@ -9163,11 +9184,12 @@ static void setup_program(struct futhark_context *ctx)
     
     (void) error;
     ctx->program = malloc(sizeof(struct program));
-    gpu_create_kernel(ctx, &ctx->program->builtinzhreplicate_f16zireplicate_7671, "builtinzhreplicate_f16zireplicate_7671");
-    gpu_create_kernel(ctx, &ctx->program->mmm_intra128zisegmap_intrablock_7320, "mmm_intra128zisegmap_intrablock_7320");
-    gpu_create_kernel(ctx, &ctx->program->mmm_intra16zisegmap_intrablock_7176, "mmm_intra16zisegmap_intrablock_7176");
-    gpu_create_kernel(ctx, &ctx->program->mmm_intra32zisegmap_intrablock_7224, "mmm_intra32zisegmap_intrablock_7224");
-    gpu_create_kernel(ctx, &ctx->program->mmm_intra64zisegmap_intrablock_7272, "mmm_intra64zisegmap_intrablock_7272");
+    gpu_create_kernel(ctx, &ctx->program->builtinzhreplicate_f16zireplicate_7742, "builtinzhreplicate_f16zireplicate_7742");
+    gpu_create_kernel(ctx, &ctx->program->mmm_intra128zisegmap_intrablock_7343, "mmm_intra128zisegmap_intrablock_7343");
+    gpu_create_kernel(ctx, &ctx->program->mmm_intra16zisegmap_intrablock_7199, "mmm_intra16zisegmap_intrablock_7199");
+    gpu_create_kernel(ctx, &ctx->program->mmm_intra256zisegmap_intrablock_7391, "mmm_intra256zisegmap_intrablock_7391");
+    gpu_create_kernel(ctx, &ctx->program->mmm_intra32zisegmap_intrablock_7247, "mmm_intra32zisegmap_intrablock_7247");
+    gpu_create_kernel(ctx, &ctx->program->mmm_intra64zisegmap_intrablock_7295, "mmm_intra64zisegmap_intrablock_7295");
 }
 static void teardown_program(struct futhark_context *ctx)
 {
@@ -9176,17 +9198,18 @@ static void teardown_program(struct futhark_context *ctx)
     int error = 0;
     
     (void) error;
-    gpu_free_kernel(ctx, ctx->program->builtinzhreplicate_f16zireplicate_7671);
-    gpu_free_kernel(ctx, ctx->program->mmm_intra128zisegmap_intrablock_7320);
-    gpu_free_kernel(ctx, ctx->program->mmm_intra16zisegmap_intrablock_7176);
-    gpu_free_kernel(ctx, ctx->program->mmm_intra32zisegmap_intrablock_7224);
-    gpu_free_kernel(ctx, ctx->program->mmm_intra64zisegmap_intrablock_7272);
+    gpu_free_kernel(ctx, ctx->program->builtinzhreplicate_f16zireplicate_7742);
+    gpu_free_kernel(ctx, ctx->program->mmm_intra128zisegmap_intrablock_7343);
+    gpu_free_kernel(ctx, ctx->program->mmm_intra16zisegmap_intrablock_7199);
+    gpu_free_kernel(ctx, ctx->program->mmm_intra256zisegmap_intrablock_7391);
+    gpu_free_kernel(ctx, ctx->program->mmm_intra32zisegmap_intrablock_7247);
+    gpu_free_kernel(ctx, ctx->program->mmm_intra64zisegmap_intrablock_7295);
     free(ctx->program);
 }
 static void set_tuning_params(struct futhark_context *ctx)
 {
     (void) ctx;
-    ctx->tuning_params.builtinzhreplicate_f16zitblock_sizze_7675 = &ctx->cfg->tuning_params[0];
+    ctx->tuning_params.builtinzhreplicate_f16zitblock_sizze_7746 = &ctx->cfg->tuning_params[0];
 }
 int memblock_unref_device(struct futhark_context *ctx, struct memblock_device *block, const char *desc)
 {
@@ -9837,28 +9860,29 @@ GEN_LMAD_COPY(8b, uint64_t)
 
 #define FUTHARK_FUN_ATTR static
 
-FUTHARK_FUN_ATTR int futrts_builtinzhreplicate_f16(struct futhark_context *ctx, struct memblock_device mem_7666, int64_t num_elems_7667, f16 val_7668);
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7360(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7686, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7354, f16 elmTypeA_7355, int64_t Y_7356, int64_t X_7357, int64_t mWarps_7358, int64_t nWarps_7359);
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7369(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7687, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7363, f16 elmTypeA_7364, int64_t Y_7365, int64_t X_7366, int64_t mWarps_7367, int64_t nWarps_7368);
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7430(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7688, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7424, f16 elmTypeA_7425, int64_t Y_7426, int64_t X_7427, int64_t mWarps_7428, int64_t nWarps_7429);
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7439(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7689, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7433, f16 elmTypeA_7434, int64_t Y_7435, int64_t X_7436, int64_t mWarps_7437, int64_t nWarps_7438);
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7500(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7690, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7494, f16 elmTypeA_7495, int64_t Y_7496, int64_t X_7497, int64_t mWarps_7498, int64_t nWarps_7499);
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7509(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7691, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7503, f16 elmTypeA_7504, int64_t Y_7505, int64_t X_7506, int64_t mWarps_7507, int64_t nWarps_7508);
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7570(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7692, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7564, f16 elmTypeA_7565, int64_t Y_7566, int64_t X_7567, int64_t mWarps_7568, int64_t nWarps_7569);
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7579(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7693, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7573, f16 elmTypeA_7574, int64_t Y_7575, int64_t X_7576, int64_t mWarps_7577, int64_t nWarps_7578);
-FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7378(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7694, float registers_mem_7619[(int64_t) 8], struct memblock_shared shared_mem_7620, f16 elmTypeA_7372, f16 elmTypeB_7373, int64_t M_7374, int64_t N_7375, int64_t mWarps_7376, int64_t nWarps_7377);
-FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7448(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7695, float registers_mem_7619[(int64_t) 32], struct memblock_shared shared_mem_7620, f16 elmTypeA_7442, f16 elmTypeB_7443, int64_t M_7444, int64_t N_7445, int64_t mWarps_7446, int64_t nWarps_7447);
-FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7518(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7696, float registers_mem_7619[(int64_t) 128], struct memblock_shared shared_mem_7620, f16 elmTypeA_7512, f16 elmTypeB_7513, int64_t M_7514, int64_t N_7515, int64_t mWarps_7516, int64_t nWarps_7517);
-FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7588(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7697, float registers_mem_7619[(int64_t) 128], struct memblock_shared shared_mem_7620, f16 elmTypeA_7582, f16 elmTypeB_7583, int64_t M_7584, int64_t N_7585, int64_t mWarps_7586, int64_t nWarps_7587);
-FUTHARK_FUN_ATTR int futrts_entry_mk_input(struct futhark_context *ctx, struct memblock_device *mem_out_p_7698, struct memblock_device *mem_out_p_7699, int64_t *out_prim_out_7700, int64_t q_6186, int64_t m_6187, int64_t n_6188, int64_t k_6189);
-FUTHARK_FUN_ATTR int futrts_entry_mmm_intra128(struct futhark_context *ctx, struct memblock_device *mem_out_p_7701, struct memblock_device A_mem_7619, struct memblock_device B_mem_7620, int64_t q_6573);
-FUTHARK_FUN_ATTR int futrts_entry_mmm_intra16(struct futhark_context *ctx, struct memblock_device *mem_out_p_7702, struct memblock_device A_mem_7619, struct memblock_device B_mem_7620, int64_t q_6549);
-FUTHARK_FUN_ATTR int futrts_entry_mmm_intra32(struct futhark_context *ctx, struct memblock_device *mem_out_p_7703, struct memblock_device A_mem_7619, struct memblock_device B_mem_7620, int64_t q_6557);
-FUTHARK_FUN_ATTR int futrts_entry_mmm_intra64(struct futhark_context *ctx, struct memblock_device *mem_out_p_7704, struct memblock_device A_mem_7619, struct memblock_device B_mem_7620, int64_t q_6565);
-FUTHARK_FUN_ATTR int futrts_tensorMMM_7351(struct futhark_context *ctx, float (*mem_out_p_7705)[(int64_t) 8], struct memblock_shared A_mem_7619, struct memblock_shared B_mem_7620, float C_mem_7621[(int64_t) 8], f16 elmTypeA_7342, f16 elmTypeB_7343, int64_t M_7344, int64_t N_7345, int64_t K_7346, int64_t mWarps_7347, int64_t nWarps_7348, int64_t aSwizzzzledParam_7349, int64_t bSwizzzzledParam_7350);
-FUTHARK_FUN_ATTR int futrts_tensorMMM_7421(struct futhark_context *ctx, float (*mem_out_p_7708)[(int64_t) 32], struct memblock_shared A_mem_7619, struct memblock_shared B_mem_7620, float C_mem_7621[(int64_t) 32], f16 elmTypeA_7412, f16 elmTypeB_7413, int64_t M_7414, int64_t N_7415, int64_t K_7416, int64_t mWarps_7417, int64_t nWarps_7418, int64_t aSwizzzzledParam_7419, int64_t bSwizzzzledParam_7420);
-FUTHARK_FUN_ATTR int futrts_tensorMMM_7491(struct futhark_context *ctx, float (*mem_out_p_7711)[(int64_t) 128], struct memblock_shared A_mem_7619, struct memblock_shared B_mem_7620, float C_mem_7621[(int64_t) 128], f16 elmTypeA_7482, f16 elmTypeB_7483, int64_t M_7484, int64_t N_7485, int64_t K_7486, int64_t mWarps_7487, int64_t nWarps_7488, int64_t aSwizzzzledParam_7489, int64_t bSwizzzzledParam_7490);
-FUTHARK_FUN_ATTR int futrts_tensorMMM_7561(struct futhark_context *ctx, float (*mem_out_p_7714)[(int64_t) 128], struct memblock_shared A_mem_7619, struct memblock_shared B_mem_7620, float C_mem_7621[(int64_t) 128], f16 elmTypeA_7552, f16 elmTypeB_7553, int64_t M_7554, int64_t N_7555, int64_t K_7556, int64_t mWarps_7557, int64_t nWarps_7558, int64_t aSwizzzzledParam_7559, int64_t bSwizzzzledParam_7560);
+FUTHARK_FUN_ATTR int futrts_builtinzhreplicate_f16(struct futhark_context *ctx, struct memblock_device mem_7737, int64_t num_elems_7738, f16 val_7739);
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7431(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7775, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7425, f16 elmTypeA_7426, int64_t Y_7427, int64_t X_7428, int64_t mWarps_7429, int64_t nWarps_7430);
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7440(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7776, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7434, f16 elmTypeA_7435, int64_t Y_7436, int64_t X_7437, int64_t mWarps_7438, int64_t nWarps_7439);
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7501(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7777, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7495, f16 elmTypeA_7496, int64_t Y_7497, int64_t X_7498, int64_t mWarps_7499, int64_t nWarps_7500);
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7510(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7778, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7504, f16 elmTypeA_7505, int64_t Y_7506, int64_t X_7507, int64_t mWarps_7508, int64_t nWarps_7509);
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7571(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7779, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7565, f16 elmTypeA_7566, int64_t Y_7567, int64_t X_7568, int64_t mWarps_7569, int64_t nWarps_7570);
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7580(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7780, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7574, f16 elmTypeA_7575, int64_t Y_7576, int64_t X_7577, int64_t mWarps_7578, int64_t nWarps_7579);
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7641(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7781, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7635, f16 elmTypeA_7636, int64_t Y_7637, int64_t X_7638, int64_t mWarps_7639, int64_t nWarps_7640);
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7650(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7782, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7644, f16 elmTypeA_7645, int64_t Y_7646, int64_t X_7647, int64_t mWarps_7648, int64_t nWarps_7649);
+FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7449(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7783, float registers_mem_7690[(int64_t) 8], struct memblock_shared shared_mem_7691, f16 elmTypeA_7443, f16 elmTypeB_7444, int64_t M_7445, int64_t N_7446, int64_t mWarps_7447, int64_t nWarps_7448);
+FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7519(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7784, float registers_mem_7690[(int64_t) 32], struct memblock_shared shared_mem_7691, f16 elmTypeA_7513, f16 elmTypeB_7514, int64_t M_7515, int64_t N_7516, int64_t mWarps_7517, int64_t nWarps_7518);
+FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7589(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7785, float registers_mem_7690[(int64_t) 128], struct memblock_shared shared_mem_7691, f16 elmTypeA_7583, f16 elmTypeB_7584, int64_t M_7585, int64_t N_7586, int64_t mWarps_7587, int64_t nWarps_7588);
+FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7659(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7786, float registers_mem_7690[(int64_t) 128], struct memblock_shared shared_mem_7691, f16 elmTypeA_7653, f16 elmTypeB_7654, int64_t M_7655, int64_t N_7656, int64_t mWarps_7657, int64_t nWarps_7658);
+FUTHARK_FUN_ATTR int futrts_entry_mk_input(struct futhark_context *ctx, struct memblock_device *mem_out_p_7787, struct memblock_device *mem_out_p_7788, int64_t *out_prim_out_7789, int64_t q_6201, int64_t m_6202, int64_t n_6203, int64_t k_6204);
+FUTHARK_FUN_ATTR int futrts_entry_mmm_intra128(struct futhark_context *ctx, struct memblock_device *mem_out_p_7790, struct memblock_device A_mem_7690, struct memblock_device B_mem_7691, int64_t q_6588);
+FUTHARK_FUN_ATTR int futrts_entry_mmm_intra16(struct futhark_context *ctx, struct memblock_device *mem_out_p_7791, struct memblock_device A_mem_7690, struct memblock_device B_mem_7691, int64_t q_6564);
+FUTHARK_FUN_ATTR int futrts_entry_mmm_intra256(struct futhark_context *ctx, struct memblock_device *mem_out_p_7792, struct memblock_device A_mem_7690, struct memblock_device B_mem_7691, int64_t q_6596);
+FUTHARK_FUN_ATTR int futrts_entry_mmm_intra32(struct futhark_context *ctx, struct memblock_device *mem_out_p_7793, struct memblock_device A_mem_7690, struct memblock_device B_mem_7691, int64_t q_6572);
+FUTHARK_FUN_ATTR int futrts_entry_mmm_intra64(struct futhark_context *ctx, struct memblock_device *mem_out_p_7794, struct memblock_device A_mem_7690, struct memblock_device B_mem_7691, int64_t q_6580);
+FUTHARK_FUN_ATTR int futrts_tensorMMM_7422(struct futhark_context *ctx, float (*mem_out_p_7795)[(int64_t) 8], struct memblock_shared A_mem_7690, struct memblock_shared B_mem_7691, float C_mem_7692[(int64_t) 8], f16 elmTypeA_7413, f16 elmTypeB_7414, int64_t M_7415, int64_t N_7416, int64_t K_7417, int64_t mWarps_7418, int64_t nWarps_7419, int64_t aSwizzzzledParam_7420, int64_t bSwizzzzledParam_7421);
+FUTHARK_FUN_ATTR int futrts_tensorMMM_7492(struct futhark_context *ctx, float (*mem_out_p_7798)[(int64_t) 32], struct memblock_shared A_mem_7690, struct memblock_shared B_mem_7691, float C_mem_7692[(int64_t) 32], f16 elmTypeA_7483, f16 elmTypeB_7484, int64_t M_7485, int64_t N_7486, int64_t K_7487, int64_t mWarps_7488, int64_t nWarps_7489, int64_t aSwizzzzledParam_7490, int64_t bSwizzzzledParam_7491);
+FUTHARK_FUN_ATTR int futrts_tensorMMM_7562(struct futhark_context *ctx, float (*mem_out_p_7801)[(int64_t) 128], struct memblock_shared A_mem_7690, struct memblock_shared B_mem_7691, float C_mem_7692[(int64_t) 128], f16 elmTypeA_7553, f16 elmTypeB_7554, int64_t M_7555, int64_t N_7556, int64_t K_7557, int64_t mWarps_7558, int64_t nWarps_7559, int64_t aSwizzzzledParam_7560, int64_t bSwizzzzledParam_7561);
+FUTHARK_FUN_ATTR int futrts_tensorMMM_7632(struct futhark_context *ctx, float (*mem_out_p_7804)[(int64_t) 128], struct memblock_shared A_mem_7690, struct memblock_shared B_mem_7691, float C_mem_7692[(int64_t) 128], f16 elmTypeA_7623, f16 elmTypeB_7624, int64_t M_7625, int64_t N_7626, int64_t K_7627, int64_t mWarps_7628, int64_t nWarps_7629, int64_t aSwizzzzledParam_7630, int64_t bSwizzzzledParam_7631);
 
 static int init_constants(struct futhark_context *ctx)
 {
@@ -9875,53 +9899,63 @@ static int free_constants(struct futhark_context *ctx)
     (void) ctx;
     return 0;
 }
-static int gpu_kernel_builtinzhreplicate_f16zireplicate_7671(struct futhark_context *ctx, unsigned int grid_x, unsigned int grid_y, unsigned int grid_z, unsigned int block_x, unsigned int block_y, unsigned int block_z, unsigned int shared_bytes, int64_t arg0, uint16_t arg1, int64_t arg2, int64_t arg3, int64_t arg4, gpu_mem arg5)
+static int gpu_kernel_builtinzhreplicate_f16zireplicate_7742(struct futhark_context *ctx, unsigned int grid_x, unsigned int grid_y, unsigned int grid_z, unsigned int block_x, unsigned int block_y, unsigned int block_z, unsigned int shared_bytes, int64_t arg0, uint16_t arg1, int64_t arg2, int64_t arg3, int64_t arg4, gpu_mem arg5)
 {
     if (grid_x * grid_y * grid_z * block_x * block_y * block_z != 0) {
         void *args[6] = {&arg0, &arg1, &arg2, &arg3, &arg4, &arg5};
         size_t args_sizes[6] = {sizeof(arg0), sizeof(arg1), sizeof(arg2), sizeof(arg3), sizeof(arg4), sizeof(arg5)};
         
-        return gpu_launch_kernel(ctx, ctx->program->builtinzhreplicate_f16zireplicate_7671, "builtin#replicate_f16.replicate_7671", (const int32_t []) {grid_x, grid_y, grid_z}, (const int32_t []) {block_x, block_y, block_z}, shared_bytes, 6, args, args_sizes);
+        return gpu_launch_kernel(ctx, ctx->program->builtinzhreplicate_f16zireplicate_7742, "builtin#replicate_f16.replicate_7742", (const int32_t []) {grid_x, grid_y, grid_z}, (const int32_t []) {block_x, block_y, block_z}, shared_bytes, 6, args, args_sizes);
     }
     return FUTHARK_SUCCESS;
 }
-static int gpu_kernel_mmm_intra128zisegmap_intrablock_7320(struct futhark_context *ctx, unsigned int grid_x, unsigned int grid_y, unsigned int grid_z, unsigned int block_x, unsigned int block_y, unsigned int block_z, unsigned int shared_bytes, int64_t arg0, gpu_mem arg1, gpu_mem arg2, gpu_mem arg3)
+static int gpu_kernel_mmm_intra128zisegmap_intrablock_7343(struct futhark_context *ctx, unsigned int grid_x, unsigned int grid_y, unsigned int grid_z, unsigned int block_x, unsigned int block_y, unsigned int block_z, unsigned int shared_bytes, int64_t arg0, gpu_mem arg1, gpu_mem arg2, gpu_mem arg3)
 {
     if (grid_x * grid_y * grid_z * block_x * block_y * block_z != 0) {
         void *args[7] = {&ctx->global_failure, &ctx->failure_is_an_option, &ctx->global_failure_args, &arg0, &arg1, &arg2, &arg3};
         size_t args_sizes[7] = {sizeof(ctx->global_failure), sizeof(ctx->failure_is_an_option), sizeof(ctx->global_failure_args), sizeof(arg0), sizeof(arg1), sizeof(arg2), sizeof(arg3)};
         
-        return gpu_launch_kernel(ctx, ctx->program->mmm_intra128zisegmap_intrablock_7320, "mmm_intra128.segmap_intrablock_7320", (const int32_t []) {grid_x, grid_y, grid_z}, (const int32_t []) {block_x, block_y, block_z}, shared_bytes, 7, args, args_sizes);
+        return gpu_launch_kernel(ctx, ctx->program->mmm_intra128zisegmap_intrablock_7343, "mmm_intra128.segmap_intrablock_7343", (const int32_t []) {grid_x, grid_y, grid_z}, (const int32_t []) {block_x, block_y, block_z}, shared_bytes, 7, args, args_sizes);
     }
     return FUTHARK_SUCCESS;
 }
-static int gpu_kernel_mmm_intra16zisegmap_intrablock_7176(struct futhark_context *ctx, unsigned int grid_x, unsigned int grid_y, unsigned int grid_z, unsigned int block_x, unsigned int block_y, unsigned int block_z, unsigned int shared_bytes, int64_t arg0, gpu_mem arg1, gpu_mem arg2, gpu_mem arg3)
+static int gpu_kernel_mmm_intra16zisegmap_intrablock_7199(struct futhark_context *ctx, unsigned int grid_x, unsigned int grid_y, unsigned int grid_z, unsigned int block_x, unsigned int block_y, unsigned int block_z, unsigned int shared_bytes, int64_t arg0, gpu_mem arg1, gpu_mem arg2, gpu_mem arg3)
 {
     if (grid_x * grid_y * grid_z * block_x * block_y * block_z != 0) {
         void *args[7] = {&ctx->global_failure, &ctx->failure_is_an_option, &ctx->global_failure_args, &arg0, &arg1, &arg2, &arg3};
         size_t args_sizes[7] = {sizeof(ctx->global_failure), sizeof(ctx->failure_is_an_option), sizeof(ctx->global_failure_args), sizeof(arg0), sizeof(arg1), sizeof(arg2), sizeof(arg3)};
         
-        return gpu_launch_kernel(ctx, ctx->program->mmm_intra16zisegmap_intrablock_7176, "mmm_intra16.segmap_intrablock_7176", (const int32_t []) {grid_x, grid_y, grid_z}, (const int32_t []) {block_x, block_y, block_z}, shared_bytes, 7, args, args_sizes);
+        return gpu_launch_kernel(ctx, ctx->program->mmm_intra16zisegmap_intrablock_7199, "mmm_intra16.segmap_intrablock_7199", (const int32_t []) {grid_x, grid_y, grid_z}, (const int32_t []) {block_x, block_y, block_z}, shared_bytes, 7, args, args_sizes);
     }
     return FUTHARK_SUCCESS;
 }
-static int gpu_kernel_mmm_intra32zisegmap_intrablock_7224(struct futhark_context *ctx, unsigned int grid_x, unsigned int grid_y, unsigned int grid_z, unsigned int block_x, unsigned int block_y, unsigned int block_z, unsigned int shared_bytes, int64_t arg0, gpu_mem arg1, gpu_mem arg2, gpu_mem arg3)
+static int gpu_kernel_mmm_intra256zisegmap_intrablock_7391(struct futhark_context *ctx, unsigned int grid_x, unsigned int grid_y, unsigned int grid_z, unsigned int block_x, unsigned int block_y, unsigned int block_z, unsigned int shared_bytes, int64_t arg0, gpu_mem arg1, gpu_mem arg2, gpu_mem arg3)
+{
+    if (grid_x * grid_y * grid_z * block_x * block_y * block_z != 0) {
+        void *args[5] = {&ctx->global_failure, &arg0, &arg1, &arg2, &arg3};
+        size_t args_sizes[5] = {sizeof(ctx->global_failure), sizeof(arg0), sizeof(arg1), sizeof(arg2), sizeof(arg3)};
+        
+        return gpu_launch_kernel(ctx, ctx->program->mmm_intra256zisegmap_intrablock_7391, "mmm_intra256.segmap_intrablock_7391", (const int32_t []) {grid_x, grid_y, grid_z}, (const int32_t []) {block_x, block_y, block_z}, shared_bytes, 5, args, args_sizes);
+    }
+    return FUTHARK_SUCCESS;
+}
+static int gpu_kernel_mmm_intra32zisegmap_intrablock_7247(struct futhark_context *ctx, unsigned int grid_x, unsigned int grid_y, unsigned int grid_z, unsigned int block_x, unsigned int block_y, unsigned int block_z, unsigned int shared_bytes, int64_t arg0, gpu_mem arg1, gpu_mem arg2, gpu_mem arg3)
 {
     if (grid_x * grid_y * grid_z * block_x * block_y * block_z != 0) {
         void *args[7] = {&ctx->global_failure, &ctx->failure_is_an_option, &ctx->global_failure_args, &arg0, &arg1, &arg2, &arg3};
         size_t args_sizes[7] = {sizeof(ctx->global_failure), sizeof(ctx->failure_is_an_option), sizeof(ctx->global_failure_args), sizeof(arg0), sizeof(arg1), sizeof(arg2), sizeof(arg3)};
         
-        return gpu_launch_kernel(ctx, ctx->program->mmm_intra32zisegmap_intrablock_7224, "mmm_intra32.segmap_intrablock_7224", (const int32_t []) {grid_x, grid_y, grid_z}, (const int32_t []) {block_x, block_y, block_z}, shared_bytes, 7, args, args_sizes);
+        return gpu_launch_kernel(ctx, ctx->program->mmm_intra32zisegmap_intrablock_7247, "mmm_intra32.segmap_intrablock_7247", (const int32_t []) {grid_x, grid_y, grid_z}, (const int32_t []) {block_x, block_y, block_z}, shared_bytes, 7, args, args_sizes);
     }
     return FUTHARK_SUCCESS;
 }
-static int gpu_kernel_mmm_intra64zisegmap_intrablock_7272(struct futhark_context *ctx, unsigned int grid_x, unsigned int grid_y, unsigned int grid_z, unsigned int block_x, unsigned int block_y, unsigned int block_z, unsigned int shared_bytes, int64_t arg0, gpu_mem arg1, gpu_mem arg2, gpu_mem arg3)
+static int gpu_kernel_mmm_intra64zisegmap_intrablock_7295(struct futhark_context *ctx, unsigned int grid_x, unsigned int grid_y, unsigned int grid_z, unsigned int block_x, unsigned int block_y, unsigned int block_z, unsigned int shared_bytes, int64_t arg0, gpu_mem arg1, gpu_mem arg2, gpu_mem arg3)
 {
     if (grid_x * grid_y * grid_z * block_x * block_y * block_z != 0) {
         void *args[7] = {&ctx->global_failure, &ctx->failure_is_an_option, &ctx->global_failure_args, &arg0, &arg1, &arg2, &arg3};
         size_t args_sizes[7] = {sizeof(ctx->global_failure), sizeof(ctx->failure_is_an_option), sizeof(ctx->global_failure_args), sizeof(arg0), sizeof(arg1), sizeof(arg2), sizeof(arg3)};
         
-        return gpu_launch_kernel(ctx, ctx->program->mmm_intra64zisegmap_intrablock_7272, "mmm_intra64.segmap_intrablock_7272", (const int32_t []) {grid_x, grid_y, grid_z}, (const int32_t []) {block_x, block_y, block_z}, shared_bytes, 7, args, args_sizes);
+        return gpu_launch_kernel(ctx, ctx->program->mmm_intra64zisegmap_intrablock_7295, "mmm_intra64.segmap_intrablock_7295", (const int32_t []) {grid_x, grid_y, grid_z}, (const int32_t []) {block_x, block_y, block_z}, shared_bytes, 7, args, args_sizes);
     }
     return FUTHARK_SUCCESS;
 }
@@ -10118,21 +10152,21 @@ const int64_t *futhark_shape_f32_3d(struct futhark_context *ctx, struct futhark_
     return arr->shape;
 }
 
-FUTHARK_FUN_ATTR int futrts_builtinzhreplicate_f16(struct futhark_context *ctx, struct memblock_device mem_7666, int64_t num_elems_7667, f16 val_7668)
+FUTHARK_FUN_ATTR int futrts_builtinzhreplicate_f16(struct futhark_context *ctx, struct memblock_device mem_7737, int64_t num_elems_7738, f16 val_7739)
 {
     (void) ctx;
     
     int err = 0;
-    int64_t replicate_n_7670 = num_elems_7667;
-    int64_t tblock_sizze_7675;
+    int64_t replicate_n_7741 = num_elems_7738;
+    int64_t tblock_sizze_7746;
     
-    tblock_sizze_7675 = *ctx->tuning_params.builtinzhreplicate_f16zitblock_sizze_7675;
+    tblock_sizze_7746 = *ctx->tuning_params.builtinzhreplicate_f16zitblock_sizze_7746;
     
-    int64_t virt_num_tblocks_7676 = sdiv_up64(replicate_n_7670, tblock_sizze_7675);
-    int64_t num_tblocks_7677 = smin64(virt_num_tblocks_7676, (int64_t) 1048576);
+    int64_t virt_num_tblocks_7747 = sdiv_up64(replicate_n_7741, tblock_sizze_7746);
+    int64_t num_tblocks_7748 = smin64(virt_num_tblocks_7747, (int64_t) 1048576);
     
     {
-        err = gpu_kernel_builtinzhreplicate_f16zireplicate_7671(ctx, num_tblocks_7677, 1, 1, tblock_sizze_7675, 1, 1, (int64_t) 0, num_elems_7667, futrts_to_bits16(val_7668), replicate_n_7670, virt_num_tblocks_7676, num_tblocks_7677, mem_7666.mem);
+        err = gpu_kernel_builtinzhreplicate_f16zireplicate_7742(ctx, num_tblocks_7748, 1, 1, tblock_sizze_7746, 1, 1, (int64_t) 0, num_elems_7738, futrts_to_bits16(val_7739), replicate_n_7741, virt_num_tblocks_7747, num_tblocks_7748, mem_7737.mem);
         if (err != FUTHARK_SUCCESS)
             goto cleanup;
     }
@@ -10141,609 +10175,655 @@ FUTHARK_FUN_ATTR int futrts_builtinzhreplicate_f16(struct futhark_context *ctx, 
     { }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7360(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7686, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7354, f16 elmTypeA_7355, int64_t Y_7356, int64_t X_7357, int64_t mWarps_7358, int64_t nWarps_7359)
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7431(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7775, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7425, f16 elmTypeA_7426, int64_t Y_7427, int64_t X_7428, int64_t mWarps_7429, int64_t nWarps_7430)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7686, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7775, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7369(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7687, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7363, f16 elmTypeA_7364, int64_t Y_7365, int64_t X_7366, int64_t mWarps_7367, int64_t nWarps_7368)
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7440(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7776, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7434, f16 elmTypeA_7435, int64_t Y_7436, int64_t X_7437, int64_t mWarps_7438, int64_t nWarps_7439)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7687, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7776, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7430(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7688, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7424, f16 elmTypeA_7425, int64_t Y_7426, int64_t X_7427, int64_t mWarps_7428, int64_t nWarps_7429)
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7501(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7777, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7495, f16 elmTypeA_7496, int64_t Y_7497, int64_t X_7498, int64_t mWarps_7499, int64_t nWarps_7500)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7688, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7777, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7439(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7689, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7433, f16 elmTypeA_7434, int64_t Y_7435, int64_t X_7436, int64_t mWarps_7437, int64_t nWarps_7438)
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7510(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7778, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7504, f16 elmTypeA_7505, int64_t Y_7506, int64_t X_7507, int64_t mWarps_7508, int64_t nWarps_7509)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7689, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7778, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7500(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7690, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7494, f16 elmTypeA_7495, int64_t Y_7496, int64_t X_7497, int64_t mWarps_7498, int64_t nWarps_7499)
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7571(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7779, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7565, f16 elmTypeA_7566, int64_t Y_7567, int64_t X_7568, int64_t mWarps_7569, int64_t nWarps_7570)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7690, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7779, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7509(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7691, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7503, f16 elmTypeA_7504, int64_t Y_7505, int64_t X_7506, int64_t mWarps_7507, int64_t nWarps_7508)
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7580(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7780, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7574, f16 elmTypeA_7575, int64_t Y_7576, int64_t X_7577, int64_t mWarps_7578, int64_t nWarps_7579)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7691, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7780, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7570(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7692, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7564, f16 elmTypeA_7565, int64_t Y_7566, int64_t X_7567, int64_t mWarps_7568, int64_t nWarps_7569)
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7641(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7781, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7635, f16 elmTypeA_7636, int64_t Y_7637, int64_t X_7638, int64_t mWarps_7639, int64_t nWarps_7640)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7692, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7781, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7579(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7693, struct memblock_device global_mem_7619, struct memblock_shared shared_mem_7620, int64_t offset_7573, f16 elmTypeA_7574, int64_t Y_7575, int64_t X_7576, int64_t mWarps_7577, int64_t nWarps_7578)
+FUTHARK_FUN_ATTR int futrts_copyGlobalShared_7650(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7782, struct memblock_device global_mem_7690, struct memblock_shared shared_mem_7691, int64_t offset_7644, f16 elmTypeA_7645, int64_t Y_7646, int64_t X_7647, int64_t mWarps_7648, int64_t nWarps_7649)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7693, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7782, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7378(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7694, float registers_mem_7619[(int64_t) 8], struct memblock_shared shared_mem_7620, f16 elmTypeA_7372, f16 elmTypeB_7373, int64_t M_7374, int64_t N_7375, int64_t mWarps_7376, int64_t nWarps_7377)
+FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7449(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7783, float registers_mem_7690[(int64_t) 8], struct memblock_shared shared_mem_7691, f16 elmTypeA_7443, f16 elmTypeB_7444, int64_t M_7445, int64_t N_7446, int64_t mWarps_7447, int64_t nWarps_7448)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7694, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7783, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7448(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7695, float registers_mem_7619[(int64_t) 32], struct memblock_shared shared_mem_7620, f16 elmTypeA_7442, f16 elmTypeB_7443, int64_t M_7444, int64_t N_7445, int64_t mWarps_7446, int64_t nWarps_7447)
+FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7519(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7784, float registers_mem_7690[(int64_t) 32], struct memblock_shared shared_mem_7691, f16 elmTypeA_7513, f16 elmTypeB_7514, int64_t M_7515, int64_t N_7516, int64_t mWarps_7517, int64_t nWarps_7518)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7695, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7784, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7518(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7696, float registers_mem_7619[(int64_t) 128], struct memblock_shared shared_mem_7620, f16 elmTypeA_7512, f16 elmTypeB_7513, int64_t M_7514, int64_t N_7515, int64_t mWarps_7516, int64_t nWarps_7517)
+FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7589(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7785, float registers_mem_7690[(int64_t) 128], struct memblock_shared shared_mem_7691, f16 elmTypeA_7583, f16 elmTypeB_7584, int64_t M_7585, int64_t N_7586, int64_t mWarps_7587, int64_t nWarps_7588)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7696, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7785, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7588(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7697, float registers_mem_7619[(int64_t) 128], struct memblock_shared shared_mem_7620, f16 elmTypeA_7582, f16 elmTypeB_7583, int64_t M_7584, int64_t N_7585, int64_t mWarps_7586, int64_t nWarps_7587)
+FUTHARK_FUN_ATTR int futrts_copyRegistersShared_7659(struct futhark_context *ctx, struct memblock_shared *mem_out_p_7786, float registers_mem_7690[(int64_t) 128], struct memblock_shared shared_mem_7691, f16 elmTypeA_7653, f16 elmTypeB_7654, int64_t M_7655, int64_t N_7656, int64_t mWarps_7657, int64_t nWarps_7658)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_shared mem_out_7663;
+    struct memblock_shared mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    if (memblock_set_shared(ctx, &mem_out_7663, &shared_mem_7620, "shared_mem_7620") != 0)
+    mem_out_7734.references = NULL;
+    if (memblock_set_shared(ctx, &mem_out_7734, &shared_mem_7691, "shared_mem_7691") != 0)
         return 1;
-    if (memblock_set_shared(ctx, &*mem_out_p_7697, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_shared(ctx, &*mem_out_p_7786, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_shared(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_shared(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_entry_mk_input(struct futhark_context *ctx, struct memblock_device *mem_out_p_7698, struct memblock_device *mem_out_p_7699, int64_t *out_prim_out_7700, int64_t q_6186, int64_t m_6187, int64_t n_6188, int64_t k_6189)
+FUTHARK_FUN_ATTR int futrts_entry_mk_input(struct futhark_context *ctx, struct memblock_device *mem_out_p_7787, struct memblock_device *mem_out_p_7788, int64_t *out_prim_out_7789, int64_t q_6201, int64_t m_6202, int64_t n_6203, int64_t k_6204)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_device mem_7626;
+    struct memblock_device mem_7697;
     
-    mem_7626.references = NULL;
+    mem_7697.references = NULL;
     
-    struct memblock_device mem_7622;
+    struct memblock_device mem_7693;
     
-    mem_7622.references = NULL;
+    mem_7693.references = NULL;
     
-    struct memblock_device mem_out_7664;
+    struct memblock_device mem_out_7735;
     
-    mem_out_7664.references = NULL;
+    mem_out_7735.references = NULL;
     
-    struct memblock_device mem_out_7663;
+    struct memblock_device mem_out_7734;
     
-    mem_out_7663.references = NULL;
+    mem_out_7734.references = NULL;
     
-    int64_t prim_out_7665;
-    int64_t dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6783 = mul64(q_6186, q_6186);
-    int64_t zt_lhs_6784 = mul64(q_6186, m_6187);
-    int64_t replicate_arg0_6785 = mul64(k_6189, zt_lhs_6784);
-    bool binop_x_6787 = sle64((int64_t) 0, zt_lhs_6784);
-    bool binop_y_6788 = sle64((int64_t) 0, k_6189);
-    bool binop_y_6789 = binop_x_6787 && binop_y_6788;
-    bool dim_ok_cert_6791;
+    int64_t prim_out_7736;
+    int64_t dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6806 = mul64(q_6201, q_6201);
+    int64_t zt_lhs_6807 = mul64(q_6201, m_6202);
+    int64_t replicate_arg0_6808 = mul64(k_6204, zt_lhs_6807);
+    bool binop_x_6810 = sle64((int64_t) 0, zt_lhs_6807);
+    bool binop_y_6811 = sle64((int64_t) 0, k_6204);
+    bool binop_y_6812 = binop_x_6810 && binop_y_6811;
+    bool dim_ok_cert_6814;
     
-    if (!binop_y_6789) {
-        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) replicate_arg0_6785, "] to array of shape [", (long long) zt_lhs_6784, "][", (long long) k_6189, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  batched_mmm.fut:20:43-55\n   #3  /prelude/functional.fut:9:44-45\n   #4  batched_mmm.fut:20:22-55\n   #5  batched_mmm.fut:19:1-22:12\n"));
+    if (!binop_y_6812) {
+        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) replicate_arg0_6808, "] to array of shape [", (long long) zt_lhs_6807, "][", (long long) k_6204, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  ./batched-mmm/batched_mmm.fut:24:43-55\n   #3  /prelude/functional.fut:9:44-45\n   #4  ./batched-mmm/batched_mmm.fut:24:22-55\n   #5  ./batched-mmm/batched_mmm.fut:23:1-26:12\n"));
         err = FUTHARK_PROGRAM_ERROR;
         goto cleanup;
     }
     
-    bool binop_x_6793 = sle64((int64_t) 0, q_6186);
-    bool binop_y_6794 = sle64((int64_t) 0, m_6187);
-    bool binop_y_6795 = binop_x_6793 && binop_y_6794;
-    bool dim_ok_cert_6797;
+    bool binop_x_6816 = sle64((int64_t) 0, q_6201);
+    bool binop_y_6817 = sle64((int64_t) 0, m_6202);
+    bool binop_y_6818 = binop_x_6816 && binop_y_6817;
+    bool dim_ok_cert_6820;
     
-    if (!binop_y_6795) {
-        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_6784, "] to array of shape [", (long long) q_6186, "][", (long long) m_6187, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  batched_mmm.fut:20:43-55\n   #3  /prelude/functional.fut:9:44-45\n   #4  batched_mmm.fut:20:22-55\n   #5  batched_mmm.fut:19:1-22:12\n"));
+    if (!binop_y_6818) {
+        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_6807, "] to array of shape [", (long long) q_6201, "][", (long long) m_6202, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  ./batched-mmm/batched_mmm.fut:24:43-55\n   #3  /prelude/functional.fut:9:44-45\n   #4  ./batched-mmm/batched_mmm.fut:24:22-55\n   #5  ./batched-mmm/batched_mmm.fut:23:1-26:12\n"));
         err = FUTHARK_PROGRAM_ERROR;
         goto cleanup;
     }
     
-    int64_t binop_x_7619 = (int64_t) 2 * q_6186;
-    int64_t binop_x_7620 = m_6187 * binop_x_7619;
-    int64_t bytes_7621 = k_6189 * binop_x_7620;
-    int64_t zt_lhs_6799 = mul64(k_6189, dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6783);
-    int64_t replicate_arg0_6800 = mul64(n_6188, zt_lhs_6799);
-    bool binop_x_6802 = sle64((int64_t) 0, zt_lhs_6799);
-    bool binop_y_6803 = sle64((int64_t) 0, n_6188);
-    bool binop_y_6804 = binop_x_6802 && binop_y_6803;
-    bool dim_ok_cert_6806;
+    int64_t binop_x_7690 = (int64_t) 2 * q_6201;
+    int64_t binop_x_7691 = m_6202 * binop_x_7690;
+    int64_t bytes_7692 = k_6204 * binop_x_7691;
+    int64_t zt_lhs_6822 = mul64(k_6204, dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6806);
+    int64_t replicate_arg0_6823 = mul64(n_6203, zt_lhs_6822);
+    bool binop_x_6825 = sle64((int64_t) 0, zt_lhs_6822);
+    bool binop_y_6826 = sle64((int64_t) 0, n_6203);
+    bool binop_y_6827 = binop_x_6825 && binop_y_6826;
+    bool dim_ok_cert_6829;
     
-    if (!binop_y_6804) {
-        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) replicate_arg0_6800, "] to array of shape [", (long long) zt_lhs_6799, "][", (long long) n_6188, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  batched_mmm.fut:21:47-59\n   #3  /prelude/functional.fut:9:44-45\n   #4  batched_mmm.fut:21:22-59\n   #5  batched_mmm.fut:19:1-22:12\n"));
+    if (!binop_y_6827) {
+        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) replicate_arg0_6823, "] to array of shape [", (long long) zt_lhs_6822, "][", (long long) n_6203, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  ./batched-mmm/batched_mmm.fut:25:47-59\n   #3  /prelude/functional.fut:9:44-45\n   #4  ./batched-mmm/batched_mmm.fut:25:22-59\n   #5  ./batched-mmm/batched_mmm.fut:23:1-26:12\n"));
         err = FUTHARK_PROGRAM_ERROR;
         goto cleanup;
     }
     
-    bool binop_x_6808 = sle64((int64_t) 0, dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6783);
-    bool dim_ok_cert_6810;
+    bool binop_x_6831 = sle64((int64_t) 0, dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6806);
+    bool dim_ok_cert_6833;
     
-    if (!binop_x_6808) {
-        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_6799, "] to array of shape [", (long long) dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6783, "][", (long long) k_6189, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  batched_mmm.fut:21:47-59\n   #3  /prelude/functional.fut:9:44-45\n   #4  batched_mmm.fut:21:22-59\n   #5  batched_mmm.fut:19:1-22:12\n"));
+    if (!binop_x_6831) {
+        set_error(ctx, msgprintf("Error: %s%lld%s%lld%s%lld%s\n\nBacktrace:\n%s", "Cannot unflatten array of shape [", (long long) zt_lhs_6822, "] to array of shape [", (long long) dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6806, "][", (long long) k_6204, "]", "-> #0  /prelude/array.fut:184:3-30\n   #1  /prelude/array.fut:188:37-189:26\n   #2  ./batched-mmm/batched_mmm.fut:25:47-59\n   #3  /prelude/functional.fut:9:44-45\n   #4  ./batched-mmm/batched_mmm.fut:25:22-59\n   #5  ./batched-mmm/batched_mmm.fut:23:1-26:12\n"));
         err = FUTHARK_PROGRAM_ERROR;
         goto cleanup;
     }
     
-    int64_t binop_x_7623 = (int64_t) 2 * dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6783;
-    int64_t binop_x_7624 = k_6189 * binop_x_7623;
-    int64_t bytes_7625 = n_6188 * binop_x_7624;
+    int64_t binop_x_7694 = (int64_t) 2 * dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6806;
+    int64_t binop_x_7695 = k_6204 * binop_x_7694;
+    int64_t bytes_7696 = n_6203 * binop_x_7695;
     
-    if (memblock_alloc_device(ctx, &mem_7622, bytes_7621, "mem_7622")) {
+    if (memblock_alloc_device(ctx, &mem_7693, bytes_7692, "mem_7693")) {
         err = 1;
         goto cleanup;
     }
-    if (futrts_builtinzhreplicate_f16(ctx, mem_7622, q_6186 * m_6187 * k_6189, (f16) 1.0F) != 0) {
+    if (futrts_builtinzhreplicate_f16(ctx, mem_7693, q_6201 * m_6202 * k_6204, (f16) 1.0F) != 0) {
         err = 1;
         goto cleanup;
     }
-    if (memblock_alloc_device(ctx, &mem_7626, bytes_7625, "mem_7626")) {
+    if (memblock_alloc_device(ctx, &mem_7697, bytes_7696, "mem_7697")) {
         err = 1;
         goto cleanup;
     }
-    if (futrts_builtinzhreplicate_f16(ctx, mem_7626, dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6783 * k_6189 * n_6188, (f16) 1.0F) != 0) {
+    if (futrts_builtinzhreplicate_f16(ctx, mem_7697, dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6806 * k_6204 * n_6203, (f16) 1.0F) != 0) {
         err = 1;
         goto cleanup;
     }
-    if (memblock_set_device(ctx, &mem_out_7663, &mem_7622, "mem_7622") != 0)
+    if (memblock_set_device(ctx, &mem_out_7734, &mem_7693, "mem_7693") != 0)
         return 1;
-    if (memblock_set_device(ctx, &mem_out_7664, &mem_7626, "mem_7626") != 0)
+    if (memblock_set_device(ctx, &mem_out_7735, &mem_7697, "mem_7697") != 0)
         return 1;
-    prim_out_7665 = dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6783;
-    if (memblock_set_device(ctx, &*mem_out_p_7698, &mem_out_7663, "mem_out_7663") != 0)
+    prim_out_7736 = dzlz7bUZLztZRz20Uqz20Uqz7dUzg_6806;
+    if (memblock_set_device(ctx, &*mem_out_p_7787, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
-    if (memblock_set_device(ctx, &*mem_out_p_7699, &mem_out_7664, "mem_out_7664") != 0)
+    if (memblock_set_device(ctx, &*mem_out_p_7788, &mem_out_7735, "mem_out_7735") != 0)
         return 1;
-    *out_prim_out_7700 = prim_out_7665;
+    *out_prim_out_7789 = prim_out_7736;
     
   cleanup:
     {
-        if (memblock_unref_device(ctx, &mem_7626, "mem_7626") != 0)
+        if (memblock_unref_device(ctx, &mem_7697, "mem_7697") != 0)
             return 1;
-        if (memblock_unref_device(ctx, &mem_7622, "mem_7622") != 0)
+        if (memblock_unref_device(ctx, &mem_7693, "mem_7693") != 0)
             return 1;
-        if (memblock_unref_device(ctx, &mem_out_7664, "mem_out_7664") != 0)
+        if (memblock_unref_device(ctx, &mem_out_7735, "mem_out_7735") != 0)
             return 1;
-        if (memblock_unref_device(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_device(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_entry_mmm_intra128(struct futhark_context *ctx, struct memblock_device *mem_out_p_7701, struct memblock_device A_mem_7619, struct memblock_device B_mem_7620, int64_t q_6573)
+FUTHARK_FUN_ATTR int futrts_entry_mmm_intra128(struct futhark_context *ctx, struct memblock_device *mem_out_p_7790, struct memblock_device A_mem_7690, struct memblock_device B_mem_7691, int64_t q_6588)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_device mem_7659;
+    struct memblock_device mem_7730;
     
-    mem_7659.references = NULL;
+    mem_7730.references = NULL;
     
-    struct memblock_device mem_out_7663;
+    struct memblock_device mem_out_7734;
     
-    mem_out_7663.references = NULL;
+    mem_out_7734.references = NULL;
     
-    int64_t bytes_7658 = (int64_t) 65536 * q_6573;
+    int64_t bytes_7729 = (int64_t) 65536 * q_6588;
     
-    if (memblock_alloc_device(ctx, &mem_7659, bytes_7658, "mem_7659")) {
+    if (memblock_alloc_device(ctx, &mem_7730, bytes_7729, "mem_7730")) {
         err = 1;
         goto cleanup;
     }
     if (ctx->debugging)
         fprintf(ctx->log, "%s\n", "\n# SegMap");
     
-    int32_t num_chunks_7664 = 1;
-    int32_t virt_num_tblocks_7665 = sext_i64_i32(q_6573);
+    int32_t num_chunks_7735 = 1;
+    int32_t virt_num_tblocks_7736 = sext_i64_i32(q_6588);
     
     {
-        err = gpu_kernel_mmm_intra128zisegmap_intrablock_7320(ctx, q_6573, 1, 1, (int64_t) 128, 1, 1, (int64_t) 98304, q_6573, A_mem_7619.mem, B_mem_7620.mem, mem_7659.mem);
+        err = gpu_kernel_mmm_intra128zisegmap_intrablock_7343(ctx, q_6588, 1, 1, (int64_t) 128, 1, 1, (int64_t) 98304, q_6588, A_mem_7690.mem, B_mem_7691.mem, mem_7730.mem);
         if (err != FUTHARK_SUCCESS)
             goto cleanup;
     }
     ctx->failure_is_an_option = 1;
     if (ctx->debugging)
         fprintf(ctx->log, "%s\n", "");
-    if (memblock_set_device(ctx, &mem_out_7663, &mem_7659, "mem_7659") != 0)
+    if (memblock_set_device(ctx, &mem_out_7734, &mem_7730, "mem_7730") != 0)
         return 1;
-    if (memblock_set_device(ctx, &*mem_out_p_7701, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_device(ctx, &*mem_out_p_7790, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_device(ctx, &mem_7659, "mem_7659") != 0)
+        if (memblock_unref_device(ctx, &mem_7730, "mem_7730") != 0)
             return 1;
-        if (memblock_unref_device(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_device(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_entry_mmm_intra16(struct futhark_context *ctx, struct memblock_device *mem_out_p_7702, struct memblock_device A_mem_7619, struct memblock_device B_mem_7620, int64_t q_6549)
+FUTHARK_FUN_ATTR int futrts_entry_mmm_intra16(struct futhark_context *ctx, struct memblock_device *mem_out_p_7791, struct memblock_device A_mem_7690, struct memblock_device B_mem_7691, int64_t q_6564)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_device mem_7659;
+    struct memblock_device mem_7730;
     
-    mem_7659.references = NULL;
+    mem_7730.references = NULL;
     
-    struct memblock_device mem_out_7663;
+    struct memblock_device mem_out_7734;
     
-    mem_out_7663.references = NULL;
+    mem_out_7734.references = NULL;
     
-    int64_t bytes_7658 = (int64_t) 1024 * q_6549;
+    int64_t bytes_7729 = (int64_t) 1024 * q_6564;
     
-    if (memblock_alloc_device(ctx, &mem_7659, bytes_7658, "mem_7659")) {
+    if (memblock_alloc_device(ctx, &mem_7730, bytes_7729, "mem_7730")) {
         err = 1;
         goto cleanup;
     }
     if (ctx->debugging)
         fprintf(ctx->log, "%s\n", "\n# SegMap");
     
-    int32_t num_chunks_7664 = 1;
-    int32_t virt_num_tblocks_7665 = sext_i64_i32(q_6549);
+    int32_t num_chunks_7735 = 1;
+    int32_t virt_num_tblocks_7736 = sext_i64_i32(q_6564);
     
     {
-        err = gpu_kernel_mmm_intra16zisegmap_intrablock_7176(ctx, q_6549, 1, 1, (int64_t) 32, 1, 1, (int64_t) 1536, q_6549, A_mem_7619.mem, B_mem_7620.mem, mem_7659.mem);
+        err = gpu_kernel_mmm_intra16zisegmap_intrablock_7199(ctx, q_6564, 1, 1, (int64_t) 32, 1, 1, (int64_t) 1536, q_6564, A_mem_7690.mem, B_mem_7691.mem, mem_7730.mem);
         if (err != FUTHARK_SUCCESS)
             goto cleanup;
     }
     ctx->failure_is_an_option = 1;
     if (ctx->debugging)
         fprintf(ctx->log, "%s\n", "");
-    if (memblock_set_device(ctx, &mem_out_7663, &mem_7659, "mem_7659") != 0)
+    if (memblock_set_device(ctx, &mem_out_7734, &mem_7730, "mem_7730") != 0)
         return 1;
-    if (memblock_set_device(ctx, &*mem_out_p_7702, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_device(ctx, &*mem_out_p_7791, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_device(ctx, &mem_7659, "mem_7659") != 0)
+        if (memblock_unref_device(ctx, &mem_7730, "mem_7730") != 0)
             return 1;
-        if (memblock_unref_device(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_device(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_entry_mmm_intra32(struct futhark_context *ctx, struct memblock_device *mem_out_p_7703, struct memblock_device A_mem_7619, struct memblock_device B_mem_7620, int64_t q_6557)
+FUTHARK_FUN_ATTR int futrts_entry_mmm_intra256(struct futhark_context *ctx, struct memblock_device *mem_out_p_7792, struct memblock_device A_mem_7690, struct memblock_device B_mem_7691, int64_t q_6596)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_device mem_7659;
+    struct memblock_device mem_7697;
     
-    mem_7659.references = NULL;
+    mem_7697.references = NULL;
     
-    struct memblock_device mem_out_7663;
+    struct memblock_device mem_out_7734;
     
-    mem_out_7663.references = NULL;
+    mem_out_7734.references = NULL;
     
-    int64_t bytes_7658 = (int64_t) 4096 * q_6557;
+    int64_t bytes_7696 = (int64_t) 262144 * q_6596;
     
-    if (memblock_alloc_device(ctx, &mem_7659, bytes_7658, "mem_7659")) {
+    if (memblock_alloc_device(ctx, &mem_7697, bytes_7696, "mem_7697")) {
         err = 1;
         goto cleanup;
     }
     if (ctx->debugging)
         fprintf(ctx->log, "%s\n", "\n# SegMap");
     
-    int32_t num_chunks_7664 = 1;
-    int32_t virt_num_tblocks_7665 = sext_i64_i32(q_6557);
+    int32_t num_chunks_7735 = 1;
+    int32_t virt_num_tblocks_7736 = sext_i64_i32(q_6596);
     
     {
-        err = gpu_kernel_mmm_intra32zisegmap_intrablock_7224(ctx, q_6557, 1, 1, (int64_t) 32, 1, 1, (int64_t) 6144, q_6557, A_mem_7619.mem, B_mem_7620.mem, mem_7659.mem);
+        err = gpu_kernel_mmm_intra256zisegmap_intrablock_7391(ctx, q_6596, 1, 1, (int64_t) 16777216, 1, 1, (int64_t) 67371008, q_6596, A_mem_7690.mem, B_mem_7691.mem, mem_7697.mem);
         if (err != FUTHARK_SUCCESS)
             goto cleanup;
     }
-    ctx->failure_is_an_option = 1;
     if (ctx->debugging)
         fprintf(ctx->log, "%s\n", "");
-    if (memblock_set_device(ctx, &mem_out_7663, &mem_7659, "mem_7659") != 0)
+    if (memblock_set_device(ctx, &mem_out_7734, &mem_7697, "mem_7697") != 0)
         return 1;
-    if (memblock_set_device(ctx, &*mem_out_p_7703, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_device(ctx, &*mem_out_p_7792, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_device(ctx, &mem_7659, "mem_7659") != 0)
+        if (memblock_unref_device(ctx, &mem_7697, "mem_7697") != 0)
             return 1;
-        if (memblock_unref_device(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_device(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_entry_mmm_intra64(struct futhark_context *ctx, struct memblock_device *mem_out_p_7704, struct memblock_device A_mem_7619, struct memblock_device B_mem_7620, int64_t q_6565)
+FUTHARK_FUN_ATTR int futrts_entry_mmm_intra32(struct futhark_context *ctx, struct memblock_device *mem_out_p_7793, struct memblock_device A_mem_7690, struct memblock_device B_mem_7691, int64_t q_6572)
 {
     (void) ctx;
     
     int err = 0;
-    struct memblock_device mem_7659;
+    struct memblock_device mem_7730;
     
-    mem_7659.references = NULL;
+    mem_7730.references = NULL;
     
-    struct memblock_device mem_out_7663;
+    struct memblock_device mem_out_7734;
     
-    mem_out_7663.references = NULL;
+    mem_out_7734.references = NULL;
     
-    int64_t bytes_7658 = (int64_t) 16384 * q_6565;
+    int64_t bytes_7729 = (int64_t) 4096 * q_6572;
     
-    if (memblock_alloc_device(ctx, &mem_7659, bytes_7658, "mem_7659")) {
+    if (memblock_alloc_device(ctx, &mem_7730, bytes_7729, "mem_7730")) {
         err = 1;
         goto cleanup;
     }
     if (ctx->debugging)
         fprintf(ctx->log, "%s\n", "\n# SegMap");
     
-    int32_t num_chunks_7664 = 1;
-    int32_t virt_num_tblocks_7665 = sext_i64_i32(q_6565);
+    int32_t num_chunks_7735 = 1;
+    int32_t virt_num_tblocks_7736 = sext_i64_i32(q_6572);
     
     {
-        err = gpu_kernel_mmm_intra64zisegmap_intrablock_7272(ctx, q_6565, 1, 1, (int64_t) 32, 1, 1, (int64_t) 24576, q_6565, A_mem_7619.mem, B_mem_7620.mem, mem_7659.mem);
+        err = gpu_kernel_mmm_intra32zisegmap_intrablock_7247(ctx, q_6572, 1, 1, (int64_t) 32, 1, 1, (int64_t) 6144, q_6572, A_mem_7690.mem, B_mem_7691.mem, mem_7730.mem);
         if (err != FUTHARK_SUCCESS)
             goto cleanup;
     }
     ctx->failure_is_an_option = 1;
     if (ctx->debugging)
         fprintf(ctx->log, "%s\n", "");
-    if (memblock_set_device(ctx, &mem_out_7663, &mem_7659, "mem_7659") != 0)
+    if (memblock_set_device(ctx, &mem_out_7734, &mem_7730, "mem_7730") != 0)
         return 1;
-    if (memblock_set_device(ctx, &*mem_out_p_7704, &mem_out_7663, "mem_out_7663") != 0)
+    if (memblock_set_device(ctx, &*mem_out_p_7793, &mem_out_7734, "mem_out_7734") != 0)
         return 1;
     
   cleanup:
     {
-        if (memblock_unref_device(ctx, &mem_7659, "mem_7659") != 0)
+        if (memblock_unref_device(ctx, &mem_7730, "mem_7730") != 0)
             return 1;
-        if (memblock_unref_device(ctx, &mem_out_7663, "mem_out_7663") != 0)
+        if (memblock_unref_device(ctx, &mem_out_7734, "mem_out_7734") != 0)
             return 1;
     }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_tensorMMM_7351(struct futhark_context *ctx, float (*mem_out_p_7705)[(int64_t) 8], struct memblock_shared A_mem_7619, struct memblock_shared B_mem_7620, float C_mem_7621[(int64_t) 8], f16 elmTypeA_7342, f16 elmTypeB_7343, int64_t M_7344, int64_t N_7345, int64_t K_7346, int64_t mWarps_7347, int64_t nWarps_7348, int64_t aSwizzzzledParam_7349, int64_t bSwizzzzledParam_7350)
+FUTHARK_FUN_ATTR int futrts_entry_mmm_intra64(struct futhark_context *ctx, struct memblock_device *mem_out_p_7794, struct memblock_device A_mem_7690, struct memblock_device B_mem_7691, int64_t q_6580)
 {
     (void) ctx;
     
     int err = 0;
-    float mem_out_7663[(int64_t) 8];
+    struct memblock_device mem_7730;
     
-    for (int32_t i_7706 = 0; i_7706 < (int64_t) 8; i_7706++)
-        mem_out_7663[i_7706] = C_mem_7621[i_7706];
-    for (int32_t i_7707 = 0; i_7707 < (int64_t) 8; i_7707++)
-        (*mem_out_p_7705)[i_7707] = mem_out_7663[i_7707];
+    mem_7730.references = NULL;
+    
+    struct memblock_device mem_out_7734;
+    
+    mem_out_7734.references = NULL;
+    
+    int64_t bytes_7729 = (int64_t) 16384 * q_6580;
+    
+    if (memblock_alloc_device(ctx, &mem_7730, bytes_7729, "mem_7730")) {
+        err = 1;
+        goto cleanup;
+    }
+    if (ctx->debugging)
+        fprintf(ctx->log, "%s\n", "\n# SegMap");
+    
+    int32_t num_chunks_7735 = 1;
+    int32_t virt_num_tblocks_7736 = sext_i64_i32(q_6580);
+    
+    {
+        err = gpu_kernel_mmm_intra64zisegmap_intrablock_7295(ctx, q_6580, 1, 1, (int64_t) 32, 1, 1, (int64_t) 24576, q_6580, A_mem_7690.mem, B_mem_7691.mem, mem_7730.mem);
+        if (err != FUTHARK_SUCCESS)
+            goto cleanup;
+    }
+    ctx->failure_is_an_option = 1;
+    if (ctx->debugging)
+        fprintf(ctx->log, "%s\n", "");
+    if (memblock_set_device(ctx, &mem_out_7734, &mem_7730, "mem_7730") != 0)
+        return 1;
+    if (memblock_set_device(ctx, &*mem_out_p_7794, &mem_out_7734, "mem_out_7734") != 0)
+        return 1;
+    
+  cleanup:
+    {
+        if (memblock_unref_device(ctx, &mem_7730, "mem_7730") != 0)
+            return 1;
+        if (memblock_unref_device(ctx, &mem_out_7734, "mem_out_7734") != 0)
+            return 1;
+    }
+    return err;
+}
+FUTHARK_FUN_ATTR int futrts_tensorMMM_7422(struct futhark_context *ctx, float (*mem_out_p_7795)[(int64_t) 8], struct memblock_shared A_mem_7690, struct memblock_shared B_mem_7691, float C_mem_7692[(int64_t) 8], f16 elmTypeA_7413, f16 elmTypeB_7414, int64_t M_7415, int64_t N_7416, int64_t K_7417, int64_t mWarps_7418, int64_t nWarps_7419, int64_t aSwizzzzledParam_7420, int64_t bSwizzzzledParam_7421)
+{
+    (void) ctx;
+    
+    int err = 0;
+    float mem_out_7734[(int64_t) 8];
+    
+    for (int32_t i_7796 = 0; i_7796 < (int64_t) 8; i_7796++)
+        mem_out_7734[i_7796] = C_mem_7692[i_7796];
+    for (int32_t i_7797 = 0; i_7797 < (int64_t) 8; i_7797++)
+        (*mem_out_p_7795)[i_7797] = mem_out_7734[i_7797];
     
   cleanup:
     { }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_tensorMMM_7421(struct futhark_context *ctx, float (*mem_out_p_7708)[(int64_t) 32], struct memblock_shared A_mem_7619, struct memblock_shared B_mem_7620, float C_mem_7621[(int64_t) 32], f16 elmTypeA_7412, f16 elmTypeB_7413, int64_t M_7414, int64_t N_7415, int64_t K_7416, int64_t mWarps_7417, int64_t nWarps_7418, int64_t aSwizzzzledParam_7419, int64_t bSwizzzzledParam_7420)
+FUTHARK_FUN_ATTR int futrts_tensorMMM_7492(struct futhark_context *ctx, float (*mem_out_p_7798)[(int64_t) 32], struct memblock_shared A_mem_7690, struct memblock_shared B_mem_7691, float C_mem_7692[(int64_t) 32], f16 elmTypeA_7483, f16 elmTypeB_7484, int64_t M_7485, int64_t N_7486, int64_t K_7487, int64_t mWarps_7488, int64_t nWarps_7489, int64_t aSwizzzzledParam_7490, int64_t bSwizzzzledParam_7491)
 {
     (void) ctx;
     
     int err = 0;
-    float mem_out_7663[(int64_t) 32];
+    float mem_out_7734[(int64_t) 32];
     
-    for (int32_t i_7709 = 0; i_7709 < (int64_t) 32; i_7709++)
-        mem_out_7663[i_7709] = C_mem_7621[i_7709];
-    for (int32_t i_7710 = 0; i_7710 < (int64_t) 32; i_7710++)
-        (*mem_out_p_7708)[i_7710] = mem_out_7663[i_7710];
+    for (int32_t i_7799 = 0; i_7799 < (int64_t) 32; i_7799++)
+        mem_out_7734[i_7799] = C_mem_7692[i_7799];
+    for (int32_t i_7800 = 0; i_7800 < (int64_t) 32; i_7800++)
+        (*mem_out_p_7798)[i_7800] = mem_out_7734[i_7800];
     
   cleanup:
     { }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_tensorMMM_7491(struct futhark_context *ctx, float (*mem_out_p_7711)[(int64_t) 128], struct memblock_shared A_mem_7619, struct memblock_shared B_mem_7620, float C_mem_7621[(int64_t) 128], f16 elmTypeA_7482, f16 elmTypeB_7483, int64_t M_7484, int64_t N_7485, int64_t K_7486, int64_t mWarps_7487, int64_t nWarps_7488, int64_t aSwizzzzledParam_7489, int64_t bSwizzzzledParam_7490)
+FUTHARK_FUN_ATTR int futrts_tensorMMM_7562(struct futhark_context *ctx, float (*mem_out_p_7801)[(int64_t) 128], struct memblock_shared A_mem_7690, struct memblock_shared B_mem_7691, float C_mem_7692[(int64_t) 128], f16 elmTypeA_7553, f16 elmTypeB_7554, int64_t M_7555, int64_t N_7556, int64_t K_7557, int64_t mWarps_7558, int64_t nWarps_7559, int64_t aSwizzzzledParam_7560, int64_t bSwizzzzledParam_7561)
 {
     (void) ctx;
     
     int err = 0;
-    float mem_out_7663[(int64_t) 128];
+    float mem_out_7734[(int64_t) 128];
     
-    for (int32_t i_7712 = 0; i_7712 < (int64_t) 128; i_7712++)
-        mem_out_7663[i_7712] = C_mem_7621[i_7712];
-    for (int32_t i_7713 = 0; i_7713 < (int64_t) 128; i_7713++)
-        (*mem_out_p_7711)[i_7713] = mem_out_7663[i_7713];
+    for (int32_t i_7802 = 0; i_7802 < (int64_t) 128; i_7802++)
+        mem_out_7734[i_7802] = C_mem_7692[i_7802];
+    for (int32_t i_7803 = 0; i_7803 < (int64_t) 128; i_7803++)
+        (*mem_out_p_7801)[i_7803] = mem_out_7734[i_7803];
     
   cleanup:
     { }
     return err;
 }
-FUTHARK_FUN_ATTR int futrts_tensorMMM_7561(struct futhark_context *ctx, float (*mem_out_p_7714)[(int64_t) 128], struct memblock_shared A_mem_7619, struct memblock_shared B_mem_7620, float C_mem_7621[(int64_t) 128], f16 elmTypeA_7552, f16 elmTypeB_7553, int64_t M_7554, int64_t N_7555, int64_t K_7556, int64_t mWarps_7557, int64_t nWarps_7558, int64_t aSwizzzzledParam_7559, int64_t bSwizzzzledParam_7560)
+FUTHARK_FUN_ATTR int futrts_tensorMMM_7632(struct futhark_context *ctx, float (*mem_out_p_7804)[(int64_t) 128], struct memblock_shared A_mem_7690, struct memblock_shared B_mem_7691, float C_mem_7692[(int64_t) 128], f16 elmTypeA_7623, f16 elmTypeB_7624, int64_t M_7625, int64_t N_7626, int64_t K_7627, int64_t mWarps_7628, int64_t nWarps_7629, int64_t aSwizzzzledParam_7630, int64_t bSwizzzzledParam_7631)
 {
     (void) ctx;
     
     int err = 0;
-    float mem_out_7663[(int64_t) 128];
+    float mem_out_7734[(int64_t) 128];
     
-    for (int32_t i_7715 = 0; i_7715 < (int64_t) 128; i_7715++)
-        mem_out_7663[i_7715] = C_mem_7621[i_7715];
-    for (int32_t i_7716 = 0; i_7716 < (int64_t) 128; i_7716++)
-        (*mem_out_p_7714)[i_7716] = mem_out_7663[i_7716];
+    for (int32_t i_7805 = 0; i_7805 < (int64_t) 128; i_7805++)
+        mem_out_7734[i_7805] = C_mem_7692[i_7805];
+    for (int32_t i_7806 = 0; i_7806 < (int64_t) 128; i_7806++)
+        (*mem_out_p_7804)[i_7806] = mem_out_7734[i_7806];
     
   cleanup:
     { }
@@ -10752,40 +10832,40 @@ FUTHARK_FUN_ATTR int futrts_tensorMMM_7561(struct futhark_context *ctx, float (*
 
 int futhark_entry_mk_input(struct futhark_context *ctx, struct futhark_f16_3d **out0, struct futhark_f16_3d **out1, const int64_t in0, const int64_t in1, const int64_t in2, const int64_t in3)
 {
-    int64_t q_6186 = (int64_t) 0;
-    int64_t m_6187 = (int64_t) 0;
-    int64_t n_6188 = (int64_t) 0;
-    int64_t k_6189 = (int64_t) 0;
-    int64_t prim_out_7665 = (int64_t) 0;
+    int64_t q_6201 = (int64_t) 0;
+    int64_t m_6202 = (int64_t) 0;
+    int64_t n_6203 = (int64_t) 0;
+    int64_t k_6204 = (int64_t) 0;
+    int64_t prim_out_7736 = (int64_t) 0;
     int ret = 0;
     
     lock_lock(&ctx->lock);
     CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cu_ctx));
     
-    struct memblock_device mem_out_7664;
+    struct memblock_device mem_out_7735;
     
-    mem_out_7664.references = NULL;
+    mem_out_7735.references = NULL;
     
-    struct memblock_device mem_out_7663;
+    struct memblock_device mem_out_7734;
     
-    mem_out_7663.references = NULL;
-    q_6186 = in0;
-    m_6187 = in1;
-    n_6188 = in2;
-    k_6189 = in3;
+    mem_out_7734.references = NULL;
+    q_6201 = in0;
+    m_6202 = in1;
+    n_6203 = in2;
+    k_6204 = in3;
     if (ret == 0) {
-        ret = futrts_entry_mk_input(ctx, &mem_out_7663, &mem_out_7664, &prim_out_7665, q_6186, m_6187, n_6188, k_6189);
+        ret = futrts_entry_mk_input(ctx, &mem_out_7734, &mem_out_7735, &prim_out_7736, q_6201, m_6202, n_6203, k_6204);
         if (ret == 0) {
             assert((*out0 = (struct futhark_f16_3d *) malloc(sizeof(struct futhark_f16_3d))) != NULL);
-            (*out0)->mem = mem_out_7663;
-            (*out0)->shape[0] = q_6186;
-            (*out0)->shape[1] = m_6187;
-            (*out0)->shape[2] = k_6189;
+            (*out0)->mem = mem_out_7734;
+            (*out0)->shape[0] = q_6201;
+            (*out0)->shape[1] = m_6202;
+            (*out0)->shape[2] = k_6204;
             assert((*out1 = (struct futhark_f16_3d *) malloc(sizeof(struct futhark_f16_3d))) != NULL);
-            (*out1)->mem = mem_out_7664;
-            (*out1)->shape[0] = prim_out_7665;
-            (*out1)->shape[1] = k_6189;
-            (*out1)->shape[2] = n_6188;
+            (*out1)->mem = mem_out_7735;
+            (*out1)->shape[0] = prim_out_7736;
+            (*out1)->shape[1] = k_6204;
+            (*out1)->shape[2] = n_6203;
         }
     }
     CUDA_SUCCEED_FATAL(cuCtxPopCurrent(&ctx->cu_ctx));
@@ -10794,37 +10874,37 @@ int futhark_entry_mk_input(struct futhark_context *ctx, struct futhark_f16_3d **
 }
 int futhark_entry_mmm_intra128(struct futhark_context *ctx, struct futhark_f32_3d **out0, const struct futhark_f16_3d *in0, const struct futhark_f16_3d *in1)
 {
-    int64_t q_6573 = (int64_t) 0;
+    int64_t q_6588 = (int64_t) 0;
     int ret = 0;
     
     lock_lock(&ctx->lock);
     CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cu_ctx));
     
-    struct memblock_device mem_out_7663;
+    struct memblock_device mem_out_7734;
     
-    mem_out_7663.references = NULL;
+    mem_out_7734.references = NULL;
     
-    struct memblock_device B_mem_7620;
+    struct memblock_device B_mem_7691;
     
-    B_mem_7620.references = NULL;
+    B_mem_7691.references = NULL;
     
-    struct memblock_device A_mem_7619;
+    struct memblock_device A_mem_7690;
     
-    A_mem_7619.references = NULL;
-    A_mem_7619 = in0->mem;
-    q_6573 = in0->shape[0];
-    B_mem_7620 = in1->mem;
-    q_6573 = in1->shape[0];
-    if (!((q_6573 == in0->shape[0] && ((int64_t) 128 == in0->shape[1] && (int64_t) 128 == in0->shape[2])) && (q_6573 == in1->shape[0] && ((int64_t) 128 == in1->shape[1] && (int64_t) 128 == in1->shape[2])))) {
+    A_mem_7690.references = NULL;
+    A_mem_7690 = in0->mem;
+    q_6588 = in0->shape[0];
+    B_mem_7691 = in1->mem;
+    q_6588 = in1->shape[0];
+    if (!((q_6588 == in0->shape[0] && ((int64_t) 128 == in0->shape[1] && (int64_t) 128 == in0->shape[2])) && (q_6588 == in1->shape[0] && ((int64_t) 128 == in1->shape[1] && (int64_t) 128 == in1->shape[2])))) {
         ret = 1;
         set_error(ctx, msgprintf("Error: entry point arguments have invalid sizes.\n"));
     }
     if (ret == 0) {
-        ret = futrts_entry_mmm_intra128(ctx, &mem_out_7663, A_mem_7619, B_mem_7620, q_6573);
+        ret = futrts_entry_mmm_intra128(ctx, &mem_out_7734, A_mem_7690, B_mem_7691, q_6588);
         if (ret == 0) {
             assert((*out0 = (struct futhark_f32_3d *) malloc(sizeof(struct futhark_f32_3d))) != NULL);
-            (*out0)->mem = mem_out_7663;
-            (*out0)->shape[0] = q_6573;
+            (*out0)->mem = mem_out_7734;
+            (*out0)->shape[0] = q_6588;
             (*out0)->shape[1] = (int64_t) 128;
             (*out0)->shape[2] = (int64_t) 128;
         }
@@ -10835,37 +10915,37 @@ int futhark_entry_mmm_intra128(struct futhark_context *ctx, struct futhark_f32_3
 }
 int futhark_entry_mmm_intra16(struct futhark_context *ctx, struct futhark_f32_3d **out0, const struct futhark_f16_3d *in0, const struct futhark_f16_3d *in1)
 {
-    int64_t q_6549 = (int64_t) 0;
+    int64_t q_6564 = (int64_t) 0;
     int ret = 0;
     
     lock_lock(&ctx->lock);
     CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cu_ctx));
     
-    struct memblock_device mem_out_7663;
+    struct memblock_device mem_out_7734;
     
-    mem_out_7663.references = NULL;
+    mem_out_7734.references = NULL;
     
-    struct memblock_device B_mem_7620;
+    struct memblock_device B_mem_7691;
     
-    B_mem_7620.references = NULL;
+    B_mem_7691.references = NULL;
     
-    struct memblock_device A_mem_7619;
+    struct memblock_device A_mem_7690;
     
-    A_mem_7619.references = NULL;
-    A_mem_7619 = in0->mem;
-    q_6549 = in0->shape[0];
-    B_mem_7620 = in1->mem;
-    q_6549 = in1->shape[0];
-    if (!((q_6549 == in0->shape[0] && ((int64_t) 16 == in0->shape[1] && (int64_t) 16 == in0->shape[2])) && (q_6549 == in1->shape[0] && ((int64_t) 16 == in1->shape[1] && (int64_t) 16 == in1->shape[2])))) {
+    A_mem_7690.references = NULL;
+    A_mem_7690 = in0->mem;
+    q_6564 = in0->shape[0];
+    B_mem_7691 = in1->mem;
+    q_6564 = in1->shape[0];
+    if (!((q_6564 == in0->shape[0] && ((int64_t) 16 == in0->shape[1] && (int64_t) 16 == in0->shape[2])) && (q_6564 == in1->shape[0] && ((int64_t) 16 == in1->shape[1] && (int64_t) 16 == in1->shape[2])))) {
         ret = 1;
         set_error(ctx, msgprintf("Error: entry point arguments have invalid sizes.\n"));
     }
     if (ret == 0) {
-        ret = futrts_entry_mmm_intra16(ctx, &mem_out_7663, A_mem_7619, B_mem_7620, q_6549);
+        ret = futrts_entry_mmm_intra16(ctx, &mem_out_7734, A_mem_7690, B_mem_7691, q_6564);
         if (ret == 0) {
             assert((*out0 = (struct futhark_f32_3d *) malloc(sizeof(struct futhark_f32_3d))) != NULL);
-            (*out0)->mem = mem_out_7663;
-            (*out0)->shape[0] = q_6549;
+            (*out0)->mem = mem_out_7734;
+            (*out0)->shape[0] = q_6564;
             (*out0)->shape[1] = (int64_t) 16;
             (*out0)->shape[2] = (int64_t) 16;
         }
@@ -10874,39 +10954,80 @@ int futhark_entry_mmm_intra16(struct futhark_context *ctx, struct futhark_f32_3d
     lock_unlock(&ctx->lock);
     return ret;
 }
-int futhark_entry_mmm_intra32(struct futhark_context *ctx, struct futhark_f32_3d **out0, const struct futhark_f16_3d *in0, const struct futhark_f16_3d *in1)
+int futhark_entry_mmm_intra256(struct futhark_context *ctx, struct futhark_f32_3d **out0, const struct futhark_f16_3d *in0, const struct futhark_f16_3d *in1)
 {
-    int64_t q_6557 = (int64_t) 0;
+    int64_t q_6596 = (int64_t) 0;
     int ret = 0;
     
     lock_lock(&ctx->lock);
     CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cu_ctx));
     
-    struct memblock_device mem_out_7663;
+    struct memblock_device mem_out_7734;
     
-    mem_out_7663.references = NULL;
+    mem_out_7734.references = NULL;
     
-    struct memblock_device B_mem_7620;
+    struct memblock_device B_mem_7691;
     
-    B_mem_7620.references = NULL;
+    B_mem_7691.references = NULL;
     
-    struct memblock_device A_mem_7619;
+    struct memblock_device A_mem_7690;
     
-    A_mem_7619.references = NULL;
-    A_mem_7619 = in0->mem;
-    q_6557 = in0->shape[0];
-    B_mem_7620 = in1->mem;
-    q_6557 = in1->shape[0];
-    if (!((q_6557 == in0->shape[0] && ((int64_t) 32 == in0->shape[1] && (int64_t) 32 == in0->shape[2])) && (q_6557 == in1->shape[0] && ((int64_t) 32 == in1->shape[1] && (int64_t) 32 == in1->shape[2])))) {
+    A_mem_7690.references = NULL;
+    A_mem_7690 = in0->mem;
+    q_6596 = in0->shape[0];
+    B_mem_7691 = in1->mem;
+    q_6596 = in1->shape[0];
+    if (!((q_6596 == in0->shape[0] && ((int64_t) 256 == in0->shape[1] && (int64_t) 256 == in0->shape[2])) && (q_6596 == in1->shape[0] && ((int64_t) 256 == in1->shape[1] && (int64_t) 256 == in1->shape[2])))) {
         ret = 1;
         set_error(ctx, msgprintf("Error: entry point arguments have invalid sizes.\n"));
     }
     if (ret == 0) {
-        ret = futrts_entry_mmm_intra32(ctx, &mem_out_7663, A_mem_7619, B_mem_7620, q_6557);
+        ret = futrts_entry_mmm_intra256(ctx, &mem_out_7734, A_mem_7690, B_mem_7691, q_6596);
         if (ret == 0) {
             assert((*out0 = (struct futhark_f32_3d *) malloc(sizeof(struct futhark_f32_3d))) != NULL);
-            (*out0)->mem = mem_out_7663;
-            (*out0)->shape[0] = q_6557;
+            (*out0)->mem = mem_out_7734;
+            (*out0)->shape[0] = q_6596;
+            (*out0)->shape[1] = (int64_t) 256;
+            (*out0)->shape[2] = (int64_t) 256;
+        }
+    }
+    CUDA_SUCCEED_FATAL(cuCtxPopCurrent(&ctx->cu_ctx));
+    lock_unlock(&ctx->lock);
+    return ret;
+}
+int futhark_entry_mmm_intra32(struct futhark_context *ctx, struct futhark_f32_3d **out0, const struct futhark_f16_3d *in0, const struct futhark_f16_3d *in1)
+{
+    int64_t q_6572 = (int64_t) 0;
+    int ret = 0;
+    
+    lock_lock(&ctx->lock);
+    CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cu_ctx));
+    
+    struct memblock_device mem_out_7734;
+    
+    mem_out_7734.references = NULL;
+    
+    struct memblock_device B_mem_7691;
+    
+    B_mem_7691.references = NULL;
+    
+    struct memblock_device A_mem_7690;
+    
+    A_mem_7690.references = NULL;
+    A_mem_7690 = in0->mem;
+    q_6572 = in0->shape[0];
+    B_mem_7691 = in1->mem;
+    q_6572 = in1->shape[0];
+    if (!((q_6572 == in0->shape[0] && ((int64_t) 32 == in0->shape[1] && (int64_t) 32 == in0->shape[2])) && (q_6572 == in1->shape[0] && ((int64_t) 32 == in1->shape[1] && (int64_t) 32 == in1->shape[2])))) {
+        ret = 1;
+        set_error(ctx, msgprintf("Error: entry point arguments have invalid sizes.\n"));
+    }
+    if (ret == 0) {
+        ret = futrts_entry_mmm_intra32(ctx, &mem_out_7734, A_mem_7690, B_mem_7691, q_6572);
+        if (ret == 0) {
+            assert((*out0 = (struct futhark_f32_3d *) malloc(sizeof(struct futhark_f32_3d))) != NULL);
+            (*out0)->mem = mem_out_7734;
+            (*out0)->shape[0] = q_6572;
             (*out0)->shape[1] = (int64_t) 32;
             (*out0)->shape[2] = (int64_t) 32;
         }
@@ -10917,37 +11038,37 @@ int futhark_entry_mmm_intra32(struct futhark_context *ctx, struct futhark_f32_3d
 }
 int futhark_entry_mmm_intra64(struct futhark_context *ctx, struct futhark_f32_3d **out0, const struct futhark_f16_3d *in0, const struct futhark_f16_3d *in1)
 {
-    int64_t q_6565 = (int64_t) 0;
+    int64_t q_6580 = (int64_t) 0;
     int ret = 0;
     
     lock_lock(&ctx->lock);
     CUDA_SUCCEED_FATAL(cuCtxPushCurrent(ctx->cu_ctx));
     
-    struct memblock_device mem_out_7663;
+    struct memblock_device mem_out_7734;
     
-    mem_out_7663.references = NULL;
+    mem_out_7734.references = NULL;
     
-    struct memblock_device B_mem_7620;
+    struct memblock_device B_mem_7691;
     
-    B_mem_7620.references = NULL;
+    B_mem_7691.references = NULL;
     
-    struct memblock_device A_mem_7619;
+    struct memblock_device A_mem_7690;
     
-    A_mem_7619.references = NULL;
-    A_mem_7619 = in0->mem;
-    q_6565 = in0->shape[0];
-    B_mem_7620 = in1->mem;
-    q_6565 = in1->shape[0];
-    if (!((q_6565 == in0->shape[0] && ((int64_t) 64 == in0->shape[1] && (int64_t) 64 == in0->shape[2])) && (q_6565 == in1->shape[0] && ((int64_t) 64 == in1->shape[1] && (int64_t) 64 == in1->shape[2])))) {
+    A_mem_7690.references = NULL;
+    A_mem_7690 = in0->mem;
+    q_6580 = in0->shape[0];
+    B_mem_7691 = in1->mem;
+    q_6580 = in1->shape[0];
+    if (!((q_6580 == in0->shape[0] && ((int64_t) 64 == in0->shape[1] && (int64_t) 64 == in0->shape[2])) && (q_6580 == in1->shape[0] && ((int64_t) 64 == in1->shape[1] && (int64_t) 64 == in1->shape[2])))) {
         ret = 1;
         set_error(ctx, msgprintf("Error: entry point arguments have invalid sizes.\n"));
     }
     if (ret == 0) {
-        ret = futrts_entry_mmm_intra64(ctx, &mem_out_7663, A_mem_7619, B_mem_7620, q_6565);
+        ret = futrts_entry_mmm_intra64(ctx, &mem_out_7734, A_mem_7690, B_mem_7691, q_6580);
         if (ret == 0) {
             assert((*out0 = (struct futhark_f32_3d *) malloc(sizeof(struct futhark_f32_3d))) != NULL);
-            (*out0)->mem = mem_out_7663;
-            (*out0)->shape[0] = q_6565;
+            (*out0)->mem = mem_out_7734;
+            (*out0)->shape[0] = q_6580;
             (*out0)->shape[1] = (int64_t) 64;
             (*out0)->shape[2] = (int64_t) 64;
         }

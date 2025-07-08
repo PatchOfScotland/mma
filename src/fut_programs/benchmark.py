@@ -23,6 +23,7 @@ def plot_graph(title, xlabel, ylabel, plots):
     #plt.xscale('log')
     filename = title[:title.index(',')].replace(' ', '_') if ',' in title else title.replace(' ', '_')
     plt.savefig(os.path.join("graphs", f"{filename}.pdf"))
+    plt.close()
 
 def run_command(backend, results_file, entry_point, script, working_dir, tuning, cuda):
     args = [
@@ -231,16 +232,9 @@ def flash_full_result(results, experiment, blocks):
 def flash_full():
     blocks = 1
     experiment_list = [
-        #("flash-cfal-orig.fut", "main64", "cuda", "CUDA, d:64"),
-        #("flash-cfal-orig.fut", "main128", "cuda", "CUDA, d:128"),
-        #("flash-cfal-modified.fut", "main64", "cuda", "CUDA my backend w/ TC, d:64"),
-        #("flash-cfal-modified.fut", "main128", "cuda", "CUDA my backend w/ TC, d:128"),
-        #("flash-cfal-thesis.fut", "main64", "cuda", "CUDA thesis backend w/ TC, d:64"),
-        #("flash-cfal-thesis.fut", "main128", "cuda", "CUDA thesis backend w/ TC, d:128"),
         ("flash-cfal-orig.fut", "thesislike16", "cuda", "basic CUDA f16", "tuning=tuning"),
         ("flash-cfal-orig.fut", "thesislike32", "cuda", "basic CUDA f32", "tuning=tuning"),
-        #("flash-cfal-thesis.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128"], "cudatc", "CUDA thesis backend w/ TC", "tuning=tuning16,tuning32,tuning64,tuning128"),
-        ("flash-cfal-modified.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128", "thesislike256", "thesislike512"], "cudatc", "CUDA my backend w/ TC", "tuning=tuning"),
+        ("flash-cfal-modified.fut", ["thesislike16", "thesislike32", "thesislike64", "thesislike128", "thesislike256", "thesislike512"], "cudatc", "CUDA my backend w/ TC", "tuning=xxxtuning"),
     ]
     
     working_dir = os.path.abspath("./flash-full")
@@ -290,10 +284,149 @@ def large_mmm():
 
     plot_graph("Large Matrix Multiplication, of size $n\\times n \\times n$", "$n$", "TFLOPS", to_plot)
 
+def convolution_layer_result_image(results, experiment, blocks):
+    runtimes = results["runtimes"]
+    mean_runtime = mean(runtimes)
+    params = experiment.split('_')
+    m = int(params[0].replace('m',''))
+    n = int(params[1].replace('n',''))
+    p = int(params[2].replace('p',''))
+    k = int(params[3].replace('k',''))
+    l = int(params[4].replace('l',''))
+    o = int(params[5].replace('o',''))
+    padding = int(params[6].replace('pad',''))
+    n_pad = (n+(padding*2))
+    m_pad = (m+(padding*2))
+    new_n = (((n+(padding*2))-p)+1)
+    new_m = (((m+(padding*2))-p)+1)
+    # padding: O(l*n_pad*m_pad)
+    # img_cols: O(new_n*new_m*l*p*k)
+    # kernel_cols: O(o)
+    # res: O(new_n*new_m*o*l*p*k)
+    # res_bias: O(o*new_n*new_m)
+    # unflatten: O(o)
+    flops = (l*n_pad*m_pad) + (new_n*new_m*l*p*k) + (o) + (new_n*new_m*o*l*p*k) + (o*new_n*new_m) + (o)
+    (l*n_pad*m_pad) + (new_n*new_m*l*p*k) + (2*o) + (new_n*new_m*o*l*p*k) + (o*new_n*new_m)
+    tflops = flops / (mean_runtime * 1e6)
+    return (tflops, n)
+
+def convolution_layer_result_input(results, experiment, blocks):
+    runtimes = results["runtimes"]
+    mean_runtime = mean(runtimes)
+    params = experiment.split('_')
+    m = int(params[0].replace('m',''))
+    n = int(params[1].replace('n',''))
+    p = int(params[2].replace('p',''))
+    k = int(params[3].replace('k',''))
+    l = int(params[4].replace('l',''))
+    o = int(params[5].replace('o',''))
+    padding = int(params[6].replace('pad',''))
+    n_pad = (n+(padding*2))
+    m_pad = (m+(padding*2))
+    new_n = (((n+(padding*2))-p)+1)
+    new_m = (((m+(padding*2))-p)+1)
+    # padding: O(l*n_pad*m_pad)
+    # img_cols: O(new_n*new_m*l*p*k)
+    # kernel_cols: O(o)
+    # res: O(new_n*new_m*o*l*p*k)
+    # res_bias: O(o*new_n*new_m)
+    # unflatten: O(o)
+    flops = (l*n_pad*m_pad) + (new_n*new_m*l*p*k) + (o) + (new_n*new_m*o*l*p*k) + (o*new_n*new_m) + (o)
+    (l*n_pad*m_pad) + (new_n*new_m*l*p*k) + (2*o) + (new_n*new_m*o*l*p*k) + (o*new_n*new_m)
+    tflops = flops / (mean_runtime * 1e6)
+    return (tflops, l)
+
+def convolution_layer_result_output(results, experiment, blocks):
+    runtimes = results["runtimes"]
+    mean_runtime = mean(runtimes)
+    params = experiment.split('_')
+    m = int(params[0].replace('m',''))
+    n = int(params[1].replace('n',''))
+    p = int(params[2].replace('p',''))
+    k = int(params[3].replace('k',''))
+    l = int(params[4].replace('l',''))
+    o = int(params[5].replace('o',''))
+    padding = int(params[6].replace('pad',''))
+    n_pad = (n+(padding*2))
+    m_pad = (m+(padding*2))
+    new_n = (((n+(padding*2))-p)+1)
+    new_m = (((m+(padding*2))-p)+1)
+    # padding: O(l*n_pad*m_pad)
+    # img_cols: O(new_n*new_m*l*p*k)
+    # kernel_cols: O(o)
+    # res: O(new_n*new_m*o*l*p*k)
+    # res_bias: O(o*new_n*new_m)
+    # unflatten: O(o)
+    flops = (l*n_pad*m_pad) + (new_n*new_m*l*p*k) + (o) + (new_n*new_m*o*l*p*k) + (o*new_n*new_m) + (o)
+    (l*n_pad*m_pad) + (new_n*new_m*l*p*k) + (2*o) + (new_n*new_m*o*l*p*k) + (o*new_n*new_m)
+    tflops = flops / (mean_runtime * 1e6)
+    return (tflops, o)
+
+def convolution_layer_image_size():
+    blocks = 1
+
+    experiment_list = [
+        ("conv2d-basic-f16.fut", "convolve2d_test_img_size", "cuda", "basic CUDA backend f16"),
+        ("conv2d-basic-f32.fut", "convolve2d_test_img_size", "cuda", "basic CUDA backend f32"),
+        ("conv2d-tensor.fut", "convolve2d_test_img_size", "cudatc", "CUDA backend w/ TC & mixed f16/32"),
+    ]
+    working_dir = os.path.abspath("./convolution-layer")
+    n_lookups = {
+        128: 0,
+        256: 1,
+        512: 2,
+        1024: 3
+    }
+    to_plot = assemble(experiment_list, blocks, convolution_layer_result_image, n_lookups, working_dir)
+
+    plot_graph("Convolution Layer (image size), of size XXXX", "$n$", "TFLOPS", to_plot)
+
+def convolution_layer_input():
+    blocks = 1
+
+    experiment_list = [
+        ("conv2d-basic-f16.fut", "convolve2d_test_input", "cuda", "basic CUDA backend f16"),
+        ("conv2d-basic-f32.fut", "convolve2d_test_input", "cuda", "basic CUDA backend f32"),
+        ("conv2d-tensor.fut", "convolve2d_test_input", "cudatc", "CUDA backend w/ TC & mixed f16/32"),
+    ]
+    working_dir = os.path.abspath("./convolution-layer")
+    n_lookups = {
+        1024: 0,
+        2048: 1,
+        4096: 2,
+        8192: 3
+    }
+    to_plot = assemble(experiment_list, blocks, convolution_layer_result_input, n_lookups, working_dir)
+
+    plot_graph("Convolution Layer (input), of size XXXX", "$n$", "TFLOPS", to_plot)
+
+def convolution_layer_output():
+    blocks = 1
+
+    experiment_list = [
+        ("conv2d-basic-f16.fut", "convolve2d_test_output", "cuda", "basic CUDA backend f16"),
+        ("conv2d-basic-f32.fut", "convolve2d_test_output", "cuda", "basic CUDA backend f32"),
+        ("conv2d-tensor.fut", "convolve2d_test_output", "cudatc", "CUDA backend w/ TC & mixed f16/32"),
+    ]
+    working_dir = os.path.abspath("./convolution-layer")
+    n_lookups = {
+        256: 0,
+        512: 1,
+        1024: 2,
+        2048: 3,
+        4096: 4,
+        8192: 5
+    }
+    to_plot = assemble(experiment_list, blocks, convolution_layer_result_output, n_lookups, working_dir)
+
+    plot_graph("Convolution Layer (output), of size XXXX", "$n$", "TFLOPS", to_plot)
 
 #batched_mmm()
 #custom_attention()
 #lud()
-#flash_full()
+flash_full()
+#large_mmm()
 
-large_mmm()
+#convolution_layer_image_size()
+#convolution_layer_input()
+#convolution_layer_output()

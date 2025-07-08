@@ -1,0 +1,51 @@
+builtin#replicate_i32.replicate_28953
+Duration: 336.895996 μs
+Kernel builtin#replicate_i32.replicate_28953 with
+  grid=(1,1,1)
+  block=(256,1,1)
+  shared memory=0
+
+builtin#replicate_i32.replicate_28953
+Duration: 160.768005 μs
+Kernel builtin#replicate_i32.replicate_28953 with
+  grid=(80,1,1)
+  block=(256,1,1)
+  shared memory=0
+
+builtin#replicate_i32.replicate_28953
+Duration: 168.960007 μs
+Kernel builtin#replicate_i32.replicate_28953 with
+  grid=(80,1,1)
+  block=(256,1,1)
+  shared memory=0
+
+builtin#replicate_f16.replicate_28478
+Duration: 16.384001 μs
+Kernel builtin#replicate_f16.replicate_28478 with
+  grid=(256,1,1)
+  block=(256,1,1)
+  shared memory=0
+
+thesislike256.segmap_intrablock_26374
+Duration: 11264.0 μs
+Kernel thesislike256.segmap_intrablock_26374 with
+  grid=(32768,1,1)
+  block=(32,1,1)
+  shared memory=2176
+
+thesislike256.segmap_26448
+Duration: 16460.800781 μs
+Kernel thesislike256.segmap_26448 with
+  grid=(4194304,1,1)
+  block=(256,1,1)
+  shared memory=0
+
+thesislike256.segmap_26641
+Duration: 1600.512085 μs
+Kernel thesislike256.segmap_26641 with
+  grid=(32768,1,1)
+  block=(256,1,1)
+  shared memory=0
+
+copy_dev_to_dev
+Duration: 19.455999 μs

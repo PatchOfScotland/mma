@@ -1,18 +1,22 @@
 -- ==
 -- entry: mmm_intra16
--- compiled random input { [32768][16][16]f16 [32768][16][16]f16 }
+-- compiled random input { [32768][16][16]f16 [32768][16][16]f16 } auto output
 
 -- ==
 -- entry: mmm_intra32
--- compiled random input { [32768][32][32]f16 [32768][32][32]f16 }
+-- compiled random input { [32768][32][32]f16 [32768][32][32]f16 } auto output
 
 -- ==
 -- entry: mmm_intra64
--- compiled random input { [32768][64][64]f16 [32768][64][64]f16 }
+-- compiled random input { [32768][64][64]f16 [32768][64][64]f16 } auto output
 
 -- ==
 -- entry: mmm_intra128
--- compiled random input { [32768][128][128]f16 [32768][128][128]f16 }
+-- compiled random input { [32768][128][128]f16 [32768][128][128]f16 } auto output
+
+-- ==
+-- entry: mmm_intra256
+-- compiled random input { [32768][256][256]f16 [32768][256][256]f16 } auto output
 
 import "mmm-helpers"
 
@@ -34,4 +38,7 @@ entry mmm_intra64 [q] (A: [q][64][64]f16) (B: [q][64][64]f16) =
   mmm_intra A B
 
 entry mmm_intra128 [q] (A: [q][128][128]f16) (B: [q][128][128]f16) =
+  mmm_intra A B     
+
+entry mmm_intra256 [q] (A: [q][256][256]f16) (B: [q][256][256]f16) =
   mmm_intra A B                                                            

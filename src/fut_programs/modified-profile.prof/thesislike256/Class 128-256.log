@@ -1,0 +1,74 @@
+Allocating 131072 bytes for mem_27526 in space 'device' (currently allocated: 50495568 bytes).
+Received block of 131072 bytes; now allocated: 50626640 bytes.
+Event: builtin#replicate_f16.replicate_28478
+Kernel builtin#replicate_f16.replicate_28478 with
+  grid=(256,1,1)
+  block=(256,1,1)
+  shared memory=0
+
+Unreferencing block mem_27526 (allocated as mem_27526) in space 'device': 0 references remaining.
+131072 bytes freed (now allocated: 50495568 bytes)
+Compared thesislike256.suff_intra_par_1 <= 128: true.
+Compared thesislike256.suff_intra_par_3 <= 256: true.
+Compared thesislike256.suff_outer_par_2 <= 8388608: true.
+Allocating 2147483648 bytes for mem_27538 in space 'device' (currently allocated: 50495568 bytes).
+Received block of 2147483648 bytes; now allocated: 2197979216 bytes.
+Allocating 65536 bytes for mem_27543 in space 'device' (currently allocated: 2197979216 bytes).
+Received block of 65536 bytes; now allocated: 2198044752 bytes.
+Allocating 65536 bytes for mem_27546 in space 'device' (currently allocated: 2198044752 bytes).
+Received block of 65536 bytes; now allocated: 2198110288 bytes.
+Event: thesislike256.segmap_intrablock_26374
+Kernel thesislike256.segmap_intrablock_26374 with
+  grid=(32768,1,1)
+  block=(32,1,1)
+  shared memory=2176
+
+Allocating 2147483648 bytes for mem_27551 in space 'device' (currently allocated: 2198110288 bytes).
+Received block of 2147483648 bytes; now allocated: 4345593936 bytes.
+Event: thesislike256.segmap_26448
+Kernel thesislike256.segmap_26448 with
+  grid=(4194304,1,1)
+  block=(256,1,1)
+  shared memory=0
+
+Unreferencing block mem_27538 (allocated as mem_27538) in space 'device': 0 references remaining.
+2147483648 bytes freed (now allocated: 2198110288 bytes)
+Unreferencing block mem_27543 (allocated as mem_27543) in space 'device': 0 references remaining.
+65536 bytes freed (now allocated: 2198044752 bytes)
+Unreferencing block mem_27546 (allocated as mem_27546) in space 'device': 0 references remaining.
+65536 bytes freed (now allocated: 2197979216 bytes)
+Allocating 2147483648 bytes for mem_27563 in space 'device' (currently allocated: 2197979216 bytes).
+Received block of 2147483648 bytes; now allocated: 4345462864 bytes.
+Unreferencing block mem_27551 (allocated as mem_27551) in space 'device': 0 references remaining.
+2147483648 bytes freed (now allocated: 2197979216 bytes)
+Allocating 16777216 bytes for mem_27597 in space 'device' (currently allocated: 2197979216 bytes).
+Received block of 16777216 bytes; now allocated: 2214756432 bytes.
+Event: thesislike256.segmap_26641
+Kernel thesislike256.segmap_26641 with
+  grid=(32768,1,1)
+  block=(256,1,1)
+  shared memory=0
+
+Unreferencing block ext_mem_27587 (allocated as mem_27563) in space 'device': 1 references remaining.
+Allocating 16777216 bytes for mem_27885 in space 'device' (currently allocated: 2214756432 bytes).
+Received block of 16777216 bytes; now allocated: 2231533648 bytes.
+
+# Copy GPU to GPU
+Shape: [128][256][256]
+Dst offset: 0
+Dst strides: 65536 256 1
+Src offset: 0
+Src strides: 65536 256 1
+## Flat copy
+
+Event: copy_dev_to_dev
+
+Unreferencing block ext_mem_27708 (allocated as mem_27597) in space 'device': 2 references remaining.
+Unreferencing block mem_27885 (allocated as mem_27885) in space 'device': 2 references remaining.
+Unreferencing block mem_27597 (allocated as mem_27597) in space 'device': 1 references remaining.
+Unreferencing block ext_mem_27601 (allocated as mem_27597) in space 'device': 0 references remaining.
+16777216 bytes freed (now allocated: 2214756432 bytes)
+Unreferencing block mem_27563 (allocated as mem_27563) in space 'device': 0 references remaining.
+2147483648 bytes freed (now allocated: 67272784 bytes)
+Unreferencing block mem_out_28472 (allocated as mem_27885) in space 'device': 1 references remaining.
+runtime: 29429
